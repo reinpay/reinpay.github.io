@@ -82,3 +82,18 @@ details.faq p { color: var(--muted); margin: 10px 0 0; max-width: 70ch; }
 .ledger .receipt { height: auto; max-height: none; flex-shrink: 0; -webkit-mask: none; mask: none; position: relative; transform: none; opacity: 1; }
 .cta-box h2 { line-height: 1.12; }
 .cmd pre { padding-top: 44px; overflow-x: auto; }
+/* install page */
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; counter-reset: st; }
+.step { counter-increment: st; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.step::before { content: counter(st); width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--rein); color: var(--rein-ink); font: 700 17px var(--display); }
+.step h3 { margin: 0 0 6px; font: 700 20px var(--display); }
+.step p { margin: 0 0 10px; color: var(--muted); }
+.step .cmd { margin-top: 10px; }
+.step .cmd pre { padding-top: 16px; padding-right: 84px; }
+.step .out { font: 13px var(--mono); color: var(--muted); margin-top: 6px; }
+.ostabs { display: flex; gap: 6px; margin: 4px 0 10px; flex-wrap: wrap; }
+.ostabs button { background: var(--bg); border: 1px solid var(--line); color: var(--ink); font: 600 14px var(--body); padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.ostabs button[aria-pressed="true"] { background: var(--rein); color: var(--rein-ink); border-color: var(--rein); }
+.tip { border-left: 3px solid var(--brass); padding: 8px 12px; background: color-mix(in srgb, var(--brass) 8%, transparent); border-radius: 0 6px 6px 0; font-size: 14.5px; color: var(--ink); margin-top: 10px; }
+@media (max-width: 560px) { .step { grid-template-columns: minmax(0, 1fr); } }
+.bullet .cmd { margin-top: 10px; } .bullet .cmd pre { padding-top: 16px; padding-right: 84px; }

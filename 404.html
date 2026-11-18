@@ -29,6 +29,7 @@
     </a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-label="Menu">Menu</button>
     <div class="navlinks">
+      <a href="/install/">Install</a>
       <a href="/how/">How it works</a>
       <a href="/security/">Security</a>
       <a href="/docs/">Docs</a>
@@ -118,14 +119,14 @@
     <a class="card reveal" href="/how/"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="18" r="2"/></svg></span><h3>How it works</h3><p>The five checks, the order they run in, and what each receipt tells you.</p><span class="more">See the checks →</span></a>
     <a class="card reveal" href="/security/"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><h3>Security</h3><p>Who can do what, where the key lives, and what Reinpay never does.</p><span class="more">Read the model →</span></a>
     <a class="card reveal" href="/docs/"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h6"/></svg></span><h3>Docs</h3><p>Install, set up, connect your agent host, and every command and tool.</p><span class="more">Open the docs →</span></a>
-    <a class="card reveal" href="/app/#wallet"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h2M3 9h18"/></svg></span><h3>Wallet view</h3><p>Paste your Reinpay address and read its USDG and ETH balances on mainnet.</p><span class="more">Open wallet →</span></a>
+    <a class="card reveal" href="/install/"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/></svg></span><h3>Install</h3><p>Step by step for Windows, macOS and Linux, with every command ready to copy.</p><span class="more">Install Reinpay →</span></a>
     <a class="card reveal" href="/app/#fund"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M5 13l7 7 7-7"/></svg></span><h3>Fund</h3><p>Top up the agent's budget from your browser wallet, simulated before you sign.</p><span class="more">Fund it →</span></a>
     <a class="card reveal" href="/app/#playground"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5l12 7-12 7z"/></svg></span><h3>Playground</h3><p>Set rules, fire pretend requests, and watch each one get a receipt.</p><span class="more">Try the rules →</span></a>
   </div>
 </div></section>
 <section class="cta-band"><div class="wrap"><div class="cta-box">
   <h2>Set a budget, add a payee, and let your agent ask.</h2>
-  <div class="acts"><a class="btn launch" href="/app/">Launch app</a><a class="btn ghost" href="/docs/">Read the docs</a></div>
+  <div class="acts"><a class="btn launch" href="/app/">Launch app</a><a class="btn ghost" href="/install/">Install Reinpay</a></div>
 </div></div></section>
 </main>
 <footer>
@@ -139,7 +140,7 @@
     <div>
       <div>Pages</div>
       <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
-        <a href="/how/">How it works</a><a href="/security/">Security</a><a href="/docs/">Docs</a><a href="/app/">Launch app</a>
+        <a href="/install/">Install</a><a href="/how/">How it works</a><a href="/security/">Security</a><a href="/docs/">Docs</a><a href="/app/">Launch app</a>
       </div>
     </div>
     <div>
@@ -154,6 +155,9 @@
 <script>
 document.querySelector(".menu-toggle")?.addEventListener("click", (e) => { const n = e.target.closest("nav"); n.classList.toggle("open"); e.target.setAttribute("aria-expanded", n.classList.contains("open")); });
 document.querySelectorAll("[data-count]").forEach((el) => { const t = +el.dataset.count; if (!t || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const io = new IntersectionObserver(([en]) => { if (!en.isIntersecting) return; io.disconnect(); let i = 0; const step = () => { el.textContent = Math.min(t, ++i); if (i < t) setTimeout(step, 180); }; el.textContent = "0"; step(); }); io.observe(el); });
+document.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => { const t = b.parentElement.querySelector("pre").textContent; try { await navigator.clipboard.writeText(t); b.textContent = "Copied"; } catch { const r = document.createRange(); r.selectNodeContents(b.parentElement.querySelector("pre")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Selected"; } setTimeout(() => (b.textContent = "Copy"), 1600); }));
+document.querySelectorAll("[data-os]").forEach((b) => b.addEventListener("click", () => { document.querySelectorAll("[data-os]").forEach((x) => x.setAttribute("aria-pressed", x === b)); document.querySelectorAll("[data-osbox]").forEach((x) => (x.hidden = x.dataset.osbox !== b.dataset.os)); }));
+if (document.querySelector("[data-os]")) { const ua = navigator.userAgent; const os = /Mac/.test(ua) ? "mac" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null; if (os) document.querySelector(`[data-os="${os}"]`).click(); }
 </script>
 <script src="/assets/landing.js"></script>
 </body>

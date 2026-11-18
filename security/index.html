@@ -29,6 +29,7 @@
     </a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-label="Menu">Menu</button>
     <div class="navlinks">
+      <a href="/install/">Install</a>
       <a href="/how/">How it works</a>
       <a href="/security/" class="on" aria-current="page">Security</a>
       <a href="/docs/">Docs</a>
@@ -101,7 +102,7 @@
 </div></section>
 <section class="cta-band"><div class="wrap"><div class="cta-box">
   <h2>Set a budget, add a payee, and let your agent ask.</h2>
-  <div class="acts"><a class="btn launch" href="/app/">Launch app</a><a class="btn ghost" href="/docs/">Read the docs</a></div>
+  <div class="acts"><a class="btn launch" href="/app/">Launch app</a><a class="btn ghost" href="/install/">Install Reinpay</a></div>
 </div></div></section>
 </main>
 <footer>
@@ -115,7 +116,7 @@
     <div>
       <div>Pages</div>
       <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
-        <a href="/how/">How it works</a><a href="/security/">Security</a><a href="/docs/">Docs</a><a href="/app/">Launch app</a>
+        <a href="/install/">Install</a><a href="/how/">How it works</a><a href="/security/">Security</a><a href="/docs/">Docs</a><a href="/app/">Launch app</a>
       </div>
     </div>
     <div>
@@ -130,6 +131,9 @@
 <script>
 document.querySelector(".menu-toggle")?.addEventListener("click", (e) => { const n = e.target.closest("nav"); n.classList.toggle("open"); e.target.setAttribute("aria-expanded", n.classList.contains("open")); });
 document.querySelectorAll("[data-count]").forEach((el) => { const t = +el.dataset.count; if (!t || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const io = new IntersectionObserver(([en]) => { if (!en.isIntersecting) return; io.disconnect(); let i = 0; const step = () => { el.textContent = Math.min(t, ++i); if (i < t) setTimeout(step, 180); }; el.textContent = "0"; step(); }); io.observe(el); });
+document.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => { const t = b.parentElement.querySelector("pre").textContent; try { await navigator.clipboard.writeText(t); b.textContent = "Copied"; } catch { const r = document.createRange(); r.selectNodeContents(b.parentElement.querySelector("pre")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Selected"; } setTimeout(() => (b.textContent = "Copy"), 1600); }));
+document.querySelectorAll("[data-os]").forEach((b) => b.addEventListener("click", () => { document.querySelectorAll("[data-os]").forEach((x) => x.setAttribute("aria-pressed", x === b)); document.querySelectorAll("[data-osbox]").forEach((x) => (x.hidden = x.dataset.osbox !== b.dataset.os)); }));
+if (document.querySelector("[data-os]")) { const ua = navigator.userAgent; const os = /Mac/.test(ua) ? "mac" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null; if (os) document.querySelector(`[data-os="${os}"]`).click(); }
 </script>
 <script src="/assets/landing.js"></script>
 </body>
