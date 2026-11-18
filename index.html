@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reinpay</title>
+<link rel="canonical" href="https://reinpay.app/">
+<meta property="og:title" content="Reinpay">
+<meta property="og:description" content="A wallet for AI agents that only spends inside your rules.">
+<meta property="og:url" content="https://reinpay.app/">
+<meta name="theme-color" content="#1f4a3a">
+
+<meta name="description" content="A wallet for AI agents that only spends inside your rules. Daily budgets, a payee list, an approval line, and a mainnet simulation before every payment.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column of argument, anchored by a live receipt stack in the hero. Each later section answers one question a careful owner asks before handing an agent money. */
+:root {
+  --bg: #eef1ec;
+  --paper: #f8faf6;
+  --ink: #17231d;
+  --muted: #56645c;
+  --line: #d0d9d0;
+  --rein: #1f4a3a;
+  --rein-ink: #f2f6f1;
+  --brass: #a8761c;
+  --ok: #2f7a4f;
+  --wait: #9a6a12;
+  --stop: #b0412e;
+  --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1512; --paper: #151f1a; --ink: #e3ebe5; --muted: #98a89e; --line: #2a3832;
+    --rein: #8ccdb0; --rein-ink: #0e1512; --brass: #e2b057; --ok: #72c793; --wait: #e2b057; --stop: #f0836e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1512; --paper: #151f1a; --ink: #e3ebe5; --muted: #98a89e; --line: #2a3832;
+  --rein: #8ccdb0; --rein-ink: #0e1512; --brass: #e2b057; --ok: #72c793; --wait: #e2b057; --stop: #f0836e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); font: 17px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+a { color: var(--rein); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: -0.02em; text-wrap: balance; margin: 0; color: var(--ink); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
+
+/* nav */
+nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 22px; }
+.logo { display: flex; align-items: center; gap: 10px; font: 700 21px var(--display); color: var(--ink); text-decoration: none; }
+.navlinks { display: flex; gap: 22px; font-size: 15px; flex-wrap: wrap; }
+.navlinks a { color: var(--muted); text-decoration: none; }
+.navlinks a:hover { color: var(--ink); }
+
+/* hero */
+.hero .wrap { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 56px; align-items: center; padding-block: 40px 72px; }
+@media (max-width: 900px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-block: 16px 56px; } }
+.hero h1 { font-size: clamp(42px, 6.4vw, 76px); line-height: 0.98; font-weight: 700; }
+.hero h1 em { font-style: normal; color: var(--rein); }
+.lede { font-size: 19px; color: var(--muted); max-width: 52ch; margin: 22px 0 0; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; align-items: center; }
+.btn { font: 600 16px var(--body); background: var(--rein); color: var(--rein-ink); border: 1px solid var(--rein); padding: 12px 20px; border-radius: 6px; text-decoration: none; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--rein); }
+.note { font-size: 14px; color: var(--muted); }
+
+/* receipt stack */
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.receipt { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; font-size: 14px; position: relative; overflow: hidden; }
+.receipt::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--line); }
+.receipt.sent::before { background: var(--ok); } .receipt.wait::before { background: var(--wait); } .receipt.stop::before { background: var(--stop); }
+.receipt .who { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.receipt .amt { font: 500 16px var(--mono); text-align: right; white-space: nowrap; }
+.receipt .meta { grid-column: 1 / -1; font: 12.5px/1.45 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.receipt .why { grid-column: 1 / -1; font-size: 13.5px; }
+.pill { font: 600 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 7px; border-radius: 999px; border: 1px solid currentColor; }
+.sent .pill { color: var(--ok); } .wait .pill { color: var(--wait); } .stop .pill { color: var(--stop); }
+.stack-cap { font: 12px var(--mono); color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) {
+  .receipt { animation: slip 0.5s ease-out both; }
+  .receipt:nth-child(2) { animation-delay: 0.12s; } .receipt:nth-child(3) { animation-delay: 0.24s; } .receipt:nth-child(4) { animation-delay: 0.36s; }
+  @keyframes slip { from { transform: translateY(8px); opacity: 0.35; } }
+}
+
+/* sections */
+section.band { border-top: 1px solid var(--line); }
+section.band .wrap { padding-block: 72px; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 48px; }
+@media (max-width: 900px) { section.band .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 56px; } }
+section.band h2 { font-size: clamp(30px, 3.6vw, 42px); line-height: 1.05; margin-top: 12px; }
+.side p { color: var(--muted); max-width: 44ch; }
+ol.order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; counter-reset: step; }
+ol.order li { counter-increment: step; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+ol.order li::before { content: counter(step, decimal-leading-zero); font: 500 14px var(--mono); color: var(--brass); }
+ol.order b { font-family: var(--display); font-size: 18px; display: block; }
+ol.order span.d { color: var(--muted); font-size: 15px; }
+ol.order .out { font: 600 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.out.stop { color: var(--stop); } .out.wait { color: var(--wait); }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 620px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.col { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
+.col h3 { font-size: 19px; margin-bottom: 10px; }
+.col ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 15.5px; }
+.col.owner { border-color: var(--rein); }
+pre { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 18px; overflow-x: auto; font: 14px/1.7 var(--mono); color: var(--ink); }
+pre .c { color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; }
+th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); }
+th { font: 600 12px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tablewrap { overflow-x: auto; }
+/* motion: live receipts, budget meter, rule tracer */
+.meter { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.meter .top { display: flex; justify-content: space-between; gap: 10px; font: 13px var(--mono); color: var(--muted); flex-wrap: wrap; }
+.meter .top b { color: var(--ink); font-weight: 500; }
+.meter .bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.meter .fill { height: 100%; width: 24%; background: var(--rein); border-radius: 4px; transition: width 0.7s cubic-bezier(.2,.8,.2,1); }
+.receipt.checking::before { background: var(--brass); }
+.checking .pill { color: var(--brass); }
+.checks { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 10px; font: 12px var(--mono); color: var(--muted); }
+.checks .ok { color: var(--ok); } .checks .no { color: var(--stop); } .checks .hold { color: var(--wait); }
+.checks .ck { opacity: 0; transform: translateY(3px); transition: opacity 0.2s, transform 0.2s; }
+.checks .ck.on { opacity: 1; transform: none; }
+.stack.live { height: 470px; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent); mask-image: linear-gradient(to bottom, #000 78%, transparent); }
+@media (max-width: 900px) { .stack.live { height: 500px; } }
+.stack.live .receipt { flex-shrink: 0; animation: none; transition: transform 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.45s; }
+.stack.live .receipt.enter { transform: translateY(-14px); opacity: 0; }
+.stack.live .receipt.leave { opacity: 0; transform: translateY(10px); }
+.tracer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font: 13px var(--mono); color: var(--muted); margin-bottom: 8px; min-height: 26px; }
+.tracer .req { color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+.tracer .res { font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 11px; }
+ol.order li { transition: background 0.3s, box-shadow 0.3s; border-radius: 6px; }
+ol.order li.at { background: var(--paper); box-shadow: inset 3px 0 0 var(--brass); }
+ol.order li.pass::before { content: "✓"; color: var(--ok); }
+ol.order li.halt-stop { background: var(--paper); box-shadow: inset 3px 0 0 var(--stop); }
+ol.order li.halt-wait { background: var(--paper); box-shadow: inset 3px 0 0 var(--wait); }
+ol.order li.dim { opacity: 0.45; }
+@media (prefers-reduced-motion: reduce) { .meter .fill, .stack.live .receipt, ol.order li { transition: none; } }
+footer { border-top: 1px solid var(--line); }
+footer .wrap { padding-block: 36px 48px; display: flex; flex-wrap: wrap; gap: 16px 40px; justify-content: space-between; font-size: 14px; color: var(--muted); }
+.copy { background: none; border: 1px solid var(--line); color: var(--ink); font: 500 13px var(--mono); padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Reinpay home">
+      <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="9" fill="var(--rein)"/>
+        <path d="M12 29V11h8.5a5.5 5.5 0 0 1 0 11H12m8 0l7.5 7" fill="none" stroke="var(--rein-ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="25" y="7.5" width="7" height="7" rx="1.6" fill="none" stroke="var(--brass)" stroke-width="2.2"/>
+      </svg>
+      Reinpay
+    </a>
+    <div class="navlinks">
+      <a href="#rules">How it decides</a>
+      <a href="#who">Who can do what</a>
+      <a href="#start">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Wallet for AI agents · Robinhood Chain mainnet</div>
+      <h1 style="margin-top:16px">Give your agent money. <em>Keep the reins.</em></h1>
+      <p class="lede">Reinpay is a wallet your agent can ask to pay, but that only pays inside your rules: a daily budget, a list of payees, a max per payment, and a line above which it asks you first. Every payment is simulated on mainnet before anything is signed, and every request leaves a receipt.</p>
+      <div class="cta">
+        <a class="btn" href="#start">See how to set it up</a>
+        <a class="btn ghost" href="#rules">How it decides</a>
+      </div>
+      <p class="note" style="margin-top:14px">Version 0.1.0. Pays in USDG and ETH. Works with any MCP host that runs a local command. The source opens at launch.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="meter" aria-live="off">
+        <div class="top"><span>Today's USDG budget</span><span><b id="m-spent">6.00</b> sent of 25.00 · <span id="m-left">19.00 left</span></span></div>
+        <div class="bar"><div class="fill" id="m-fill"></div></div>
+      </div>
+      <div class="stack" id="stack" aria-label="Example receipts">
+        <div class="receipt sent">
+          <span class="who">Weather API</span><span class="amt">6.00 USDG</span>
+          <span class="why"><span class="pill">within rules</span>&nbsp; 6-hour forecast bundle</span>
+          <span class="meta">RP-00041 · simulated at block 117455143 · one transfer out, to the payee, exactly 6 USDG</span>
+        </div>
+        <div class="receipt wait">
+          <span class="who">GPU credits</span><span class="amt">12.00 USDG</span>
+          <span class="why"><span class="pill">waiting for you</span>&nbsp; above your approval line of 5 USDG</span>
+          <span class="meta">RP-00042 · reinpay approve RP-00042 to send</span>
+        </div>
+        <div class="receipt wait">
+          <span class="who">Weather API</span><span class="amt">6.00 USDG</span>
+          <span class="why"><span class="pill">waiting for you</span>&nbsp; same payment as RP-00041 four minutes ago</span>
+          <span class="meta">RP-00043 · repeat guard, held in case the agent is looping</span>
+        </div>
+        <div class="receipt stop">
+          <span class="who">cheap-gpu.example</span><span class="amt">25.00 USDG</span>
+          <span class="why"><span class="pill">blocked</span>&nbsp; not on your payee list</span>
+          <span class="meta">RP-00044 · nothing was signed</span>
+        </div>
+      </div>
+      <p class="stack-cap">Example receipts. The block number comes from a real test simulation; the payees are examples.</p>
+    </div>
+  </div>
+</header>
+
+<section class="band" id="rules">
+  <div class="wrap">
+    <div class="side">
+      <div class="eyebrow">How it decides</div>
+      <h2>Every request runs the same checks, in the same order.</h2>
+      <p>The first check that fails decides, and the receipt names it. Hard limits block outright. Softer ones hand the payment to you. Only a payment that passes all of them goes on to the simulation.</p>
+    </div>
+    <div style="min-width:0">
+    <div class="tracer" id="tracer" aria-hidden="true"></div>
+    <ol class="order" id="order">
+      <li><span><b>The payee is on your list</b><span class="d">Switched on, and allowed to receive that token. No fuzzy matching on names.</span></span><span class="out stop">else blocked</span></li>
+      <li><span><b>The amount fits the max per payment</b><span class="d">Your max for the token, and the payee's own max if you set one.</span></span><span class="out stop">else blocked</span></li>
+      <li><span><b>Today's budget has room</b><span class="d">Counting what was sent today and what is still waiting for you. Per token, per local calendar day.</span></span><span class="out stop">else blocked</span></li>
+      <li><span><b>It is not a repeat</b><span class="d">Same payee, token and amount within 10 minutes looks like a loop.</span></span><span class="out wait">else asks you</span></li>
+      <li><span><b>It is under your approval line</b><span class="d">Above the line, the payment waits for <span class="mono">reinpay approve</span>.</span></span><span class="out wait">else asks you</span></li>
+      <li><span><b>The simulation matches</b><span class="d"><span class="mono">eth_simulateV1</span> on Robinhood Chain mainnet must show exactly one transfer leaving the wallet: that amount, that token, to that payee. The wallet must also cover the network fee.</span></span><span class="out stop">else blocked</span></li>
+    </ol>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="who">
+  <div class="wrap">
+    <div class="side">
+      <div class="eyebrow">Who can do what</div>
+      <h2>The agent can ask. Only you can say yes.</h2>
+      <p>The commands that approve payments, change rules or add payees refuse to run without a real terminal, so an agent driving a shell cannot reach them either.</p>
+    </div>
+    <div class="split">
+      <div class="col">
+        <h3>Your agent, over MCP</h3>
+        <ul>
+          <li>Read the wallet's balances and today's budget left</li>
+          <li>Read the rules and the payee list</li>
+          <li>Ask for a payment, with a memo</li>
+          <li>Read its receipts</li>
+        </ul>
+      </div>
+      <div class="col owner">
+        <h3>You, in your terminal</h3>
+        <ul>
+          <li>Approve or reject what is waiting</li>
+          <li>Set budgets, max per payment and the approval line</li>
+          <li>Add, remove or switch off payees</li>
+          <li>Turn on sending without asking, for payments inside every rule</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="start">
+  <div class="wrap">
+    <div class="side">
+      <div class="eyebrow">Get started</div>
+      <h2>Five minutes, and a small amount of USDG.</h2>
+      <p>The key is created on your computer and encrypted with your passphrase. Fund the wallet with only what you are willing to let an agent spend.</p>
+      <p>Until you turn it on, every payment waits for you, including the ones inside your rules.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+      <pre><span class="c"># in your own terminal</span>
+reinpay init
+reinpay payee add "Weather API" 0xRecipient --tokens=USDG
+reinpay rule daily USDG 25
+reinpay rule approve-above USDG 5
+reinpay address            <span class="c"># fund this with a small amount</span>
+
+<span class="c"># connect your agent host, for example Claude Code</span>
+claude mcp add --scope user reinpay -- reinpay mcp
+
+<span class="c"># later</span>
+reinpay pending
+reinpay approve RP-00042</pre>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Default rule</th><th>USDG</th><th>ETH</th></tr></thead>
+          <tbody>
+            <tr><td>Daily budget</td><td class="n">25</td><td class="n">0.005</td></tr>
+            <tr><td>Max per payment</td><td class="n">10</td><td class="n">0.002</td></tr>
+            <tr><td>Asks you above</td><td class="n">5</td><td class="n">0.001</td></tr>
+            <tr><td>Repeat guard</td><td class="n" colspan="2">10 minutes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div style="font:700 17px var(--display);color:var(--ink)">Reinpay</div>
+      <div>Robinhood Chain mainnet · chain id 4663 · MIT licence</div>
+      <div>Nothing here is financial advice.</div>
+    </div>
+    <div>
+      <div>Contact</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <span class="mono" id="mail" style="color:var(--ink);user-select:all">hello@reinpay.app</span>
+        <button class="copy" id="copy" type="button">Copy</button>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (still) return; // the static page above is complete on its own
+  const CHECKS = ["payee", "max", "budget", "repeat", "approval", "simulation"];
+  const DAILY = 25;
+  // stop: index of the check that decides (null = passes all); kind: sent | wait | stop
+  const SEQ = [
+    { who: "Weather API", amt: 6, memo: "6-hour forecast bundle", stop: null, kind: "sent" },
+    { who: "GPU credits", amt: 12, memo: "2 hours of compute", stop: 4, kind: "wait", why: "above your approval line of 5 USDG" },
+    { who: "Weather API", amt: 6, memo: "6-hour forecast bundle", stop: 3, kind: "wait", why: "same payment a few minutes ago" },
+    { who: "cheap-gpu.example", amt: 25, memo: "cheaper GPU hours", stop: 0, kind: "stop", why: "not on your payee list" },
+    { who: "Translation service", amt: 4.5, memo: "translate the onboarding guide", stop: null, kind: "sent" },
+    { who: "Domain renewals", amt: 14, memo: "renew two domains", stop: 1, kind: "stop", why: "above the max of 10 USDG per payment" },
+    { who: "Weather API", amt: 3, memo: "extra city", stop: null, kind: "sent" },
+    { who: "Map tiles", amt: 4, memo: "tile pack", stop: 5, kind: "stop", why: "the simulation showed a second transfer out; refused" },
+  ];
+  const $ = (id) => document.getElementById(id);
+  const stack = $("stack");
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let spent = 0, n = 44, cycle = 0;
+  const money = (v) => v.toFixed(2);
+  function meter() {
+    $("m-spent").textContent = money(spent);
+    $("m-left").textContent = money(Math.max(0, DAILY - spent)) + " left";
+    $("m-fill").style.width = Math.min(100, (spent / DAILY) * 100) + "%";
+  }
+  function card(item) {
+    const el = document.createElement("div");
+    el.className = "receipt checking enter";
+    el.innerHTML = `<span class="who"></span><span class="amt"></span><span class="why"><span class="pill">checking</span>&nbsp; <span class="w"></span></span><span class="checks"></span><span class="meta"></span>`;
+    el.querySelector(".who").textContent = item.who;
+    el.querySelector(".amt").textContent = money(item.amt) + " USDG";
+    el.querySelector(".w").textContent = item.memo;
+    el.querySelector(".meta").textContent = "RP-000" + (++n) + " · agent request";
+    const box = el.querySelector(".checks");
+    for (const c of CHECKS) { const s = document.createElement("span"); s.className = "ck"; s.textContent = c; box.append(s); }
+    return el;
+  }
+  async function play(item) {
+    const el = card(item);
+    stack.prepend(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove("enter")));
+    // keep four cards; the oldest slides out
+    const cards = [...stack.querySelectorAll(".receipt")];
+    for (const old of cards.slice(4)) { old.classList.add("leave"); setTimeout(() => old.remove(), 460); }
+    await sleep(500);
+    const cks = el.querySelectorAll(".ck");
+    for (let i = 0; i < CHECKS.length; i++) {
+      const stopHere = item.stop === i;
+      cks[i].classList.add("on", stopHere ? (item.kind === "wait" ? "hold" : "no") : "ok");
+      cks[i].textContent = (stopHere ? (item.kind === "wait" ? "⏸ " : "✕ ") : "✓ ") + CHECKS[i];
+      await sleep(330);
+      if (stopHere) break;
+    }
+    el.classList.remove("checking");
+    el.classList.add(item.kind);
+    const pill = el.querySelector(".pill");
+    pill.textContent = { sent: "within rules", wait: "waiting for you", stop: "blocked" }[item.kind];
+    el.querySelector(".w").textContent = item.kind === "sent" ? item.memo : item.why;
+    el.querySelector(".meta").textContent += item.kind === "sent" ? " · simulated on mainnet, one transfer out" : item.kind === "wait" ? " · reinpay approve to send" : " · nothing was signed";
+    if (item.kind === "sent") { spent += item.amt; meter(); }
+  }
+  async function heroLoop() {
+    stack.classList.add("live");
+    spent = 6; meter();
+    await sleep(1600);
+    for (;;) {
+      for (const item of SEQ) {
+        if (document.hidden) { await sleep(800); continue; }
+        await play(item);
+        await sleep(1700);
+      }
+      cycle++;
+      spent = 0; meter(); // a new day
+      await sleep(900);
+    }
+  }
+
+  // Rules tracer: one example request walks down the list and stops where a rule decides.
+  const EX = [
+    { label: "Weather API · 6 USDG", stop: null, res: "passes every check, then the simulation", kind: "ok" },
+    { label: "GPU credits · 12 USDG", stop: 4, res: "waits for you", kind: "wait" },
+    { label: "cheap-gpu.example · 25 USDG", stop: 0, res: "blocked", kind: "stop" },
+    { label: "Weather API · 6 USDG, again", stop: 3, res: "held by the repeat guard", kind: "wait" },
+  ];
+  const lis = [...document.querySelectorAll("#order li")];
+  const tracer = $("tracer");
+  function clear() { for (const li of lis) li.className = ""; }
+  async function traceLoop() {
+    for (let k = 0; ; k = (k + 1) % EX.length) {
+      const ex = EX[k];
+      clear();
+      tracer.innerHTML = `<span>Request</span><span class="req"></span><span class="res"></span>`;
+      tracer.querySelector(".req").textContent = ex.label;
+      await sleep(700);
+      for (let i = 0; i < lis.length; i++) {
+        lis[i].classList.add("at");
+        await sleep(560);
+        lis[i].classList.remove("at");
+        if (ex.stop === i) {
+          lis[i].classList.add(ex.kind === "wait" ? "halt-wait" : "halt-stop");
+          for (let j = i + 1; j < lis.length; j++) lis[j].classList.add("dim");
+          break;
+        }
+        lis[i].classList.add("pass");
+      }
+      const res = tracer.querySelector(".res");
+      res.textContent = "→ " + ex.res;
+      res.style.color = ex.kind === "ok" ? "var(--ok)" : ex.kind === "wait" ? "var(--wait)" : "var(--stop)";
+      await sleep(2600);
+    }
+  }
+  heroLoop();
+  traceLoop();
+})();
+document.getElementById("copy").addEventListener("click", async (e) => {
+  const b = e.currentTarget;
+  try { await navigator.clipboard.writeText("hello@reinpay.app"); b.textContent = "Copied"; }
+  catch { const r = document.createRange(); r.selectNodeContents(document.getElementById("mail")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Selected"; }
+  setTimeout(() => { b.textContent = "Copy"; }, 1800);
+});
+</script>
+</body>
+</html>
