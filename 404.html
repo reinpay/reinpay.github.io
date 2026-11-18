@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reinpay</title>
+<meta name="description" content="A wallet for AI agents that only spends inside your rules. Daily budgets, a payee list, an approval line, and a mainnet simulation before every payment.">
+<link rel="canonical" href="https://reinpay.app/">
+<meta property="og:title" content="Reinpay">
+<meta property="og:description" content="A wallet for AI agents that only spends inside your rules. Daily budgets, a payee list, an approval line, and a mainnet simulation before every payment.">
+<meta property="og:url" content="https://reinpay.app/">
+<meta name="theme-color" content="#1f4a3a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/extra.css">
+</head>
+<body data-page="home">
+<nav>
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="Reinpay home">
+      <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="9" fill="var(--rein)"/>
+        <path d="M12 29V11h8.5a5.5 5.5 0 0 1 0 11H12m8 0l7.5 7" fill="none" stroke="var(--rein-ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="25" y="7.5" width="7" height="7" rx="1.6" fill="none" stroke="var(--brass)" stroke-width="2.2"/>
+      </svg>
+      Reinpay
+    </a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-label="Menu">Menu</button>
+    <div class="navlinks">
+      <a href="/how/">How it works</a>
+      <a href="/security/">Security</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener" aria-label="Reinpay on GitHub"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <a class="btn launch" href="/app/">Launch app</a>
+    </div>
+  </div>
+</nav>
+<main>
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Wallet for AI agents · Robinhood Chain mainnet</div>
+      <h1 style="margin-top:16px">Give your agent money. <em>Keep the reins.</em></h1>
+      <p class="lede">Reinpay is a wallet your agent can ask to pay, but that only pays inside your rules: a daily budget, a list of payees, a max per payment, and a line above which it asks you first. Every payment is simulated on mainnet before anything is signed, and every request leaves a receipt.</p>
+      <div class="cta">
+        <a class="btn" href="/app/">Launch app</a>
+        <a class="btn ghost" href="/how/">How it works</a>
+      </div>
+      <p class="note" style="margin-top:14px">Version 0.1.0. Pays in USDG and ETH. Works with any MCP host that runs a local command. Open source, MIT, on <a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener">GitHub</a>.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="meter" aria-live="off">
+        <div class="top"><span>Today's USDG budget</span><span><b id="m-spent">6.00</b> sent of 25.00 · <span id="m-left">19.00 left</span></span></div>
+        <div class="bar"><div class="fill" id="m-fill"></div></div>
+      </div>
+      <div class="stack" id="stack" aria-label="Example receipts">
+        <div class="receipt sent">
+          <span class="who">Weather API</span><span class="amt">6.00 USDG</span>
+          <span class="why"><span class="pill">within rules</span>&nbsp; 6-hour forecast bundle</span>
+          <span class="meta">RP-00041 · simulated at block 117455143 · one transfer out, to the payee, exactly 6 USDG</span>
+        </div>
+        <div class="receipt wait">
+          <span class="who">GPU credits</span><span class="amt">12.00 USDG</span>
+          <span class="why"><span class="pill">waiting for you</span>&nbsp; above your approval line of 5 USDG</span>
+          <span class="meta">RP-00042 · reinpay approve RP-00042 to send</span>
+        </div>
+        <div class="receipt wait">
+          <span class="who">Weather API</span><span class="amt">6.00 USDG</span>
+          <span class="why"><span class="pill">waiting for you</span>&nbsp; same payment as RP-00041 four minutes ago</span>
+          <span class="meta">RP-00043 · repeat guard, held in case the agent is looping</span>
+        </div>
+        <div class="receipt stop">
+          <span class="who">cheap-gpu.example</span><span class="amt">25.00 USDG</span>
+          <span class="why"><span class="pill">blocked</span>&nbsp; not on your payee list</span>
+          <span class="meta">RP-00044 · nothing was signed</span>
+        </div>
+      </div>
+      <p class="stack-cap">Example receipts. The block number comes from a real test simulation; the payees are examples.</p>
+    </div>
+  </div>
+</header>
+<section class="flow" aria-label="How a payment flows">
+  <div class="wrap">
+    <div class="flowbox">
+      <svg viewBox="0 0 1000 200" role="img" aria-label="An agent sends payment requests to Reinpay's rules. Requests inside the rules go on to the payee, requests above the approval line wait for the owner, and the rest are blocked.">
+        <line class="fl-track live" x1="190" y1="80" x2="400" y2="80"/>
+        <line class="fl-track live" x1="600" y1="80" x2="810" y2="80"/>
+        <rect class="fl-node" x="40" y="40" width="150" height="80" rx="12"/>
+        <text class="fl-label" x="115" y="78" text-anchor="middle">Your agent</text>
+        <text class="fl-sub" x="115" y="100" text-anchor="middle">asks over MCP</text>
+        <rect class="fl-node rules" x="400" y="28" width="200" height="104" rx="14"/>
+        <text class="fl-label" x="500" y="62" text-anchor="middle">Your rules</text>
+        <g id="fl-lights"></g>
+        <text class="fl-sub" x="500" y="120" text-anchor="middle">then a mainnet simulation</text>
+        <rect class="fl-node" x="810" y="40" width="150" height="80" rx="12"/>
+        <circle class="fl-pulse" id="fl-pulse" cx="885" cy="80" r="48" style="transform-origin: 885px 80px"/>
+        <text class="fl-label" x="885" y="78" text-anchor="middle">Payee</text>
+        <text class="fl-sub" x="885" y="100" text-anchor="middle">on your list</text>
+        <rect class="fl-tray" x="420" y="144" width="160" height="52" rx="8"/>
+        <text class="fl-tray-t" x="500" y="188" text-anchor="middle">WAITING FOR YOU</text>
+        <g id="fl-dots"></g>
+      </svg>
+      <div class="flowcap"><span>payee · max · budget · repeat · approval · simulation</span><span id="fl-count">0 sent · 0 waiting · 0 blocked</span></div>
+    </div>
+  </div>
+</section>
+<section class="stats" aria-label="Reinpay in numbers"><div class="wrap">
+  <div class="stat-tile reveal"><b data-count="5">5</b><span>checks on every request, always in the same order</span></div>
+  <div class="stat-tile reveal"><b data-count="1">1</b><span>mainnet simulation before anything is signed</span></div>
+  <div class="stat-tile reveal"><b data-count="0">0</b><span>keys that leave your computer</span></div>
+  <div class="stat-tile reveal"><b data-count="5">5</b><span>MCP tools for your agent, none of them can approve</span></div>
+</div></section>
+<section class="plain"><div class="wrap">
+  <div class="section-head"><div class="eyebrow">Explore</div><h2>Everything an owner checks before handing an agent money.</h2><p>Each page answers one question. The app lets you try the rules before you install anything.</p></div>
+  <div class="cards">
+    <a class="card reveal" href="/how/"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="18" r="2"/></svg></span><h3>How it works</h3><p>The five checks, the order they run in, and what each receipt tells you.</p><span class="more">See the checks →</span></a>
+    <a class="card reveal" href="/security/"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><h3>Security</h3><p>Who can do what, where the key lives, and what Reinpay never does.</p><span class="more">Read the model →</span></a>
+    <a class="card reveal" href="/docs/"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h6"/></svg></span><h3>Docs</h3><p>Install, set up, connect your agent host, and every command and tool.</p><span class="more">Open the docs →</span></a>
+    <a class="card reveal" href="/app/#wallet"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h2M3 9h18"/></svg></span><h3>Wallet view</h3><p>Paste your Reinpay address and read its USDG and ETH balances on mainnet.</p><span class="more">Open wallet →</span></a>
+    <a class="card reveal" href="/app/#fund"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M5 13l7 7 7-7"/></svg></span><h3>Fund</h3><p>Top up the agent's budget from your browser wallet, simulated before you sign.</p><span class="more">Fund it →</span></a>
+    <a class="card reveal" href="/app/#playground"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5l12 7-12 7z"/></svg></span><h3>Playground</h3><p>Set rules, fire pretend requests, and watch each one get a receipt.</p><span class="more">Try the rules →</span></a>
+  </div>
+</div></section>
+<section class="cta-band"><div class="wrap"><div class="cta-box">
+  <h2>Set a budget, add a payee, and let your agent ask.</h2>
+  <div class="acts"><a class="btn launch" href="/app/">Launch app</a><a class="btn ghost" href="/docs/">Read the docs</a></div>
+</div></div></section>
+</main>
+<footer>
+  <div class="wrap">
+    <div>
+      <div style="font:700 17px var(--display);color:var(--ink)">Reinpay</div>
+      <div>Robinhood Chain mainnet · chain id 4663 · MIT licence</div>
+      <div>Nothing here is financial advice.</div>
+      <div style="margin-top:8px"><a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> github.com/reinpay/reinpay</a></div>
+    </div>
+    <div>
+      <div>Pages</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+        <a href="/how/">How it works</a><a href="/security/">Security</a><a href="/docs/">Docs</a><a href="/app/">Launch app</a>
+      </div>
+    </div>
+    <div>
+      <div>Contact</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <span class="mono" id="mail" style="color:var(--ink);user-select:all">hello@reinpay.app</span>
+        <button class="copy" id="copy" type="button">Copy</button>
+      </div>
+    </div>
+  </div>
+</footer>
+<script>
+document.querySelector(".menu-toggle")?.addEventListener("click", (e) => { const n = e.target.closest("nav"); n.classList.toggle("open"); e.target.setAttribute("aria-expanded", n.classList.contains("open")); });
+document.querySelectorAll("[data-count]").forEach((el) => { const t = +el.dataset.count; if (!t || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const io = new IntersectionObserver(([en]) => { if (!en.isIntersecting) return; io.disconnect(); let i = 0; const step = () => { el.textContent = Math.min(t, ++i); if (i < t) setTimeout(step, 180); }; el.textContent = "0"; step(); }); io.observe(el); });
+</script>
+<script src="/assets/landing.js"></script>
+</body>
+</html>

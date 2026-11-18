@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>App · Reinpay</title>
+<meta name="description" content="Read your Reinpay wallet, fund it from your browser wallet, build rules and try them in a playground.">
+<link rel="canonical" href="https://reinpay.app/app/">
+<meta property="og:title" content="App · Reinpay">
+<meta property="og:description" content="Read your Reinpay wallet, fund it from your browser wallet, build rules and try them in a playground.">
+<meta property="og:url" content="https://reinpay.app/app/">
+<meta name="theme-color" content="#1f4a3a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/extra.css">
+</head>
+<body data-page="app">
+<nav>
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="Reinpay home">
+      <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="9" fill="var(--rein)"/>
+        <path d="M12 29V11h8.5a5.5 5.5 0 0 1 0 11H12m8 0l7.5 7" fill="none" stroke="var(--rein-ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="25" y="7.5" width="7" height="7" rx="1.6" fill="none" stroke="var(--brass)" stroke-width="2.2"/>
+      </svg>
+      Reinpay
+    </a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-label="Menu">Menu</button>
+    <div class="navlinks">
+      <a href="/how/">How it works</a>
+      <a href="/security/">Security</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener" aria-label="Reinpay on GitHub"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <button class="btn small ghost" id="nav-connect" type="button">Connect wallet</button>
+      <a class="btn launch" href="/app/">Launch app</a>
+    </div>
+  </div>
+</nav>
+<main>
+<section class="app"><div class="wrap">
+  <div class="apphead">
+    <div><div class="eyebrow">Reinpay app</div><h1>Your agent's wallet, from the browser.</h1></div>
+    <p class="note-app">The wallet itself runs on your computer, and approvals happen in your terminal. This page reads public balances, funds the wallet from your browser wallet, and lets you try rules. It never sees a key.</p>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="wallet">Wallet</button>
+    <button class="tab" role="tab" data-tab="fund">Fund</button>
+    <button class="tab" role="tab" data-tab="rules">Rule builder</button>
+    <button class="tab" role="tab" data-tab="playground">Playground</button>
+  </div>
+  <div class="panel" id="p-wallet">
+    <div class="box">
+      <h3>Read a Reinpay wallet</h3>
+      <label for="w-addr">Wallet address<input id="w-addr" type="text" autocomplete="off" spellcheck="false" placeholder="0x… from reinpay address"></label>
+      <button class="btn" id="w-read" type="button">Read balances</button>
+      <div class="fstatus" id="w-msg">Read only. Nothing is signed.</div>
+    </div>
+    <div class="box">
+      <h3>Balances on Robinhood Chain</h3>
+      <div class="balrow"><span id="w-usdg">–</span><small>USDG</small></div>
+      <div class="balrow"><span id="w-eth">–</span><small>ETH, for network fees</small></div>
+      <a id="w-explorer" href="#" target="_blank" rel="noopener" hidden>Open in the explorer →</a>
+      <p class="note-app">Budgets and receipts live on your computer: run <span class="mono">reinpay status</span> and <span class="mono">reinpay receipts</span>.</p>
+    </div>
+  </div>
+  <div class="panel" id="p-fund" hidden>
+    <div class="box" id="fund">
+      <h3>Top up the agent's budget</h3>
+      <p class="note-app">Connect a browser wallet on Robinhood Chain, paste your Reinpay address, and send USDG or ETH. The transfer is checked and simulated before your wallet asks you to sign. Send only what you are willing to let your agent spend.</p>
+    </div>
+    <div class="fundbox" id="fundbox">
+      <div class="fstatus" id="f-wallet">No wallet connected.</div>
+      <button class="btn" id="f-connect" type="button">Connect wallet</button>
+      <label for="f-to">Your Reinpay wallet address
+        <input id="f-to" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="0x… from reinpay address">
+      </label>
+      <div class="fundrow">
+        <label for="f-amount">Amount<input id="f-amount" type="text" inputmode="decimal" placeholder="5" autocomplete="off"></label>
+        <label for="f-token">Token<select id="f-token"><option value="USDG">USDG</option><option value="ETH">ETH</option></select></label>
+      </div>
+      <div class="fstatus" id="f-bal"></div>
+      <button class="btn" id="f-check" type="button" disabled>Check and simulate</button>
+      <div class="review" id="f-review" hidden>
+        <div id="f-summary"></div>
+        <div class="acts">
+          <button class="btn" id="f-send" type="button">Send with my wallet</button>
+          <button class="btn ghost" id="f-cancel" type="button">Change something</button>
+        </div>
+      </div>
+      <div class="fstatus" id="f-msg" aria-live="polite"></div>
+    </div>
+  
+  </div>
+  <div class="panel" id="p-rules" hidden>
+    <div class="box">
+      <h3>Your rules (USDG)</h3>
+      <div class="row2">
+        <label for="r-daily">Daily budget<input id="r-daily" type="number" min="0" step="1" value="25"></label>
+        <label for="r-cap">Max per payment<input id="r-cap" type="number" min="0" step="1" value="10"></label>
+        <label for="r-line">Ask me above<input id="r-line" type="number" min="0" step="1" value="5"></label>
+        <label for="r-guard">Repeat guard, minutes<input id="r-guard" type="number" min="0" step="1" value="10"></label>
+      </div>
+      <div><div style="font-size:14px;color:var(--muted);margin-bottom:6px">Payees on your list</div><div style="display:flex;flex-direction:column;gap:6px"><label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink)"><input type="checkbox" class="pp" style="width:auto" data-name="Weather API" data-addr="0xADDRESS_OF_WEATHER_API" checked> Weather API</label>
+<label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink)"><input type="checkbox" class="pp" style="width:auto" data-name="GPU credits" data-addr="0xADDRESS_OF_GPU_CREDITS" checked> GPU credits</label>
+<label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink)"><input type="checkbox" class="pp" style="width:auto" data-name="Search API" data-addr="0xADDRESS_OF_SEARCH_API"> Search API</label></div></div>
+      <p class="note-app">These rules also drive the playground.</p>
+    </div>
+    <div class="box">
+      <h3>Commands for your terminal</h3>
+      <div class="cmd"><pre id="r-cmds"></pre><button class="copy" id="r-copy" type="button">Copy</button></div>
+      <p class="note-app">Replace each 0xADDRESS_OF_… with the payee's real address. Rule commands refuse to run without your own terminal, so an agent cannot run them for you.</p>
+    </div>
+  </div>
+  <div class="panel" id="p-playground" hidden>
+    <div class="box">
+      <h3>Pretend your agent asks</h3>
+      <p class="note-app">Uses the rules from the Rule builder tab. Nothing touches the chain here.</p>
+      <div class="reqs"><button type="button" data-req="Weather API|3|hourly forecast">Weather API · 3 USDG</button>
+<button type="button" data-req="Weather API|6|6-hour bundle">Weather API · 6 USDG</button>
+<button type="button" data-req="GPU credits|12|fine-tune run">GPU credits · 12 USDG</button>
+<button type="button" data-req="Search API|2|web search">Search API · 2 USDG</button>
+<button type="button" data-req="GPU credits|30|big batch">GPU credits · 30 USDG</button></div>
+      <div class="fstatus" id="pg-sum"></div>
+      <button class="btn ghost" id="pg-reset" type="button">Start a new day</button>
+    </div>
+    <div class="box"><h3>Receipts</h3><div class="ledger" id="pg-ledger"></div></div>
+  </div>
+</div></section>
+</main>
+<footer>
+  <div class="wrap">
+    <div>
+      <div style="font:700 17px var(--display);color:var(--ink)">Reinpay</div>
+      <div>Robinhood Chain mainnet · chain id 4663 · MIT licence</div>
+      <div>Nothing here is financial advice.</div>
+      <div style="margin-top:8px"><a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> github.com/reinpay/reinpay</a></div>
+    </div>
+    <div>
+      <div>Pages</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+        <a href="/how/">How it works</a><a href="/security/">Security</a><a href="/docs/">Docs</a><a href="/app/">Launch app</a>
+      </div>
+    </div>
+    <div>
+      <div>Contact</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <span class="mono" id="mail" style="color:var(--ink);user-select:all">hello@reinpay.app</span>
+        <button class="copy" id="copy" type="button">Copy</button>
+      </div>
+    </div>
+  </div>
+</footer>
+<script>
+document.querySelector(".menu-toggle")?.addEventListener("click", (e) => { const n = e.target.closest("nav"); n.classList.toggle("open"); e.target.setAttribute("aria-expanded", n.classList.contains("open")); });
+document.querySelectorAll("[data-count]").forEach((el) => { const t = +el.dataset.count; if (!t || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const io = new IntersectionObserver(([en]) => { if (!en.isIntersecting) return; io.disconnect(); let i = 0; const step = () => { el.textContent = Math.min(t, ++i); if (i < t) setTimeout(step, 180); }; el.textContent = "0"; step(); }); io.observe(el); });
+</script>
+<script src="/assets/landing.js"></script>
+<script src="/assets/fund.js"></script>
+<script src="/assets/app.js"></script>
+</body>
+</html>

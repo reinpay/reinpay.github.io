@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Docs · Reinpay</title>
+<meta name="description" content="Install Reinpay, set your rules, connect your agent host, and every command and MCP tool.">
+<link rel="canonical" href="https://reinpay.app/docs/">
+<meta property="og:title" content="Docs · Reinpay">
+<meta property="og:description" content="Install Reinpay, set your rules, connect your agent host, and every command and MCP tool.">
+<meta property="og:url" content="https://reinpay.app/docs/">
+<meta name="theme-color" content="#1f4a3a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/extra.css">
+</head>
+<body data-page="docs">
+<nav>
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="Reinpay home">
+      <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="9" fill="var(--rein)"/>
+        <path d="M12 29V11h8.5a5.5 5.5 0 0 1 0 11H12m8 0l7.5 7" fill="none" stroke="var(--rein-ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="25" y="7.5" width="7" height="7" rx="1.6" fill="none" stroke="var(--brass)" stroke-width="2.2"/>
+      </svg>
+      Reinpay
+    </a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-label="Menu">Menu</button>
+    <div class="navlinks">
+      <a href="/how/">How it works</a>
+      <a href="/security/">Security</a>
+      <a href="/docs/" class="on" aria-current="page">Docs</a>
+      <a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener" aria-label="Reinpay on GitHub"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <a class="btn launch" href="/app/">Launch app</a>
+    </div>
+  </div>
+</nav>
+<main>
+<header class="page-head"><div class="wrap">
+  <div class="eyebrow">Docs</div>
+  <h1>Set up in five minutes.</h1>
+  <p>Install with npm, create the wallet in your terminal, set your rules, and connect your agent host.</p>
+</div></header>
+<section class="band" id="start">
+  <div class="wrap">
+    <div class="side">
+      <div class="eyebrow">Get started</div>
+      <h2>Five minutes, and a small amount of USDG.</h2>
+      <p>The key is created on your computer and encrypted with your passphrase. Fund the wallet with only what you are willing to let an agent spend.</p>
+      <p>Until you turn it on, every payment waits for you, including the ones inside your rules.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+      <pre><span class="c"># install (Node.js 22.12 or newer)</span>
+npm install -g https://github.com/reinpay/reinpay/archive/refs/heads/main.tar.gz
+
+<span class="c"># in your own terminal</span>
+reinpay init
+reinpay payee add "Weather API" 0xRecipient --tokens=USDG
+reinpay rule daily USDG 25
+reinpay rule approve-above USDG 5
+reinpay address            <span class="c"># fund this with a small amount</span>
+
+<span class="c"># connect your agent host, for example Claude Code</span>
+claude mcp add --scope user reinpay -- reinpay mcp
+
+<span class="c"># later</span>
+reinpay pending
+reinpay approve RP-00042</pre>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Default rule</th><th>USDG</th><th>ETH</th></tr></thead>
+          <tbody>
+            <tr><td>Daily budget</td><td class="n">25</td><td class="n">0.005</td></tr>
+            <tr><td>Max per payment</td><td class="n">10</td><td class="n">0.002</td></tr>
+            <tr><td>Asks you above</td><td class="n">5</td><td class="n">0.001</td></tr>
+            <tr><td>Repeat guard</td><td class="n" colspan="2">10 minutes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="plain"><div class="wrap">
+  <div class="section-head"><div class="eyebrow">Tools for the agent</div><h2>Five MCP tools. None of them can approve.</h2></div>
+  <div class="toolsgrid"><div class="toolrow"><code>wallet_status</code><span>Address, ETH and USDG balances, today's budget left per token, the rules</span></div>
+<div class="toolrow"><code>get_rules</code><span>The rules and the payees the agent may pay</span></div>
+<div class="toolrow"><code>request_payment</code><span>Ask for one payment; returns the decision and the receipt</span></div>
+<div class="toolrow"><code>get_receipt</code><span>One receipt by id</span></div>
+<div class="toolrow"><code>list_receipts</code><span>Recent receipts, optionally by status</span></div></div>
+</div></section>
+<section class="plain"><div class="wrap">
+  <div class="section-head"><div class="eyebrow">Commands</div><h2>Everything you run in your terminal.</h2></div>
+  <div class="toolsgrid"><div class="toolrow"><code>reinpay init [--import]</code><span>Create or import the encrypted wallet. Terminal only.</span></div>
+<div class="toolrow"><code>reinpay address</code><span>Print the wallet address</span></div>
+<div class="toolrow"><code>reinpay status</code><span>Balances, budget left today and the rules</span></div>
+<div class="toolrow"><code>reinpay rule daily|max|approve-above &lt;token&gt; &lt;amount&gt;</code><span>Set a rule for USDG or ETH</span></div>
+<div class="toolrow"><code>reinpay rule repeat-guard &lt;minutes&gt;</code><span>Hold repeats for that long (0 turns it off)</span></div>
+<div class="toolrow"><code>reinpay payee add &lt;name&gt; &lt;0xaddress&gt; [--tokens=USDG,ETH]</code><span>Add a payee</span></div>
+<div class="toolrow"><code>reinpay payee list | remove | off | on</code><span>Manage payees</span></div>
+<div class="toolrow"><code>reinpay pending</code><span>Payments waiting for you</span></div>
+<div class="toolrow"><code>reinpay approve | reject &lt;RP-id&gt;</code><span>Decide a waiting payment</span></div>
+<div class="toolrow"><code>reinpay receipts [--status=sent] [--json]</code><span>Everything, newest first</span></div>
+<div class="toolrow"><code>reinpay autosend on|off</code><span>Send payments inside every rule without asking (needs unlock)</span></div>
+<div class="toolrow"><code>reinpay unlock | lock</code><span>Store or remove the passphrase file</span></div></div>
+</div></section>
+<section class="plain" id="faq"><div class="wrap">
+  <div class="section-head"><div class="eyebrow">FAQ</div><h2>Questions owners ask first.</h2></div>
+  <details class="faq"><summary>Do I need to trust this website?</summary><p>No. The website never sees a key. The wallet runs on your computer; the app page only reads public balances and, if you choose, asks your browser wallet to send a transfer you review first.</p></details>
+<details class="faq"><summary>Which agent hosts work?</summary><p>Any MCP host that runs a local command: Claude Code, Cursor, Codex, Windsurf, VS Code and others. Run <span class="mono">reinpay mcp</span> as a stdio server.</p></details>
+<details class="faq"><summary>What can it pay in?</summary><p>USDG and ETH on Robinhood Chain mainnet (chain id 4663). Budgets are per token and per local calendar day.</p></details>
+<details class="faq"><summary>What happens if my agent loops?</summary><p>The repeat guard holds the same payee, token and amount within 10 minutes for you, and the daily budget caps the rest.</p></details>
+<details class="faq"><summary>How much should I put in?</summary><p>Only what you are willing to let an agent spend. Until you turn on autosend, every payment waits for you anyway.</p></details>
+<details class="faq"><summary>Is it free?</summary><p>Yes. Open source under MIT. You pay only the network fee in ETH for each payment.</p></details>
+</div></section>
+<section class="cta-band"><div class="wrap"><div class="cta-box">
+  <h2>Try your rules before you install.</h2>
+  <div class="acts"><a class="btn launch" href="/app/">Launch app</a><a class="btn ghost" href="/docs/">Read the docs</a></div>
+</div></div></section>
+</main>
+<footer>
+  <div class="wrap">
+    <div>
+      <div style="font:700 17px var(--display);color:var(--ink)">Reinpay</div>
+      <div>Robinhood Chain mainnet · chain id 4663 · MIT licence</div>
+      <div>Nothing here is financial advice.</div>
+      <div style="margin-top:8px"><a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> github.com/reinpay/reinpay</a></div>
+    </div>
+    <div>
+      <div>Pages</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+        <a href="/how/">How it works</a><a href="/security/">Security</a><a href="/docs/">Docs</a><a href="/app/">Launch app</a>
+      </div>
+    </div>
+    <div>
+      <div>Contact</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <span class="mono" id="mail" style="color:var(--ink);user-select:all">hello@reinpay.app</span>
+        <button class="copy" id="copy" type="button">Copy</button>
+      </div>
+    </div>
+  </div>
+</footer>
+<script>
+document.querySelector(".menu-toggle")?.addEventListener("click", (e) => { const n = e.target.closest("nav"); n.classList.toggle("open"); e.target.setAttribute("aria-expanded", n.classList.contains("open")); });
+document.querySelectorAll("[data-count]").forEach((el) => { const t = +el.dataset.count; if (!t || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const io = new IntersectionObserver(([en]) => { if (!en.isIntersecting) return; io.disconnect(); let i = 0; const step = () => { el.textContent = Math.min(t, ++i); if (i < t) setTimeout(step, 180); }; el.textContent = "0"; step(); }); io.observe(el); });
+</script>
+<script src="/assets/landing.js"></script>
+</body>
+</html>
