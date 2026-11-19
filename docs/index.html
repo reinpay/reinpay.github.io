@@ -86,13 +86,15 @@ reinpay approve RP-00042</pre>
   </div>
 </section>
 <section class="plain"><div class="wrap">
-  <div class="section-head"><div class="eyebrow">Tools for the agent</div><h2>Nine MCP tools. None of them can approve.</h2></div>
+  <div class="section-head"><div class="eyebrow">Tools for the agent</div><h2>Eleven MCP tools. None of them can approve.</h2></div>
   <div class="toolsgrid"><div class="toolrow"><code>wallet_status</code><span>Address, ETH and USDG balances, today's budget left per token, the rules</span></div>
 <div class="toolrow"><code>get_rules</code><span>The rules and the payees the agent may pay</span></div>
 <div class="toolrow"><code>request_payment</code><span>Ask for one payment; returns the decision and the receipt</span></div>
 <div class="toolrow"><code>get_receipt</code><span>One receipt by id</span></div>
 <div class="toolrow"><code>list_receipts</code><span>Recent receipts, optionally by status</span></div>
 <div class="toolrow"><code>verify_receipt</code><span>Read a sent payment back from the chain and check it against its receipt</span></div>
+<div class="toolrow"><code>spending_report</code><span>Sent, waiting and blocked per day and token, top payees</span></div>
+<div class="toolrow"><code>review_rules</code><span>Suggestions for the owner's rules, each with the command to run</span></div>
 <div class="toolrow"><code>read_payment_link</code><span>Read an ethereum: payment link: who, how much, and whether the payee is on the list</span></div>
 <div class="toolrow"><code>check_payment</code><span>Dry run: what would happen to a payment now, without recording anything</span></div>
 <div class="toolrow"><code>freeze_wallet</code><span>Stop every payment until the owner unfreezes it. The agent can freeze, never unfreeze</span></div></div>
@@ -146,6 +148,11 @@ reinpay approve RP-00042</pre>
 <div class="toolrow"><code>reinpay freeze --all · unfreeze --all</code><span>Stop or restart every agent at once</span></div>
 <div class="toolrow"><code>reinpay rule usd max|daily &lt;amount|off&gt;</code><span>Limits in dollars across USDG and ETH</span></div>
 <div class="toolrow"><code>reinpay price</code><span>The ETH price from two on-chain pools that the dollar limits use</span></div>
+<div class="toolrow"><code>reinpay sandbox</code><span>Try Reinpay with no money: real rules, real mainnet simulation, pretend balance</span></div>
+<div class="toolrow"><code>reinpay payee challenge · prove</code><span>A payee proves it controls its address with a signed message</span></div>
+<div class="toolrow"><code>reinpay rule require-proven on|off</code><span>Payments to unproven payees wait for you</span></div>
+<div class="toolrow"><code>reinpay share &lt;RP-id&gt; · share check</code><span>A signed proof of one payment, anyone can check it on the chain</span></div>
+<div class="toolrow"><code>reinpay review</code><span>Suggestions for your rules from your own receipts</span></div>
 <div class="toolrow"><code>reinpay notify telegram &lt;bot-token&gt; &lt;chat-id&gt; | webhook &lt;url&gt; | off | test</code><span>A message when a payment waits for you</span></div></div>
 </div></section>
 <section class="plain" id="faq"><div class="wrap">
@@ -167,6 +174,7 @@ reinpay approve RP-00042</pre>
 <details class="faq"><summary>Can Reinpay pay a subscription every month?</summary><p>Yes. <span class="mono">reinpay schedule add "Weather API" 5 USDG monthly</span>, then run <span class="mono">reinpay schedule run</span> from cron. Each payment still goes through every rule and the mainnet simulation, and waits for you unless autosend is on.</p></details>
 <details class="faq"><summary>Can I set a budget in dollars?</summary><p>Yes. <span class="mono">reinpay rule usd daily 50</span> caps a day at 50 dollars across USDG and ETH together, and <span class="mono">reinpay rule usd max 20</span> caps any single payment. ETH is priced from two WETH/USDG pools on Robinhood Chain; if they disagree by more than 2%, the payment is blocked rather than guessed.</p></details>
 <details class="faq"><summary>I run several agents. Can I see them all?</summary><p>Give each its own wallet with <span class="mono">--profile=&lt;name&gt;</span>, then <span class="mono">reinpay profiles --status</span> shows them all on one screen, and <span class="mono">reinpay freeze --all</span> stops every one at once.</p></details>
+<details class="faq"><summary>Can I try it before I put money in?</summary><p>Yes. <span class="mono">reinpay sandbox</span> runs five requests through the real rules and real mainnet simulations with a throwaway wallet and a pretend balance. Nothing is signed or sent.</p></details>
 <details class="faq"><summary>Is it free?</summary><p>Yes. Open source under MIT. You pay only the network fee in ETH for each payment.</p></details>
 </div></section>
 <section class="cta-band"><div class="wrap"><div class="cta-box">
