@@ -85,13 +85,14 @@ reinpay approve RP-00042</pre>
   </div>
 </section>
 <section class="plain"><div class="wrap">
-  <div class="section-head"><div class="eyebrow">Tools for the agent</div><h2>Seven MCP tools. None of them can approve.</h2></div>
+  <div class="section-head"><div class="eyebrow">Tools for the agent</div><h2>Eight MCP tools. None of them can approve.</h2></div>
   <div class="toolsgrid"><div class="toolrow"><code>wallet_status</code><span>Address, ETH and USDG balances, today's budget left per token, the rules</span></div>
 <div class="toolrow"><code>get_rules</code><span>The rules and the payees the agent may pay</span></div>
 <div class="toolrow"><code>request_payment</code><span>Ask for one payment; returns the decision and the receipt</span></div>
 <div class="toolrow"><code>get_receipt</code><span>One receipt by id</span></div>
 <div class="toolrow"><code>list_receipts</code><span>Recent receipts, optionally by status</span></div>
 <div class="toolrow"><code>verify_receipt</code><span>Read a sent payment back from the chain and check it against its receipt</span></div>
+<div class="toolrow"><code>check_payment</code><span>Dry run: what would happen to a payment now, without recording anything</span></div>
 <div class="toolrow"><code>freeze_wallet</code><span>Stop every payment until the owner unfreezes it. The agent can freeze, never unfreeze</span></div></div>
 </div></section>
 <section class="plain"><div class="wrap">
@@ -122,6 +123,9 @@ reinpay approve RP-00042</pre>
 <div class="toolrow"><code>reinpay statement [--days=30]</code><span>A spending statement signed with your wallet key</span></div>
 <div class="toolrow"><code>reinpay statement check &lt;file&gt;</code><span>Check anyone's statement: the signature, then every payment on the chain</span></div>
 <div class="toolrow"><code>reinpay digest [--days=1] [--dry]</code><span>A short summary to your Telegram or webhook, for a daily schedule</span></div>
+<div class="toolrow"><code>reinpay check &lt;payee&gt; &lt;amount&gt; [token]</code><span>Dry run: what would happen now. Nothing recorded or signed</span></div>
+<div class="toolrow"><code>reinpay grant &lt;token&gt; &lt;amount&gt; --for=2h</code><span>Extra budget for a while, on top of the daily budget (grant list | clear)</span></div>
+<div class="toolrow"><code>reinpay backup · restore &lt;file&gt;</code><span>Move the wallet to another computer; the key stays encrypted</span></div>
 <div class="toolrow"><code>reinpay notify telegram &lt;bot-token&gt; &lt;chat-id&gt; | webhook &lt;url&gt; | off | test</code><span>A message when a payment waits for you</span></div></div>
 </div></section>
 <section class="plain" id="faq"><div class="wrap">
@@ -137,6 +141,7 @@ reinpay approve RP-00042</pre>
 <details class="faq"><summary>Something is not working. Where do I start?</summary><p>Run <span class="mono">reinpay doctor</span>. It checks Node.js, the RPC, the chain, the wallet, the seal, the unlock, ETH for fees, payees and budgets, and says what to do for anything that is off.</p></details>
 <details class="faq"><summary>How do I stop everything right now?</summary><p>Run <span class="mono">reinpay freeze</span>. Every request is blocked, autosend stops and approvals are refused until you run <span class="mono">reinpay unfreeze</span> in your terminal. The wallet also freezes itself if the agent is blocked 5 times in 10 minutes.</p></details>
 <details class="faq"><summary>Can I prove what my agent spent?</summary><p>Yes. <span class="mono">reinpay statement</span> writes every sent payment in a period to a file signed with your wallet key. Whoever you send it to runs <span class="mono">reinpay statement check</span>: it confirms your wallet signed it, that nothing was changed, and that every payment is on Robinhood Chain as written.</p></details>
+<details class="faq"><summary>How do I move Reinpay to a new computer?</summary><p>Run <span class="mono">reinpay backup</span> on the old one. It writes your key (still encrypted with your passphrase), rules, payees and receipts to one file. Install Reinpay on the new computer and run <span class="mono">reinpay restore file.json</span>. Keep that file as safe as the key itself.</p></details>
 <details class="faq"><summary>Is it free?</summary><p>Yes. Open source under MIT. You pay only the network fee in ETH for each payment.</p></details>
 </div></section>
 <section class="cta-band"><div class="wrap"><div class="cta-box">
