@@ -85,13 +85,14 @@ reinpay approve RP-00042</pre>
   </div>
 </section>
 <section class="plain"><div class="wrap">
-  <div class="section-head"><div class="eyebrow">Tools for the agent</div><h2>Six MCP tools. None of them can approve.</h2></div>
+  <div class="section-head"><div class="eyebrow">Tools for the agent</div><h2>Seven MCP tools. None of them can approve.</h2></div>
   <div class="toolsgrid"><div class="toolrow"><code>wallet_status</code><span>Address, ETH and USDG balances, today's budget left per token, the rules</span></div>
 <div class="toolrow"><code>get_rules</code><span>The rules and the payees the agent may pay</span></div>
 <div class="toolrow"><code>request_payment</code><span>Ask for one payment; returns the decision and the receipt</span></div>
 <div class="toolrow"><code>get_receipt</code><span>One receipt by id</span></div>
 <div class="toolrow"><code>list_receipts</code><span>Recent receipts, optionally by status</span></div>
-<div class="toolrow"><code>verify_receipt</code><span>Read a sent payment back from the chain and check it against its receipt</span></div></div>
+<div class="toolrow"><code>verify_receipt</code><span>Read a sent payment back from the chain and check it against its receipt</span></div>
+<div class="toolrow"><code>freeze_wallet</code><span>Stop every payment until the owner unfreezes it. The agent can freeze, never unfreeze</span></div></div>
 </div></section>
 <section class="plain"><div class="wrap">
   <div class="section-head"><div class="eyebrow">Commands</div><h2>Everything you run in your terminal.</h2></div>
@@ -113,7 +114,10 @@ reinpay approve RP-00042</pre>
 <div class="toolrow"><code>reinpay unlock [--for=12h|30m|1d|0] | lock</code><span>Unlock for a while (12 hours by default, 0 means until you lock), or lock now</span></div>
 <div class="toolrow"><code>reinpay seal</code><span>Sign your rules and payees with the wallet key. Run it once after updating to 0.5.0</span></div>
 <div class="toolrow"><code>reinpay verify &lt;RP-id&gt; | --all</code><span>Read sent payments back from Robinhood Chain and check them against their receipts</span></div>
-<div class="toolrow"><code>reinpay doctor</code><span>Nine checks of your setup, each with what to do next</span></div>
+<div class="toolrow"><code>reinpay doctor</code><span>Ten checks of your setup, each with what to do next</span></div>
+<div class="toolrow"><code>reinpay freeze [reason] · unfreeze</code><span>Stop every payment now; unfreeze is terminal only</span></div>
+<div class="toolrow"><code>reinpay rule breaker &lt;count&gt; &lt;minutes&gt; | off</code><span>Freeze by itself when the agent is blocked that often (default 5 in 10 minutes)</span></div>
+<div class="toolrow"><code>reinpay payee until &lt;name&gt; 30d|12h|off</code><span>A payee that expires on its own (also --until=30d on payee add)</span></div>
 <div class="toolrow"><code>reinpay notify telegram &lt;bot-token&gt; &lt;chat-id&gt; | webhook &lt;url&gt; | off | test</code><span>A message when a payment waits for you</span></div></div>
 </div></section>
 <section class="plain" id="faq"><div class="wrap">
@@ -127,6 +131,7 @@ reinpay approve RP-00042</pre>
 <details class="faq"><summary>What if something edits my config file?</summary><p>Since 0.5.0 your rules and payees are sealed with your wallet key. If <span class="mono">config.json</span> is changed outside Reinpay, for example a payee added by another program, nothing is signed until you check <span class="mono">reinpay rules</span> and run <span class="mono">reinpay seal</span>.</p></details>
 <details class="faq"><summary>How do I know a payment really went through?</summary><p>Run <span class="mono">reinpay verify RP-…</span>. It reads the transaction back from Robinhood Chain and checks that it succeeded, came from your wallet, and paid that payee that exact amount of that token. Your agent can do the same with the <span class="mono">verify_receipt</span> tool.</p></details>
 <details class="faq"><summary>Something is not working. Where do I start?</summary><p>Run <span class="mono">reinpay doctor</span>. It checks Node.js, the RPC, the chain, the wallet, the seal, the unlock, ETH for fees, payees and budgets, and says what to do for anything that is off.</p></details>
+<details class="faq"><summary>How do I stop everything right now?</summary><p>Run <span class="mono">reinpay freeze</span>. Every request is blocked, autosend stops and approvals are refused until you run <span class="mono">reinpay unfreeze</span> in your terminal. The wallet also freezes itself if the agent is blocked 5 times in 10 minutes.</p></details>
 <details class="faq"><summary>Is it free?</summary><p>Yes. Open source under MIT. You pay only the network fee in ETH for each payment.</p></details>
 </div></section>
 <section class="cta-band"><div class="wrap"><div class="cta-box">

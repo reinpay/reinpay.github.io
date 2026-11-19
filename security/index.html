@@ -91,6 +91,7 @@
     <div class="bullet no"><b>Pays someone off the list</b><span>No fuzzy matching on names. Off the list means blocked.</span></div>
     <div class="bullet no"><b>Pays a token contract</b><span>An address that answers like a token is refused as a payee, because tokens sent there are usually stuck for good.</span></div>
     <div class="bullet no"><b>Signs a payment it did not simulate</b><span>Approve rebuilds the payment from your payee list, simulates it, and signs exactly that transaction. The simulation must show one transfer out, to the payee.</span></div>
+    <div class="bullet no"><b>Keeps paying when something looks wrong</b><span>Five blocked requests in ten minutes and the wallet freezes itself, then tells you. <span class="mono">reinpay freeze</span> stops everything by hand, and your agent can pull the brake too.</span></div>
     <div class="bullet no"><b>Adds a lookalike payee quietly</b><span>A new address that starts and ends like a payee you already have, or like your own wallet, is refused until you type it again in full. That is how address poisoning scams work.</span></div>
     <div class="bullet no"><b>Signs with rules you did not seal</b><span>Before anything is signed, the seal on your rules and payees is checked against your wallet key.</span></div>
     <div class="bullet yes"><b>Writes a receipt every time</b><span>Blocked, waiting or sent, each request has an id and a reason. <span class="mono">reinpay verify</span> checks a sent one against the chain.</span></div>
