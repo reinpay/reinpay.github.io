@@ -153,6 +153,16 @@ reinpay approve RP-00042</pre>
 <div class="toolrow"><code>reinpay rule require-proven on|off</code><span>Payments to unproven payees wait for you</span></div>
 <div class="toolrow"><code>reinpay share &lt;RP-id&gt; · share check</code><span>A signed proof of one payment, anyone can check it on the chain</span></div>
 <div class="toolrow"><code>reinpay review</code><span>Suggestions for your rules from your own receipts</span></div>
+<div class="toolrow"><code>reinpay mcp --session=USDG:5</code><span>A spending cap for one run of the agent</span></div>
+<div class="toolrow"><code>reinpay receipts --payee= --since= --memo= …</code><span>Find receipts by payee, token, dates, amounts, memo, rule or session</span></div>
+<div class="toolrow"><code>reinpay report --html --out=report.html</code><span>The spending report as one self-contained page</span></div>
+<div class="toolrow"><code>reinpay rule cosign &lt;0xaddress&gt; &lt;token&gt; &lt;amount&gt;</code><span>Above this, a second person must co-sign</span></div>
+<div class="toolrow"><code>reinpay rule max-fee &lt;eth&gt;</code><span>Block payments while the network fee is too high</span></div>
+<div class="toolrow"><code>reinpay books --month=2026-11 --csv</code><span>One month of payments for your accountant, with USD values</span></div>
+<div class="toolrow"><code>reinpay notify log</code><span>The last notifications, sent or failed, with retries</span></div>
+<div class="toolrow"><code>reinpay redact &lt;RP-id&gt; · --no-memos</code><span>Keep memos private</span></div>
+<div class="toolrow"><code>reinpay connect claude|cursor|vscode|windsurf|codex</code><span>The snippet to add Reinpay to your agent host</span></div>
+<div class="toolrow"><code>reinpay --version --check · changelog</code><span>Is there a newer Reinpay, and what changed</span></div>
 <div class="toolrow"><code>reinpay notify telegram &lt;bot-token&gt; &lt;chat-id&gt; | webhook &lt;url&gt; | off | test</code><span>A message when a payment waits for you</span></div></div>
 </div></section>
 <section class="plain" id="faq"><div class="wrap">
@@ -175,6 +185,8 @@ reinpay approve RP-00042</pre>
 <details class="faq"><summary>Can I set a budget in dollars?</summary><p>Yes. <span class="mono">reinpay rule usd daily 50</span> caps a day at 50 dollars across USDG and ETH together, and <span class="mono">reinpay rule usd max 20</span> caps any single payment. ETH is priced from two WETH/USDG pools on Robinhood Chain; if they disagree by more than 2%, the payment is blocked rather than guessed.</p></details>
 <details class="faq"><summary>I run several agents. Can I see them all?</summary><p>Give each its own wallet with <span class="mono">--profile=&lt;name&gt;</span>, then <span class="mono">reinpay profiles --status</span> shows them all on one screen, and <span class="mono">reinpay freeze --all</span> stops every one at once.</p></details>
 <details class="faq"><summary>Can I try it before I put money in?</summary><p>Yes. <span class="mono">reinpay sandbox</span> runs five requests through the real rules and real mainnet simulations with a throwaway wallet and a pretend balance. Nothing is signed or sent.</p></details>
+<details class="faq"><summary>Can two people approve big payments?</summary><p>Yes. <span class="mono">reinpay rule cosign 0xADDRESS USDG 50</span>: above 50 USDG, a payment needs your approval and a signature from that second address over that exact payment.</p></details>
+<details class="faq"><summary>How do I add Reinpay to Cursor or VS Code?</summary><p>Run <span class="mono">reinpay connect cursor</span> (or claude, vscode, windsurf, codex). It prints the exact snippet; <span class="mono">reinpay mcp --check</span> confirms the server starts.</p></details>
 <details class="faq"><summary>Is it free?</summary><p>Yes. Open source under MIT. You pay only the network fee in ETH for each payment.</p></details>
 </div></section>
 <section class="cta-band"><div class="wrap"><div class="cta-box">
