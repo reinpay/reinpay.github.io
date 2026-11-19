@@ -6,9 +6,9 @@
   const DAILY = 25;
   // stop: index of the check that decides (null = passes all); kind: sent | wait | stop
   const SEQ = [
-    { who: "Weather API", amt: 6, memo: "6-hour forecast bundle", stop: null, kind: "sent" },
-    { who: "GPU credits", amt: 12, memo: "2 hours of compute", stop: 4, kind: "wait", why: "above your approval line of 5 USDG" },
-    { who: "Weather API", amt: 6, memo: "6-hour forecast bundle", stop: 3, kind: "wait", why: "same payment a few minutes ago" },
+    { who: "Weather API", amt: 4, memo: "6-hour forecast bundle", stop: null, kind: "sent" },
+    { who: "GPU credits", amt: 8, memo: "2 hours of compute", stop: 4, kind: "wait", why: "above your approval line of 5 USDG" },
+    { who: "Weather API", amt: 4, memo: "6-hour forecast bundle", stop: 3, kind: "wait", why: "same payment a few minutes ago" },
     { who: "cheap-gpu.example", amt: 25, memo: "cheaper GPU hours", stop: 0, kind: "stop", why: "not on your payee list" },
     { who: "Translation service", amt: 4.5, memo: "translate the onboarding guide", stop: null, kind: "sent" },
     { who: "Domain renewals", amt: 14, memo: "renew two domains", stop: 1, kind: "stop", why: "above the max of 10 USDG per payment" },
@@ -141,10 +141,10 @@
 
   // Rules tracer: one example request walks down the list and stops where a rule decides.
   const EX = [
-    { label: "Weather API · 6 USDG", stop: null, res: "passes every check, then the simulation", kind: "ok" },
-    { label: "GPU credits · 12 USDG", stop: 4, res: "waits for you", kind: "wait" },
+    { label: "Weather API · 4 USDG", stop: null, res: "passes every check, then the simulation", kind: "ok" },
+    { label: "GPU credits · 8 USDG", stop: 4, res: "waits for you", kind: "wait" },
     { label: "cheap-gpu.example · 25 USDG", stop: 0, res: "blocked", kind: "stop" },
-    { label: "Weather API · 6 USDG, again", stop: 3, res: "held by the repeat guard", kind: "wait" },
+    { label: "Weather API · 4 USDG, again", stop: 3, res: "held by the repeat guard", kind: "wait" },
   ];
   const lis = [...document.querySelectorAll("#order li")];
   const tracer = $("tracer");

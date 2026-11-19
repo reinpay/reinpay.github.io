@@ -50,26 +50,26 @@
         <a class="btn" href="/app/">Launch app</a>
         <a class="btn ghost" href="/how/">How it works</a>
       </div>
-      <p class="note" style="margin-top:14px">Version 0.1.0. Pays in USDG and ETH. Works with any MCP host that runs a local command. Open source, MIT, on <a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener">GitHub</a>.</p>
+      <p class="note" style="margin-top:14px">Version 0.3.0. Pays in USDG and ETH. Works with any MCP host that runs a local command. Open source, MIT, on <a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener">GitHub</a>.</p>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
       <div class="meter" aria-live="off">
-        <div class="top"><span>Today's USDG budget</span><span><b id="m-spent">6.00</b> sent of 25.00 · <span id="m-left">19.00 left</span></span></div>
+        <div class="top"><span>Today's USDG budget</span><span><b id="m-spent">4.00</b> sent of 25.00 · <span id="m-left">21.00 left</span></span></div>
         <div class="bar"><div class="fill" id="m-fill"></div></div>
       </div>
       <div class="stack" id="stack" aria-label="Example receipts">
         <div class="receipt sent">
-          <span class="who">Weather API</span><span class="amt">6.00 USDG</span>
+          <span class="who">Weather API</span><span class="amt">4.00 USDG</span>
           <span class="why"><span class="pill">within rules</span>&nbsp; 6-hour forecast bundle</span>
-          <span class="meta">RP-00041 · simulated at block 117455143 · one transfer out, to the payee, exactly 6 USDG</span>
+          <span class="meta">RP-00041 · simulated on mainnet · one transfer out, to the payee, exactly 4 USDG</span>
         </div>
         <div class="receipt wait">
-          <span class="who">GPU credits</span><span class="amt">12.00 USDG</span>
+          <span class="who">GPU credits</span><span class="amt">8.00 USDG</span>
           <span class="why"><span class="pill">waiting for you</span>&nbsp; above your approval line of 5 USDG</span>
           <span class="meta">RP-00042 · reinpay approve RP-00042 to send</span>
         </div>
         <div class="receipt wait">
-          <span class="who">Weather API</span><span class="amt">6.00 USDG</span>
+          <span class="who">Weather API</span><span class="amt">4.00 USDG</span>
           <span class="why"><span class="pill">waiting for you</span>&nbsp; same payment as RP-00041 four minutes ago</span>
           <span class="meta">RP-00043 · repeat guard, held in case the agent is looping</span>
         </div>
@@ -79,7 +79,7 @@
           <span class="meta">RP-00044 · nothing was signed</span>
         </div>
       </div>
-      <p class="stack-cap">Example receipts. The block number comes from a real test simulation; the payees are examples.</p>
+      <p class="stack-cap">Example receipts with the default rules: 25 USDG a day, 10 max per payment, asks you above 5. The payees are examples.</p>
     </div>
   </div>
 </header>

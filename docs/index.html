@@ -97,15 +97,18 @@ reinpay approve RP-00042</pre>
   <div class="toolsgrid"><div class="toolrow"><code>reinpay init [--import]</code><span>Create or import the encrypted wallet. Terminal only.</span></div>
 <div class="toolrow"><code>reinpay address</code><span>Print the wallet address</span></div>
 <div class="toolrow"><code>reinpay status</code><span>Balances, budget left today and the rules</span></div>
-<div class="toolrow"><code>reinpay rule daily|max|approve-above &lt;token&gt; &lt;amount&gt;</code><span>Set a rule for USDG or ETH</span></div>
+<div class="toolrow"><code>reinpay rule daily|weekly|monthly|max|approve-above &lt;token&gt; &lt;amount&gt;</code><span>Set a rule for USDG or ETH</span></div>
 <div class="toolrow"><code>reinpay rule repeat-guard &lt;minutes&gt;</code><span>Hold repeats for that long (0 turns it off)</span></div>
 <div class="toolrow"><code>reinpay payee add &lt;name&gt; &lt;0xaddress&gt; [--tokens=USDG,ETH]</code><span>Add a payee</span></div>
 <div class="toolrow"><code>reinpay payee list | remove | off | on</code><span>Manage payees</span></div>
+<div class="toolrow"><code>reinpay payee limit &lt;name&gt; daily|max &lt;token&gt; &lt;amount|off&gt;</code><span>A payee's own daily budget or max per payment</span></div>
 <div class="toolrow"><code>reinpay pending</code><span>Payments waiting for you</span></div>
 <div class="toolrow"><code>reinpay approve | reject &lt;RP-id&gt;</code><span>Decide a waiting payment</span></div>
 <div class="toolrow"><code>reinpay receipts [--status=sent] [--json]</code><span>Everything, newest first</span></div>
+<div class="toolrow"><code>reinpay report [--days=7] [--json]</code><span>Sent, waiting and blocked per day, top payees</span></div>
 <div class="toolrow"><code>reinpay autosend on|off</code><span>Send payments inside every rule without asking (needs unlock)</span></div>
-<div class="toolrow"><code>reinpay unlock | lock</code><span>Store or remove the passphrase file</span></div></div>
+<div class="toolrow"><code>reinpay unlock | lock</code><span>Store or remove the passphrase file</span></div>
+<div class="toolrow"><code>reinpay notify telegram &lt;bot-token&gt; &lt;chat-id&gt; | webhook &lt;url&gt; | off | test</code><span>A message when a payment waits for you</span></div></div>
 </div></section>
 <section class="plain" id="faq"><div class="wrap">
   <div class="section-head"><div class="eyebrow">FAQ</div><h2>Questions owners ask first.</h2></div>
