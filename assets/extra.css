@@ -97,3 +97,16 @@ details.faq p { color: var(--muted); margin: 10px 0 0; max-width: 70ch; }
 .tip { border-left: 3px solid var(--brass); padding: 8px 12px; background: color-mix(in srgb, var(--brass) 8%, transparent); border-radius: 0 6px 6px 0; font-size: 14.5px; color: var(--ink); margin-top: 10px; }
 @media (max-width: 560px) { .step { grid-template-columns: minmax(0, 1fr); } }
 .bullet .cmd { margin-top: 10px; } .bullet .cmd pre { padding-top: 16px; padding-right: 84px; }
+/* official token */
+.token .wrap { padding-block: 8px 56px; }
+.tokenbox { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 26px 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 28px; align-items: center; }
+@media (max-width: 760px) { .tokenbox { grid-template-columns: minmax(0, 1fr); } }
+.tokenbox h2 { font-size: clamp(26px, 3vw, 34px); margin: 6px 0 0; }
+.tokenbox h2 span { color: var(--brass); }
+.ca { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+.ca code { font: 500 15px var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-wrap: anywhere; color: var(--ink); user-select: all; min-width: 0; }
+.tokenmeta { font-size: 14px; color: var(--muted); margin-top: 10px; }
+.tokenwarn { font-size: 14px; color: var(--ink); border-left: 3px solid var(--stop); padding: 6px 12px; margin-top: 12px; }
+.tokenacts { display: flex; flex-direction: column; gap: 10px; }
+.foot-ca { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.foot-ca code { font: 13px var(--mono); color: var(--ink); overflow-wrap: anywhere; }
