@@ -110,3 +110,4 @@ details.faq p { color: var(--muted); margin: 10px 0 0; max-width: 70ch; }
 .tokenacts { display: flex; flex-direction: column; gap: 10px; }
 .foot-ca { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
 .foot-ca code { font: 13px var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.bullet .cmd pre, .step .cmd pre { white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -96,7 +96,7 @@ reinpay approve RP-00042</pre>
   <div class="section-head"><div class="eyebrow">Commands</div><h2>Everything you run in your terminal.</h2></div>
   <div class="toolsgrid"><div class="toolrow"><code>reinpay init [--import]</code><span>Create or import the encrypted wallet. Terminal only.</span></div>
 <div class="toolrow"><code>reinpay address</code><span>Print the wallet address</span></div>
-<div class="toolrow"><code>reinpay status</code><span>Balances, budget left today and the rules</span></div>
+<div class="toolrow"><code>reinpay status</code><span>Balances, budget left today, the rules, the config seal and how long it stays unlocked</span></div>
 <div class="toolrow"><code>reinpay rule daily|weekly|monthly|max|approve-above &lt;token&gt; &lt;amount&gt;</code><span>Set a rule for USDG or ETH</span></div>
 <div class="toolrow"><code>reinpay rule repeat-guard &lt;minutes&gt;</code><span>Hold repeats for that long (0 turns it off)</span></div>
 <div class="toolrow"><code>reinpay payee add &lt;name&gt; &lt;0xaddress&gt; [--tokens=USDG,ETH]</code><span>Add a payee</span></div>
@@ -109,7 +109,8 @@ reinpay approve RP-00042</pre>
 <div class="toolrow"><code>reinpay token add &lt;0xaddress&gt; | list | remove</code><span>Spend another ERC-20, verified on Sourcify first</span></div>
 <div class="toolrow"><code>reinpay profiles · --profile=&lt;name&gt;</code><span>One wallet per agent</span></div>
 <div class="toolrow"><code>reinpay autosend on|off</code><span>Send payments inside every rule without asking (needs unlock)</span></div>
-<div class="toolrow"><code>reinpay unlock | lock</code><span>Store or remove the passphrase file</span></div>
+<div class="toolrow"><code>reinpay unlock [--for=12h|30m|1d|0] | lock</code><span>Unlock for a while (12 hours by default, 0 means until you lock), or lock now</span></div>
+<div class="toolrow"><code>reinpay seal</code><span>Sign your rules and payees with the wallet key. Run it once after updating to 0.5.0</span></div>
 <div class="toolrow"><code>reinpay notify telegram &lt;bot-token&gt; &lt;chat-id&gt; | webhook &lt;url&gt; | off | test</code><span>A message when a payment waits for you</span></div></div>
 </div></section>
 <section class="plain" id="faq"><div class="wrap">
@@ -120,6 +121,7 @@ reinpay approve RP-00042</pre>
 <details class="faq"><summary>Can I run more than one agent?</summary><p>Yes. Give each agent its own wallet with <span class="mono">--profile=&lt;name&gt;</span>: separate key, rules, payees and receipts, so one agent cannot spend another's budget.</p></details>
 <details class="faq"><summary>What happens if my agent loops?</summary><p>The repeat guard holds the same payee, token and amount within 10 minutes for you, and the daily budget caps the rest.</p></details>
 <details class="faq"><summary>How much should I put in?</summary><p>Only what you are willing to let an agent spend. Until you turn on autosend, every payment waits for you anyway.</p></details>
+<details class="faq"><summary>What if something edits my config file?</summary><p>Since 0.5.0 your rules and payees are sealed with your wallet key. If <span class="mono">config.json</span> is changed outside Reinpay, for example a payee added by another program, nothing is signed until you check <span class="mono">reinpay rules</span> and run <span class="mono">reinpay seal</span>.</p></details>
 <details class="faq"><summary>Is it free?</summary><p>Yes. Open source under MIT. You pay only the network fee in ETH for each payment.</p></details>
 </div></section>
 <section class="cta-band"><div class="wrap"><div class="cta-box">

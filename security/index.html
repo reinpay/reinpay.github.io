@@ -78,8 +78,8 @@
   <div class="section-head"><div class="eyebrow">Where things are kept</div><h2>The key stays on your computer.</h2><p>Everything lives in <span class="mono">~/.reinpay</span>, readable by you only.</p></div>
   <div class="bullets">
     <div class="bullet"><b>keystore.json</b><span>The key, encrypted with scrypt and AES-256-GCM under your passphrase.</span></div>
-    <div class="bullet"><b>passphrase</b><span>Present only while unlocked. <span class="mono">reinpay lock</span> removes it.</span></div>
-    <div class="bullet"><b>config.json</b><span>Your rules and payees. Only your terminal commands change it.</span></div>
+    <div class="bullet"><b>passphrase</b><span>Present only while unlocked, and removed on its own when the unlock runs out (12 hours unless you choose). <span class="mono">reinpay lock</span> removes it now.</span></div>
+    <div class="bullet"><b>config.json</b><span>Your rules and payees, sealed with your wallet key. If it is changed any other way, nothing is signed until you check it and run <span class="mono">reinpay seal</span>.</span></div>
     <div class="bullet"><b>receipts.json</b><span>Every request and what happened to it, written atomically.</span></div>
   </div>
 </div></section>
@@ -90,7 +90,8 @@
     <div class="bullet no"><b>Lets the agent approve</b><span>Approve, rules and payees refuse to run without an interactive terminal.</span></div>
     <div class="bullet no"><b>Pays someone off the list</b><span>No fuzzy matching on names. Off the list means blocked.</span></div>
     <div class="bullet no"><b>Pays a token contract</b><span>An address that answers like a token is refused as a payee, because tokens sent there are usually stuck for good.</span></div>
-    <div class="bullet no"><b>Signs a payment it did not simulate</b><span>The simulation must show exactly one transfer out, to the payee.</span></div>
+    <div class="bullet no"><b>Signs a payment it did not simulate</b><span>Approve rebuilds the payment from your payee list, simulates it, and signs exactly that transaction. The simulation must show one transfer out, to the payee.</span></div>
+    <div class="bullet no"><b>Signs with rules you did not seal</b><span>Before anything is signed, the seal on your rules and payees is checked against your wallet key.</span></div>
     <div class="bullet yes"><b>Writes a receipt every time</b><span>Blocked, waiting or sent, each request has an id and a reason.</span></div>
     <div class="bullet yes"><b>Open source</b><span>MIT licence. Read every line on GitHub.</span></div>
   </div>
@@ -99,6 +100,7 @@
   <div class="section-head"><div class="eyebrow">Limits of this version</div><h2>What it cannot check.</h2></div>
   <div class="bullets">
     <div class="bullet"><b>Delivery</b><span>The simulation checks what leaves the wallet. It cannot check that a payee delivers what you paid for.</span></div>
+    <div class="bullet"><b>Your computer itself</b><span>While the wallet is unlocked, a program running as you could read the passphrase. Unlock for short spans, like <span class="mono">reinpay unlock --for=30m</span>, and lock when you are done.</span></div>
     <div class="bullet"><b>Tokens you add are your call</b><span>Reinpay checks that a token is real and verified on Sourcify. It cannot tell you whether it is worth anything.</span></div>
   </div>
 </div></section>
