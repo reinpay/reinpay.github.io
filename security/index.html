@@ -95,6 +95,7 @@
     <div class="bullet no"><b>Adds a lookalike payee quietly</b><span>A new address that starts and ends like a payee you already have, or like your own wallet, is refused until you type it again in full. That is how address poisoning scams work.</span></div>
     <div class="bullet no"><b>Signs with rules you did not seal</b><span>Before anything is signed, the seal on your rules and payees is checked against your wallet key.</span></div>
     <div class="bullet yes"><b>Writes a receipt every time</b><span>Blocked, waiting or sent, each request has an id and a reason. <span class="mono">reinpay verify</span> checks a sent one against the chain.</span></div>
+    <div class="bullet yes"><b>Signed statements</b><span><span class="mono">reinpay statement</span> signs what your agent spent with your wallet key. Anyone can check it against the chain with <span class="mono">reinpay statement check</span>.</span></div>
     <div class="bullet yes"><b>Open source</b><span>MIT licence. Read every line on GitHub.</span></div>
   </div>
 </div></section>

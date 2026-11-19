@@ -118,6 +118,10 @@ reinpay approve RP-00042</pre>
 <div class="toolrow"><code>reinpay freeze [reason] · unfreeze</code><span>Stop every payment now; unfreeze is terminal only</span></div>
 <div class="toolrow"><code>reinpay rule breaker &lt;count&gt; &lt;minutes&gt; | off</code><span>Freeze by itself when the agent is blocked that often (default 5 in 10 minutes)</span></div>
 <div class="toolrow"><code>reinpay payee until &lt;name&gt; 30d|12h|off</code><span>A payee that expires on its own (also --until=30d on payee add)</span></div>
+<div class="toolrow"><code>reinpay rule first-payment ask|off</code><span>Make the first payment to every payee wait for you</span></div>
+<div class="toolrow"><code>reinpay statement [--days=30]</code><span>A spending statement signed with your wallet key</span></div>
+<div class="toolrow"><code>reinpay statement check &lt;file&gt;</code><span>Check anyone's statement: the signature, then every payment on the chain</span></div>
+<div class="toolrow"><code>reinpay digest [--days=1] [--dry]</code><span>A short summary to your Telegram or webhook, for a daily schedule</span></div>
 <div class="toolrow"><code>reinpay notify telegram &lt;bot-token&gt; &lt;chat-id&gt; | webhook &lt;url&gt; | off | test</code><span>A message when a payment waits for you</span></div></div>
 </div></section>
 <section class="plain" id="faq"><div class="wrap">
@@ -132,6 +136,7 @@ reinpay approve RP-00042</pre>
 <details class="faq"><summary>How do I know a payment really went through?</summary><p>Run <span class="mono">reinpay verify RP-…</span>. It reads the transaction back from Robinhood Chain and checks that it succeeded, came from your wallet, and paid that payee that exact amount of that token. Your agent can do the same with the <span class="mono">verify_receipt</span> tool.</p></details>
 <details class="faq"><summary>Something is not working. Where do I start?</summary><p>Run <span class="mono">reinpay doctor</span>. It checks Node.js, the RPC, the chain, the wallet, the seal, the unlock, ETH for fees, payees and budgets, and says what to do for anything that is off.</p></details>
 <details class="faq"><summary>How do I stop everything right now?</summary><p>Run <span class="mono">reinpay freeze</span>. Every request is blocked, autosend stops and approvals are refused until you run <span class="mono">reinpay unfreeze</span> in your terminal. The wallet also freezes itself if the agent is blocked 5 times in 10 minutes.</p></details>
+<details class="faq"><summary>Can I prove what my agent spent?</summary><p>Yes. <span class="mono">reinpay statement</span> writes every sent payment in a period to a file signed with your wallet key. Whoever you send it to runs <span class="mono">reinpay statement check</span>: it confirms your wallet signed it, that nothing was changed, and that every payment is on Robinhood Chain as written.</p></details>
 <details class="faq"><summary>Is it free?</summary><p>Yes. Open source under MIT. You pay only the network fee in ETH for each payment.</p></details>
 </div></section>
 <section class="cta-band"><div class="wrap"><div class="cta-box">
