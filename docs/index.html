@@ -126,6 +126,9 @@ reinpay approve RP-00042</pre>
 <div class="toolrow"><code>reinpay check &lt;payee&gt; &lt;amount&gt; [token]</code><span>Dry run: what would happen now. Nothing recorded or signed</span></div>
 <div class="toolrow"><code>reinpay grant &lt;token&gt; &lt;amount&gt; --for=2h</code><span>Extra budget for a while, on top of the daily budget (grant list | clear)</span></div>
 <div class="toolrow"><code>reinpay backup · restore &lt;file&gt;</code><span>Move the wallet to another computer; the key stays encrypted</span></div>
+<div class="toolrow"><code>reinpay payee export · import &lt;file&gt;</code><span>Share a signed payee list; import runs the usual checks and skips lookalikes</span></div>
+<div class="toolrow"><code>reinpay notify secret</code><span>A new signing secret for webhook notifications (x-reinpay-signature)</span></div>
+<div class="toolrow"><code>reinpay mcp --read-only</code><span>The MCP server without request_payment, for agents that should only read</span></div>
 <div class="toolrow"><code>reinpay notify telegram &lt;bot-token&gt; &lt;chat-id&gt; | webhook &lt;url&gt; | off | test</code><span>A message when a payment waits for you</span></div></div>
 </div></section>
 <section class="plain" id="faq"><div class="wrap">
@@ -142,6 +145,7 @@ reinpay approve RP-00042</pre>
 <details class="faq"><summary>How do I stop everything right now?</summary><p>Run <span class="mono">reinpay freeze</span>. Every request is blocked, autosend stops and approvals are refused until you run <span class="mono">reinpay unfreeze</span> in your terminal. The wallet also freezes itself if the agent is blocked 5 times in 10 minutes.</p></details>
 <details class="faq"><summary>Can I prove what my agent spent?</summary><p>Yes. <span class="mono">reinpay statement</span> writes every sent payment in a period to a file signed with your wallet key. Whoever you send it to runs <span class="mono">reinpay statement check</span>: it confirms your wallet signed it, that nothing was changed, and that every payment is on Robinhood Chain as written.</p></details>
 <details class="faq"><summary>How do I move Reinpay to a new computer?</summary><p>Run <span class="mono">reinpay backup</span> on the old one. It writes your key (still encrypted with your passphrase), rules, payees and receipts to one file. Install Reinpay on the new computer and run <span class="mono">reinpay restore file.json</span>. Keep that file as safe as the key itself.</p></details>
+<details class="faq"><summary>Can my team share one payee list?</summary><p>Yes. <span class="mono">reinpay payee export</span> writes your payees to a file signed with your wallet key. A teammate runs <span class="mono">reinpay payee import</span>: it shows who signed it and adds only payees that pass the usual checks, skipping lookalike addresses and token contracts.</p></details>
 <details class="faq"><summary>Is it free?</summary><p>Yes. Open source under MIT. You pay only the network fee in ETH for each payment.</p></details>
 </div></section>
 <section class="cta-band"><div class="wrap"><div class="cta-box">

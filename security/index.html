@@ -96,6 +96,7 @@
     <div class="bullet no"><b>Signs with rules you did not seal</b><span>Before anything is signed, the seal on your rules and payees is checked against your wallet key.</span></div>
     <div class="bullet yes"><b>Writes a receipt every time</b><span>Blocked, waiting or sent, each request has an id and a reason. <span class="mono">reinpay verify</span> checks a sent one against the chain.</span></div>
     <div class="bullet yes"><b>Signed statements</b><span><span class="mono">reinpay statement</span> signs what your agent spent with your wallet key. Anyone can check it against the chain with <span class="mono">reinpay statement check</span>.</span></div>
+    <div class="bullet yes"><b>Signed webhooks</b><span>Every webhook notification carries an HMAC signature and a timestamp, so your server can refuse forged or replayed ones.</span></div>
     <div class="bullet yes"><b>Open source</b><span>MIT licence. Read every line on GitHub.</span></div>
   </div>
 </div></section>
