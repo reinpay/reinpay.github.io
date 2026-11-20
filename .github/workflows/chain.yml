@@ -3,7 +3,7 @@
 name: Reinpay on chain
 on:
   schedule:
-    - cron: "37 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 permissions:
   contents: write
