@@ -1,0 +1,41 @@
+// v0.24: two-person approval, offline. The approval is refused before anything is simulated or signed.
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+process.env.REINPAY_HOME = mkdtempSync(join(tmpdir(), "reinpay-cosign-"));
+const CS = await import("../src/cosign.js");
+const R = await import("../src/rules.js");
+const C = await import("../src/config.js");
+const K = await import("../src/keystore.js");
+const P = await import("../src/pay.js");
+const RC = await import("../src/receipts.js");
+const { sealConfig } = await import("../src/seal.js");
+await import("../src/chain.js");
+let pass = 0, fail = 0;
+const check = (label, cond, info = "") => { cond ? pass++ : fail++; console.log(`${cond ? "PASS" : "FAIL"} ${label}${info ? ` (${info})` : ""}`); };
+const pk = generatePrivateKey(), me = K.writeKeystore(pk, "throwaway-test-passphrase");
+const cosigner = privateKeyToAccount(generatePrivateKey()), stranger = privateKeyToAccount(generatePrivateKey());
+const DEAD = "0x000000000000000000000000000000000000dEaD";
+const rules = { ...C.DEFAULT_CONFIG.rules, daily: { USDG: 1000 }, maxPerPayment: { USDG: 1000 }, approveAbove: { USDG: 1000 }, repeatGuardMinutes: 0, cosign: { by: cosigner.address, above: { USDG: "50" } } };
+const payee = { name: "Burn", address: DEAD };
+check("40 USDG under the 50 co-sign line: allowed", R.decide({ rules, receipts: [], request: { payee, token: "USDG", amountRaw: 40_000_000n } }).status === "allowed");
+const d = R.decide({ rules, receipts: [], request: { payee, token: "USDG", amountRaw: 60_000_000n } });
+check("60 USDG: waits, rule co-sign, naming the co-signer", d.status === "needs_approval" && d.rule === "co-sign" && d.reason.includes(cosigner.address));
+check("a token without a co-sign line is not held for it", !CS.needsCosign(rules, "ETH", 10n ** 18n));
+C.saveConfig(await sealConfig({ ...C.DEFAULT_CONFIG, rules, payees: [{ name: "Burn", address: DEAD, isContract: false }] }, privateKeyToAccount(pk)));
+const r = RC.addReceipt({ by: "agent", wallet: me, payee: "Burn", payeeAddress: DEAD, token: "USDG", amount: "60", amountRaw: "60000000", status: "needs_approval", rule: "co-sign", reason: "x" });
+const msg = CS.cosignMessage(r);
+check("the message names the wallet, the receipt, the amount and the payee", msg.includes(me) && msg.includes(r.id) && msg.includes("60000000") && msg.includes(DEAD.slice(2).toLowerCase()) === false && msg.includes("0x000000000000000000000000000000000000dEaD"));
+const good = await cosigner.signMessage({ message: msg });
+check("the co-signer's signature checks out", (await CS.checkCosign(rules, r, good)).ok);
+check("a stranger's signature does not", !(await CS.checkCosign(rules, r, await stranger.signMessage({ message: msg }))).ok);
+check("a co-signature for another receipt does not", !(await CS.checkCosign(rules, { ...r, id: "RP-99999" }, good)).ok);
+check("a co-signature for another amount does not", !(await CS.checkCosign(rules, { ...r, amountRaw: "600000000" }, good)).ok);
+let e = null; try { await P.approve(r.id, { passphrase: "throwaway-test-passphrase" }); } catch (x) { e = x; }
+check("approve without a co-signature is refused, with the next step", /needs a co-signature/.test(e?.message || "") && /cosign-message/.test(e?.message || ""));
+e = null; try { await P.approve(r.id, { passphrase: "throwaway-test-passphrase", cosig: await stranger.signMessage({ message: msg }) }); } catch (x) { e = x; }
+check("approve with the wrong co-signer is refused", /not 0x/i.test(e?.message || "") || /is from/.test(e?.message || ""));
+check("the receipt is still waiting, nothing signed", RC.getReceipt(r.id).status === "needs_approval");
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

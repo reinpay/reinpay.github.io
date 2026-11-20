@@ -1,0 +1,32 @@
+// v0.19: reinpay review, offline and pure.
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+process.env.REINPAY_HOME = mkdtempSync(join(tmpdir(), "reinpay-review-"));
+const RV = await import("../src/review.js");
+const C = await import("../src/config.js");
+await import("../src/chain.js");
+let pass = 0, fail = 0;
+const check = (label, cond, info = "") => { cond ? pass++ : fail++; console.log(`${cond ? "PASS" : "FAIL"} ${label}${info ? ` (${info})` : ""}`); };
+const now = Date.now(), D = 86_400_000;
+const A = "0x000000000000000000000000000000000000dEaD", B = "0x00000000000000000000000000000000DeaDBeef";
+const rc = (o) => ({ token: "USDG", amountRaw: "1000000", status: "sent", payeeAddress: A, createdAt: now - (o.daysAgo || 0) * D, ...o });
+const cfg = { ...C.DEFAULT_CONFIG, rules: { ...C.DEFAULT_CONFIG.rules, daily: { USDG: 100 } }, notify: { type: "webhook", url: "https://example.com" },
+  payees: [{ name: "Used", address: A, addedAt: new Date(now - 60 * D).toISOString() }, { name: "Forgotten", address: B, addedAt: new Date(now - 60 * D).toISOString() }] };
+const rs = [rc({ daysAgo: 1 }), rc({ daysAgo: 2 }), rc({ daysAgo: 3 }), ...[1, 2, 3].map((d) => rc({ daysAgo: d, status: "blocked", rule: "payee list", payeeAddress: null })), ...[1, 2, 3, 4].map((d) => rc({ daysAgo: d, status: "blocked", rule: "daily budget" })), rc({ daysAgo: 2, status: "needs_approval" })];
+const list = RV.review(cfg, rs, { now });
+const has = (t) => list.find((s) => t.test(s.title));
+check("a payee unused for 30 days is suggested for switching off", /payee off "Forgotten"/.test(has(/Forgotten/)?.fix || ""));
+check("the payee that was paid is not", !has(/^Used/));
+check("a budget blocking 4 requests this week is flagged", !!has(/daily budget blocked 4/));
+check("a budget 100x bigger than use is suggested smaller, with a number", /reinpay rule daily USDG 4/.test(has(/much bigger/)?.fix || ""), has(/much bigger/)?.fix);
+check("3 requests to strangers are flagged", !!has(/not on your list/));
+check("a payment waiting 2 days suggests expire-after", /expire-after 24h/.test(has(/waited more than a day/)?.fix || ""));
+check("notifications set: no notification suggestion", !has(/No notifications/));
+const auto = RV.review({ ...cfg, notify: undefined, rules: { ...cfg.rules, autoSend: true } }, rs, { now });
+check("autosend without a per-hour cap or first-payment rule: safety suggestions", auto.some((s) => /per-hour/.test(s.fix)) && auto.some((s) => /first-payment ask/.test(s.fix)) && auto.some((s) => /No notifications/.test(s.title)));
+check("safety comes first in the text", /^\[safety\]/.test(RV.reviewText(auto)) && /Nothing was changed/.test(RV.reviewText(auto)));
+check("a quiet, well-fitted setup: nothing to suggest", RV.review({ ...cfg, payees: [cfg.payees[0]], rules: { ...cfg.rules, daily: { USDG: 5 } } }, [rc({ daysAgo: 1 }), rc({ daysAgo: 2 }), rc({ daysAgo: 3 })], { now }).length === 0);
+check("autosend on with the breaker off is flagged", RV.review({ ...cfg, rules: { ...cfg.rules, autoSend: true, breaker: "off", maxPerHour: 10, firstPayment: "ask" } }, [], { now }).some((s) => /breaker 5 10/.test(s.fix)));
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

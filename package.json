@@ -1,0 +1,44 @@
+{
+  "name": "reinpay",
+  "version": "0.37.0",
+  "description": "A wallet for AI agents that only spends inside your rules: daily budgets, a payee list, per-payment caps and an approval line. Every payment is simulated on Robinhood Chain mainnet before it is sent. MCP server included.",
+  "type": "module",
+  "bin": {
+    "reinpay": "bin/reinpay.js"
+  },
+  "main": "src/server.js",
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "test": "node test/rules.test.mjs && node test/lock.test.mjs && node test/report.test.mjs && node test/notify.test.mjs && node test/csv.test.mjs && node test/profile.test.mjs && node test/seal.test.mjs && node test/guard.test.mjs && node test/verify.test.mjs && node test/doctor.test.mjs && node test/freeze.test.mjs && node test/paper.test.mjs && node test/plan.test.mjs && node test/share.test.mjs && node test/smart.test.mjs && node test/bills.test.mjs && node test/failclosed.test.mjs && node test/approvals.test.mjs && node test/fleet.test.mjs && node test/usd.test.mjs && node test/proof.test.mjs && node test/sharereceipt.test.mjs && node test/review.test.mjs && node test/session.test.mjs && node test/search.test.mjs && node test/htmlreport.test.mjs && node test/cosign.test.mjs && node test/fee.test.mjs && node test/books.test.mjs && node test/retry.test.mjs && node test/memos.test.mjs && node test/connect.test.mjs && node test/update.test.mjs && node test/explain.test.mjs && node test/planlist.test.mjs && node test/today.test.mjs && node test/payeecheck.test.mjs && node test/addcheck.test.mjs && node test/history.test.mjs && node test/approvedry.test.mjs && node test/live.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "ai-agent",
+    "agent-payments",
+    "wallet",
+    "spending-limits",
+    "robinhood-chain",
+    "usdg",
+    "eth-simulate"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "viem": "^2.58.0",
+    "zod": "^4.6.7"
+  },
+  "homepage": "https://reinpay.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reinpay/reinpay.git"
+  }
+}

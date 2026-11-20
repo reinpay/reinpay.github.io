@@ -1,0 +1,31 @@
+// v0.17: shared receipts, offline with a pretend chain.
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+process.env.REINPAY_HOME = mkdtempSync(join(tmpdir(), "reinpay-share2-"));
+const S = await import("../src/statement.js");
+await import("../src/chain.js");
+let pass = 0, fail = 0;
+const check = (label, cond, info = "") => { cond ? pass++ : fail++; console.log(`${cond ? "PASS" : "FAIL"} ${label}${info ? ` (${info})` : ""}`); };
+const owner = privateKeyToAccount(generatePrivateKey());
+const DEAD = "0x000000000000000000000000000000000000dEaD", USDG = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", H = "0x" + "ab".repeat(32);
+const old = Date.now() - 40 * 86_400_000;
+const r = { id: "RP-00009", createdAt: old, payee: "Burn", payeeAddress: DEAD, token: "USDG", tokenAddress: USDG, amount: "2.5", amountRaw: "2500000", status: "sent", txHash: H, block: "100", memo: "forecast" };
+const st = S.receiptProof(r, { wallet: owner.address });
+check("a receipt proof holds exactly that one payment, even 40 days later", st.count === 1 && st.payments[0].id === "RP-00009" && st.purpose === "receipt");
+check("its date is the payment's day", st.from === st.to && st.payments[0].at.startsWith(new Date(old).toISOString().slice(0, 10)));
+let e = null; try { S.receiptProof({ ...r, status: "needs_approval", txHash: undefined }, { wallet: owner.address }); } catch (x) { e = x; }
+check("a payment that was not sent cannot be shared", /only sent payments/.test(e?.message || ""));
+const signed = await S.signStatement(st, owner);
+check("signed by the wallet, the signature checks out", (await S.checkSignature(signed)).ok);
+const t = structuredClone(signed); t.purpose = "statement";
+check("changing it from receipt to statement breaks the signature", !(await S.checkSignature(t)).ok);
+const pad = (a) => "0x" + a.slice(2).toLowerCase().padStart(64, "0");
+const TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const client = { getTransaction: async () => ({ chainId: 4663, from: owner.address, to: USDG, value: 0n }), getTransactionReceipt: async () => ({ status: "success", blockNumber: 100n, logs: [{ address: USDG, topics: [TOPIC, pad(owner.address), pad(DEAD)], data: "0x" + (2500000).toString(16).padStart(64, "0") }] }) };
+const res = await S.checkStatement(signed, { client });
+check("the full check: signature and the payment on the chain", res.ok);
+check("the text names it a receipt", /^Reinpay receipt RP-00009/.test(S.statementCheckText(signed, res)) && /Everything checks out/.test(S.statementCheckText(signed, res)));
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

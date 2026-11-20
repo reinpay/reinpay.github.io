@@ -1,0 +1,23 @@
+// CSV export, offline: quoting, spreadsheet formula injection from agent memos, and the report layout.
+import { cell, toCSV, RECEIPT_COLS, reportCSV } from "../src/csv.js";
+import { spendingReport } from "../src/report.js";
+let pass = 0, fail = 0;
+const check = (label, cond, info = "") => { cond ? pass++ : fail++; console.log(`${cond ? "PASS" : "FAIL"} ${label}${info ? ` (${info})` : ""}`); };
+check("plain text stays plain", cell("Weather API") === "Weather API");
+check("commas, quotes and newlines are quoted", cell('a,b') === '"a,b"' && cell('say "hi"') === '"say ""hi"""' && cell("x\ny") === '"x\ny"');
+check("a memo starting with = is kept as text", cell("=HYPERLINK(\"http://x\")") === `"'=HYPERLINK(""http://x"")"`);
+check("+, -, @ and tab starts are kept as text too", cell("+1+1") === "'+1+1" && cell("@SUM(A1)") === "'@SUM(A1)" && cell("\tcmd") === "'\tcmd" && cell("-2+3") === "'-2+3");
+check("negative numbers are not touched", cell("-12.5") === "-12.5");
+check("null and undefined are empty, bigint is written in full", cell(null) === "" && cell(undefined) === "" && cell(10n ** 20n) === "100000000000000000000");
+const r = { id: "RP-00001", createdAt: "2026-11-18T10:00:00.000Z", status: "sent", payee: "Weather API", payeeAddress: "0x000000000000000000000000000000000000dEaD", token: "USDG", amount: "4", memo: "=cmd|' /C calc'!A0", rule: "within rules", reason: "Inside every rule.", txHash: "0xabc", block: "1", networkFeeEth: "0.0000005", by: "agent" };
+const csv = toCSV([r], RECEIPT_COLS);
+const [head, row] = csv.trim().split("\r\n");
+check("receipts CSV has a header row with 14 columns", head.split(",").length === 14 && head.startsWith("id,created_at,status,payee"));
+check("the dangerous memo is neutralised in the receipts CSV", row.includes("'=cmd|"), row);
+check("lines end with CRLF for spreadsheets", csv.endsWith("\r\n") && csv.includes("\r\n"));
+const now = new Date(2026, 10, 18, 12).getTime();
+const rep = spendingReport([{ payee: "W", token: "USDG", amountRaw: "4000000", status: "sent", createdAt: now - 3_600_000 }], { days: 2, now });
+const rc = reportCSV(rep).trim().split("\r\n");
+check("report CSV: header plus one row per day and token", rc[0] === "day,token,sent,sent_count,waiting,waiting_count,blocked_count,rejected_or_failed" && rc.length === 2 && rc[1].startsWith("2026-11-18,USDG,4,1"));
+console.log(`\n${pass} passed, ${fail} failed.`);
+process.exit(fail ? 1 : 0);

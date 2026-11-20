@@ -1,0 +1,37 @@
+// Profiles (one wallet per agent), offline: where each profile lives, name rules, and that receipts never mix.
+import { mkdtempSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+const fake = mkdtempSync(join(tmpdir(), "reinpay-home-"));
+process.env.HOME = fake; delete process.env.REINPAY_HOME; delete process.env.REINPAY_PROFILE;
+const C = await import("../src/config.js");
+const R = await import("../src/receipts.js");
+let pass = 0, fail = 0;
+const check = (label, cond, info = "") => { cond ? pass++ : fail++; console.log(`${cond ? "PASS" : "FAIL"} ${label}${info ? ` (${info})` : ""}`); };
+const throws = (fn, re) => { try { fn(); return false; } catch (e) { return re.test(e.message); } };
+
+check("default profile lives in ~/.reinpay", C.HOME() === join(fake, ".reinpay"));
+process.env.REINPAY_PROFILE = "research";
+check("a named profile lives in ~/.reinpay/profiles/<name>", C.HOME() === join(fake, ".reinpay", "profiles", "research"));
+R.addReceipt({ payee: "A", token: "USDG", amount: "1", amountRaw: "1000000", status: "blocked" });
+process.env.REINPAY_PROFILE = "trading-bot";
+check("another profile starts with no receipts", R.allReceipts().length === 0);
+R.addReceipt({ payee: "B", token: "USDG", amount: "2", amountRaw: "2000000", status: "blocked" });
+R.addReceipt({ payee: "B", token: "USDG", amount: "3", amountRaw: "3000000", status: "blocked" });
+process.env.REINPAY_PROFILE = "research";
+check("each profile keeps its own receipts and numbering", R.allReceipts().length === 1 && R.allReceipts()[0].payee === "A" && R.allReceipts()[0].id === "RP-00001");
+process.env.REINPAY_PROFILE = "default";
+check("'default' means ~/.reinpay", C.HOME() === join(fake, ".reinpay"));
+const bads = ["../x", "UPPER", "a b", "-lead", "x".repeat(33)];
+const refused = bads.filter((bad) => { process.env.REINPAY_PROFILE = bad; return throws(() => C.HOME(), /lowercase letters/); });
+check("names with slashes, capitals, spaces, a leading dash or over 32 characters are refused", refused.length === bads.length, `${refused.length}/${bads.length}`);
+process.env.REINPAY_HOME = join(fake, "custom"); process.env.REINPAY_PROFILE = "research";
+check("REINPAY_HOME still wins when set", C.HOME() === join(fake, "custom"));
+delete process.env.REINPAY_HOME; delete process.env.REINPAY_PROFILE;
+const out = execFileSync(process.execPath, [new URL("../bin/reinpay.js", import.meta.url).pathname, "profiles"], { env: { ...process.env, HOME: fake }, encoding: "utf8" });
+check("reinpay profiles lists default and both named profiles", /^default/m.test(out) && /^research/m.test(out) && /^trading-bot/m.test(out), out.split("\n").slice(0, 3).join(" | "));
+const csv = execFileSync(process.execPath, [new URL("../bin/reinpay.js", import.meta.url).pathname, "receipts", "--csv", "--profile=trading-bot"], { env: { ...process.env, HOME: fake }, encoding: "utf8" });
+check("the CLI --profile flag reads that profile's receipts (2 rows for trading-bot)", csv.trim().split("\r\n").length === 3 && csv.includes(",B,"));
+console.log(`\n${pass} passed, ${fail} failed.`);
+process.exit(fail ? 1 : 0);

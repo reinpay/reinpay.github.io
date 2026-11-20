@@ -1,0 +1,32 @@
+// reinpay verify, offline: compare() against made-up transactions shaped like viem's. No network.
+const { compare } = await import("../src/verify.js");
+let pass = 0, fail = 0;
+const check = (label, cond, info = "") => { cond ? pass++ : fail++; console.log(`${cond ? "PASS" : "FAIL"} ${label}${info ? ` (${info})` : ""}`); };
+const pad = (a) => "0x" + a.slice(2).toLowerCase().padStart(64, "0");
+const TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const W = "0x00000000000000000000000000000000DeaDBeef", PAYEE = "0x000000000000000000000000000000000000dEaD", OTHER = "0x0000000000000000000000000000000000000001";
+const USDG = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168";
+const log = (from, to, value, address = USDG) => ({ address, topics: [TOPIC, pad(from), pad(to)], data: "0x" + value.toString(16).padStart(64, "0") });
+const tok = (over = {}) => ({ tx: { chainId: 4663, from: W, to: USDG, value: 0n, ...over.tx }, rc: { status: "success", blockNumber: 100n, logs: [log(W, PAYEE, 1_000_000n)], ...over.rc } });
+const want = { wallet: W, payeeAddress: PAYEE, amountRaw: "1000000", tokenAddress: USDG, block: "100" };
+const allOk = (c) => c.every((x) => x.ok);
+const failed = (c) => c.filter((x) => !x.ok).map((x) => x.name);
+
+let t = tok(); check("a matching USDG transfer passes every check", allOk(compare(want, t.tx, t.rc)), `${compare(want, t.tx, t.rc).length} checks`);
+t = tok({ rc: { logs: [log(W, OTHER, 1_000_000n)] } }); check("paid to someone else: fails 'to the payee'", failed(compare(want, t.tx, t.rc)).includes("to the payee"));
+t = tok({ rc: { logs: [log(W, PAYEE, 999_999n)] } }); check("one unit short: fails 'the exact amount'", failed(compare(want, t.tx, t.rc)).includes("the exact amount"));
+t = tok({ rc: { status: "reverted" } }); check("reverted: fails 'confirmed and succeeded'", failed(compare(want, t.tx, t.rc)).includes("confirmed and succeeded"));
+t = tok({ tx: { chainId: 1 } }); check("another chain: fails 'on Robinhood Chain'", failed(compare(want, t.tx, t.rc)).includes("on Robinhood Chain"));
+t = tok({ tx: { from: OTHER } }); check("sent by another wallet: fails 'sent from your wallet'", failed(compare(want, t.tx, t.rc)).includes("sent from your wallet"));
+t = tok({ rc: { logs: [log(W, PAYEE, 1_000_000n), log(W, OTHER, 5n)] } }); check("a second transfer out of the wallet: fails 'exactly one'", failed(compare(want, t.tx, t.rc)).includes("exactly one token transfer out of your wallet"));
+t = tok({ rc: { logs: [log(W, PAYEE, 1_000_000n, OTHER)] } }); check("a Transfer from another token contract does not count", failed(compare(want, t.tx, t.rc)).includes("exactly one token transfer out of your wallet"));
+t = tok({ rc: { blockNumber: 101n } }); check("a different block than the receipt: fails", failed(compare(want, t.tx, t.rc)).includes("same block as the receipt"));
+t = tok({ tx: { value: 5n } }); check("ETH sent along with a token call: fails", failed(compare(want, t.tx, t.rc)).includes("no ETH sent along"));
+check("no transaction on chain: fails, does not throw", !allOk(compare(want, null, null)));
+const eth = { wallet: W, payeeAddress: PAYEE, amountRaw: "500000000000000", tokenAddress: null };
+const etx = { chainId: 4663, from: W, to: PAYEE, value: 500000000000000n }, erc = { status: "success", blockNumber: 7n, logs: [] };
+check("a matching ETH payment passes", allOk(compare(eth, etx, erc)));
+check("ETH to another address fails", failed(compare(eth, { ...etx, to: OTHER }, erc)).includes("paid the payee"));
+check("ETH, different amount fails", failed(compare(eth, { ...etx, value: 1n }, erc)).includes("the exact amount"));
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

@@ -1,0 +1,20 @@
+// v0.30: version check and changelog, offline (GitHub is stubbed).
+const U = await import("../src/update.js");
+let pass = 0, fail = 0;
+const check = (label, cond, info = "") => { cond ? pass++ : fail++; console.log(`${cond ? "PASS" : "FAIL"} ${label}${info ? ` (${info})` : ""}`); };
+check("0.9.0 < 0.10.0 (numbers, not text)", U.compare("0.9.0", "0.10.0") === -1 && U.compare("0.30.0", "0.30.0") === 0 && U.compare("1.0.0", "0.99.9") === 1);
+const gh = (v, ok = true) => async () => ({ ok, status: ok ? 200 : 404, json: async () => ({ version: v }) });
+let r = await U.checkLatest("0.29.0", { fetch: gh("0.30.0") });
+check("a newer version on GitHub is reported", r.newer && r.latest === "0.30.0");
+r = await U.checkLatest("0.30.0", { fetch: gh("0.30.0") });
+check("the same version: not newer", !r.newer && r.latest === "0.30.0");
+r = await U.checkLatest("0.30.0", { fetch: gh("x", true) });
+check("a bad answer: no version, no claim", r.latest === null && /did not give a version/.test(r.detail));
+r = await U.checkLatest("0.30.0", { fetch: async () => { throw new Error("fetch failed"); } });
+check("GitHub unreachable: says so, never throws", r.latest === null && /fetch failed/.test(r.detail));
+const md = "# Changelog\n\n## 0.30.0 (unreleased): a\n\n- x\n\n## 0.29.0 (unreleased): b\n\n- y\n\n## 0.28.0: c\n";
+const since = U.changelogSince(md, "0.28.0");
+check("changelog since 0.28.0: 0.30.0 and 0.29.0, newest first", since.map((x) => x.version).join() === "0.30.0,0.29.0" && /^## 0\.30\.0/.test(since[0].text));
+check("the installed CHANGELOG parses, with 0.1.0 at the end", U.changelogSince(U.readChangelog()).at(-1).version === "0.1.0");
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

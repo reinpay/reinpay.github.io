@@ -1,0 +1,41 @@
+// v0.13: the memo rule, waiting payments that expire, and approving several at once. Offline.
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { generatePrivateKey } from "viem/accounts";
+process.env.REINPAY_HOME = mkdtempSync(join(tmpdir(), "reinpay-appr-"));
+const R = await import("../src/rules.js");
+const C = await import("../src/config.js");
+const K = await import("../src/keystore.js");
+const P = await import("../src/pay.js");
+const RC = await import("../src/receipts.js");
+await import("../src/chain.js");
+let pass = 0, fail = 0;
+const check = (label, cond, info = "") => { cond ? pass++ : fail++; console.log(`${cond ? "PASS" : "FAIL"} ${label}${info ? ` (${info})` : ""}`); };
+const DEAD = "0x000000000000000000000000000000000000dEaD";
+const rules = { daily: { USDG: 25 }, maxPerPayment: { USDG: 10 }, approveAbove: { USDG: 5 }, repeatGuardMinutes: 0, memoMin: 8 };
+const req = (memo) => ({ payee: { name: "Burn", address: DEAD }, token: "USDG", amountRaw: 1_000_000n, memo });
+const m1 = R.decide({ rules, receipts: [], request: req("x") });
+check("memo rule: a one-letter memo is blocked, with how many characters are needed", m1.status === "blocked" && m1.rule === "memo" && /8 characters/.test(m1.reason));
+check("memo rule: a blank memo is blocked", R.decide({ rules, receipts: [], request: req("        ") }).rule === "memo");
+check("memo rule: a real memo passes", R.decide({ rules, receipts: [], request: req("weather forecast, 6 hours") }).status === "allowed");
+check("memo rule off: anything passes", R.decide({ rules: { ...rules, memoMin: 0 }, receipts: [], request: req("") }).status === "allowed");
+
+const me = K.writeKeystore(generatePrivateKey(), "throwaway-test-passphrase");
+const cfg = C.loadConfig(); cfg.rules.expireAfterMinutes = 60; cfg.payees.push({ name: "Burn", address: DEAD, isContract: false }); C.saveConfig(cfg);
+const mk = (minsAgo, status = "needs_approval") => { const r = RC.addReceipt({ by: "agent", wallet: me, payee: "Burn", payeeAddress: DEAD, token: "USDG", amount: "4", amountRaw: "4000000", status, rule: "approval line", reason: "x" }); RC.updateReceipt(r.id, { createdAt: Date.now() - minsAgo * 60_000 }); return r.id; };
+const old = mk(90), fresh = mk(10), oldSent = mk(120, "sent");
+const n = P.expireStale(C.loadConfig().rules);
+check("expire-after 60m: a payment waiting 90 minutes expires, one waiting 10 does not", n === 1 && RC.getReceipt(old).status === "expired" && RC.getReceipt(fresh).status === "needs_approval");
+check("a sent payment is never touched", RC.getReceipt(oldSent).status === "sent");
+check("the receipt says why it expired", RC.getReceipt(old).history.some((h) => /waited more than 60 minutes/.test(h.note)));
+check("an expired payment no longer holds today's budget", R.totals(RC.allReceipts(), "USDG", Date.now()).held === 4_000_000n);
+let e = null; try { await P.approve(old, { passphrase: "throwaway-test-passphrase" }); } catch (x) { e = x; }
+check("an expired payment cannot be approved", /expired; only waiting payments/.test(e?.message || ""));
+check("listing receipts expires stale ones too", (() => { const id = mk(200); P.listReceipts({}); return RC.getReceipt(id).status === "expired"; })());
+check("expiry off: nothing expires", (() => { const id = mk(500); return P.expireStale({}) === 0 && RC.getReceipt(id).status === "needs_approval"; })());
+check("get_rules tells the agent about both rules", (() => { const c = C.loadConfig(); c.rules.memoMin = 8; C.saveConfig(c); const v = P.rulesView(); return /8 characters/.test(v.memoRequired) && v.waitingPaymentsExpireAfterMinutes === 60; })());
+const pv = await P.previewPayment({ payee: "Burn", amount: "1", memo: "x" });
+check("check_payment with a short memo says it would be blocked by the memo rule", pv.wouldBe === "blocked" && pv.rule === "memo");
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

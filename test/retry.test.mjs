@@ -1,0 +1,25 @@
+// v0.27: notification retries and the delivery log, offline.
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+process.env.REINPAY_HOME = mkdtempSync(join(tmpdir(), "reinpay-retry-"));
+const N = await import("../src/notify.js");
+let pass = 0, fail = 0;
+const check = (label, cond, info = "") => { cond ? pass++ : fail++; console.log(`${cond ? "PASS" : "FAIL"} ${label}${info ? ` (${info})` : ""}`); };
+const cfg = { notify: { type: "telegram", botToken: "123456:SECRETSECRETSECRETSECRETxx", chatId: "42" } };
+const r = { id: "RP-00001", amount: "1", token: "USDG", payee: "Burn", rule: "x", reason: "x", status: "needs_approval" };
+const waits = []; const sleep = async (ms) => { waits.push(ms); };
+const seq = (codes) => { let i = 0; return async () => { const c = codes[Math.min(i++, codes.length - 1)]; if (c === "net") throw new Error("fetch failed"); return { ok: c < 300, status: c }; }; };
+let x = await N.notifyOwner(r, { cfg, fetch: seq([503, 200]), sleep });
+check("a 503 then a 200: delivered on the second try, after waiting 1 s", x.ok && x.attempts === 2 && waits.join() === "1000");
+waits.length = 0; x = await N.notifyOwner(r, { cfg, fetch: seq(["net", "net", "net"]), sleep });
+check("three network errors: gives up after 3 tries, waiting 1 s then 3 s", !x.ok && x.attempts === 3 && waits.join() === "1000,3000");
+waits.length = 0; x = await N.notifyOwner(r, { cfg, fetch: seq([401]), sleep });
+check("a 401 (wrong token) is not retried", !x.ok && x.attempts === 1 && waits.length === 0);
+x = await N.notifyOwner(r, { cfg, fetch: seq([429, 429, 200]), sleep });
+check("429 is retried", x.ok && x.attempts === 3);
+const log = N.readLog();
+check("every delivery is logged", log.length === 4 && log[0].ok === true && log[1].ok === false && log[1].attempts === 3);
+check("the log names the host, never the bot token", log.every((e) => e.host === "api.telegram.org") && !readFileSync(join(process.env.REINPAY_HOME, "notify-log.json"), "utf8").includes("SECRET"));
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);
