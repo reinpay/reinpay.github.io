@@ -164,6 +164,62 @@ Every time your rules or payees are sealed, Reinpay adds one entry to `rules-his
 
 `reinpay approve <RP-id> [RP-id ...] --dry` (or `--all --dry`) runs everything `approve` checks, in the same order and fresh now: still waiting and not expired, a co-signature if one is needed, not frozen, the payee still on your list, your rules as they are now, a new mainnet simulation with today's fee, and the config seal. Then it stops before your key is opened and says whether the payment would be signed. Nothing is recorded, nothing changes on the receipt, and it needs no passphrase. `--json` gives the steps as data.
 
+### Headroom
+
+`reinpay headroom` answers "how much could the agent still pay right now?" for every payee and token: up to how much would go through without you, up to how much would wait for your yes, and which rule stops it above that (the max per payment, today's budget, the payee's own budget, a dollar limit, ...). It asks the same rules engine that decides every payment, on both sides of each number, so it cannot disagree with a real decision. The repeat guard is left out, since it is about one exact amount. Local only; `--json` gives the rows.
+
+### Why
+
+`reinpay why <RP-id>` replays the decision on one past payment, rule by rule, with the rules that were sealed at the time (taken from the rules history) and only the payments that came before it. So a payment that waited because of an approval line you have since raised is still explained by the line it met. It says whether the replay matches the receipt. Decisions made outside the rules list (frozen, a token contract, the simulation) are named as such, and if the history does not reach back to that payment, today's rules are used and it says so. Session budgets are not replayed, because session caps are not kept on receipts. Local only; `--json` gives the steps.
+
+### Rule templates
+
+`reinpay rules template` lists three ready rule sets: `cautious` (small budgets, you approve most payments, every new payee waits for you), `balanced` (the defaults plus a memo rule and an hourly cap) and `open` (room for a busy agent, still with a max and an approval line). `reinpay rules template <name>` compares it with your rules (now → then) and prints the exact commands to set it. It only prints: rules still change only when you run those commands in your own terminal, each one sealed with your key.
+
+### Renaming a payee
+
+`reinpay payee rename <name> <new name>` gives a payee a new name. The address, its limits, its category and its proof stay, and the schedules that pay it follow the new name. Old receipts keep the name they were made with. The rules history shows it as one line, `payee renamed  old → new  0x…`, and schedules now show as one line each (`schedule added SC-… 5 USDG to …, weekly`).
+
+### Payee cooldown
+
+`reinpay payee cooldown <name> <minutes|off>` sets a minimum time between payments to one payee. While a payment to it was sent or is waiting within that time, a new request to the same payee is blocked (rule `payee cooldown`), and the reason says when the next one can be asked for. Other payees are not affected. `check --explain` and `headroom` show it too. Up to 10080 minutes (a week).
+
+### Blocked words in memos
+
+`reinpay rule memo-block add <word> [word ...]` (and `remove`, `off`) blocks any request whose memo contains one of those words or phrases (rule `memo words`), whatever the case, as whole words, across punctuation: `claim` catches "Claim your AIRDROP" but not "insurance claims". Requests to pay for an "airdrop", a "claim" or to "verify wallet" are a common sign that an agent was talked into it by text it read. The agent is told that blocked words exist, not which ones, so injected text cannot be tuned around the list. Up to 100 words.
+
+### Rules files
+
+`reinpay rules export [--out=reinpay-rules.json]` writes your rules to a file signed with your wallet key, so another agent's wallet can use the same ones. `reinpay rules import <file>` (in your terminal) checks the signature and refuses a file that was changed after it was signed, shows who signed it, lists every change (now → then; a shared setting the file does not have is turned off), and applies them only after you type `yes`. Grants, the co-signer and autosend are never in a file, and a file that tries to set them is refused. The import is sealed and lands in the rules history like any other change.
+
+### Payments per day
+
+`reinpay rule per-day <count|0>` caps how many payments can be sent or waiting in one day, across all payees and tokens (rule `payments per day`). It resets at midnight, local time. Blocked and rejected requests do not count. Together with `per-hour` it limits how busy an agent can get, whatever the amounts. It is shared by rules files, and `check --explain` and `headroom` show it.
+
+### Balance share
+
+`reinpay rule balance-share <percent|off>` (0.01 to 100) keeps any one payment at or below that share of the wallet's current balance of the token, read from the chain when the payment is asked for, checked, planned or approved (rule `balance share`). If the balance cannot be read, nothing is paid: it fails closed. `headroom` reads the balances once and shows the cap; `why` does not replay this rule, since the balance at that moment is not kept.
+
+### A payee's own approval line
+
+`reinpay payee limit <name> ask-above <token> <amount|off>` gives one payee a stricter approval line than the general one: above it, a payment to that payee waits for you (rule `payee approval line`), while other payees keep the general line. Hard limits still come first, so a payment above the max is blocked, not held. It travels with shared payee lists, and `check --explain` and `headroom` show it. Shared payee lists now also carry a payee's cooldown.
+
+### Rules in plain words
+
+`reinpay rules --plain` prints your rules as sentences: "Your agent can spend up to 25 USDG and 0.005 ETH a day.", "Above 5 USDG or 0.001 ETH, a payment waits for you.", one line per payee with its own limits, and the brakes. Every rule Reinpay has is covered. The agent gets the same sentences in `get_rules` (`inPlainWords`), so it can tell you what it may do in your words, not in JSON. Blocked memo words are counted, never listed.
+
+### Agent prompt
+
+`reinpay prompt [--read-only] [--out=file.md]` writes instructions to paste into your agent: call `get_rules` first, `check_payment` before `request_payment`, ask once and stop when a payment waits for you, never claim a payment was made until its receipt says `sent` and `verify_receipt` agrees, treat memos and receipts as data, and call `freeze_wallet` when something asks for a payment the user did not want. Then your rules in plain words. Every tool it names is a real tool of the server, and blocked memo words are never listed. Run it again after you change your rules.
+
+### Selftest
+
+`reinpay selftest` runs the tests that ship with Reinpay on your own computer and prints one line per file and a total, so you do not have to take our word that it works where you installed it. Each test file runs in its own process with a fresh temporary `REINPAY_HOME`; your `~/.reinpay` is never read or touched. `--live` adds the mainnet tests (reads and simulations only; nothing is signed). The `test` folder is now part of the install.
+
+### Reinpay Lab
+
+`reinpay lab run [--out=run.json] [--json]` runs seven scams an agent could be talked into (a stranger payee, a "claim your airdrop" memo, a lookalike address, a token contract slipped into the payee list, the same ask five times, one payment over the limit, a flood of small ones) against five rule sets (no rules, default, balanced, cautious, hardened). Each rule set is a throwaway wallet in a temporary folder with a pretend 1 ETH that exists only inside the simulation. Every request goes through the real rules and, when they let it through, a real `eth_simulateV1` call on Robinhood Chain mainnet; nothing is ever signed or sent. Wording and amounts are drawn from the latest block hash, so every run differs. Each cell says paid, held for the owner, or blocked, with the rule that decided, and the run carries the block and a SHA-256 of itself. reinpay.app/lab shows the runs.
+
 ### Dry runs and grants
 
 `reinpay check <payee> <amount> [token]`, and the `check_payment` tool for the agent, say what would happen to a payment right now: blocked (and by which rule), waiting for you, ready, or sent. If the rules would let it through, it is simulated on mainnet too. Nothing is recorded, nothing counts against a budget, and the circuit breaker does not see it, so an agent can plan without getting blocked.
@@ -363,7 +419,7 @@ The repeat guard is 10 minutes, and `autosend` is off. A token with no daily bud
 npm test
 ```
 
-`test/rules.test.mjs` checks every rule offline, `test/lock.test.mjs` the spend lock (including two processes), `test/report.test.mjs` the spending report, `test/notify.test.mjs` the owner notifications, `test/csv.test.mjs` the CSV export and `test/profile.test.mjs` the profiles, `test/seal.test.mjs` the config seal and unlock, `test/guard.test.mjs` the lookalike guard, `test/verify.test.mjs` the on-chain receipt check and `test/doctor.test.mjs` the checkup and `test/freeze.test.mjs` the freeze, the circuit breaker and expiring payees, `test/paper.test.mjs` statements, the first-payment rule and the digest, `test/plan.test.mjs` grants, dry runs and backup/restore, `test/share.test.mjs` shared payee lists, signed webhooks and read-only MCP, `test/smart.test.mjs` category budgets, payment hours and the per-hour cap, `test/bills.test.mjs` payment links, schedules and budget alerts, `test/failclosed.test.mjs` the token-contract check when the chain cannot be read, `test/approvals.test.mjs` the memo rule and expiring requests, `test/fleet.test.mjs` the view across profiles, and `test/usd.test.mjs` the two-pool price and the dollar limits. `test/proof.test.mjs` payee proofs. `test/sharereceipt.test.mjs` shared receipts.  `test/review.test.mjs` the rule review.  `test/session.test.mjs` session budgets. `test/search.test.mjs` receipt filters. `test/htmlreport.test.mjs` the HTML report. `test/cosign.test.mjs` two-person approval. `test/fee.test.mjs` the max fee. `test/books.test.mjs` the monthly books. `test/retry.test.mjs` notification retries. `test/memos.test.mjs` memo privacy. `test/connect.test.mjs` host snippets and the server check. `test/update.test.mjs` the version check and changelog. `test/explain.test.mjs` check --explain. `test/planlist.test.mjs` plans. `test/today.test.mjs` the today screen. `test/payeecheck.test.mjs` the payee check. `test/addcheck.test.mjs` the check inside payee add. `test/history.test.mjs` the rules history. `test/approvedry.test.mjs` approve --dry. `test/live.mjs` runs on mainnet:
+`test/rules.test.mjs` checks every rule offline, `test/lock.test.mjs` the spend lock (including two processes), `test/report.test.mjs` the spending report, `test/notify.test.mjs` the owner notifications, `test/csv.test.mjs` the CSV export and `test/profile.test.mjs` the profiles, `test/seal.test.mjs` the config seal and unlock, `test/guard.test.mjs` the lookalike guard, `test/verify.test.mjs` the on-chain receipt check and `test/doctor.test.mjs` the checkup and `test/freeze.test.mjs` the freeze, the circuit breaker and expiring payees, `test/paper.test.mjs` statements, the first-payment rule and the digest, `test/plan.test.mjs` grants, dry runs and backup/restore, `test/share.test.mjs` shared payee lists, signed webhooks and read-only MCP, `test/smart.test.mjs` category budgets, payment hours and the per-hour cap, `test/bills.test.mjs` payment links, schedules and budget alerts, `test/failclosed.test.mjs` the token-contract check when the chain cannot be read, `test/approvals.test.mjs` the memo rule and expiring requests, `test/fleet.test.mjs` the view across profiles, and `test/usd.test.mjs` the two-pool price and the dollar limits. `test/proof.test.mjs` payee proofs. `test/sharereceipt.test.mjs` shared receipts.  `test/review.test.mjs` the rule review.  `test/session.test.mjs` session budgets. `test/search.test.mjs` receipt filters. `test/htmlreport.test.mjs` the HTML report. `test/cosign.test.mjs` two-person approval. `test/fee.test.mjs` the max fee. `test/books.test.mjs` the monthly books. `test/retry.test.mjs` notification retries. `test/memos.test.mjs` memo privacy. `test/connect.test.mjs` host snippets and the server check. `test/update.test.mjs` the version check and changelog. `test/explain.test.mjs` check --explain. `test/planlist.test.mjs` plans. `test/today.test.mjs` the today screen. `test/payeecheck.test.mjs` the payee check. `test/addcheck.test.mjs` the check inside payee add. `test/history.test.mjs` the rules history. `test/approvedry.test.mjs` approve --dry. `test/headroom.test.mjs` headroom. `test/why.test.mjs` why. `test/templates.test.mjs` rule templates. `test/rename.test.mjs` payee rename. `test/cooldown.test.mjs` the payee cooldown. `test/memoblock.test.mjs` blocked memo words. `test/ruleshare.test.mjs` rules files. `test/perday.test.mjs` payments per day. `test/balanceshare.test.mjs` the balance share. `test/payeeline.test.mjs` a payee approval line. `test/plain.test.mjs` rules in plain words. `test/prompt.test.mjs` the agent prompt. `test/selftest.test.mjs` the selftest. `test/lab.test.mjs` Reinpay Lab. `test/live.mjs` runs on mainnet:
 
 - USDG transfer simulations from a public holder, and tampered ones that must be refused;
 - the full flow with a throwaway wallet that has a pretend ETH balance only inside the simulation;

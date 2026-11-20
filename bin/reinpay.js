@@ -13,7 +13,9 @@ const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url),
 const HELP = `reinpay ${pkg.version} - a wallet for AI agents that only spends inside your rules (Robinhood Chain mainnet, chain id 4663)
 
   reinpay sandbox                          Try Reinpay with no money: real rules, real mainnet simulation, pretend balance
+  reinpay lab run [--out=run.json] [--json]   Reinpay Lab: scams against throwaway wallets with five rule sets, nothing signed
   reinpay connect <claude|cursor|vscode|windsurf|codex> [--read-only] [--session=USDG:5]   The snippet to add Reinpay to your agent host
+  reinpay prompt [--read-only] [--out=file.md]   Instructions to paste into your agent: how to use the tools safely, and your rules in plain words
   reinpay mcp --check                      Start the MCP server the way a host does, and list its tools
   reinpay mcp [--read-only] [--session=USDG:5,ETH:0.002]   Run the MCP server on stdio; --read-only leaves out request_payment;
                                            --session caps what this one run may spend in all
@@ -23,21 +25,30 @@ const HELP = `reinpay ${pkg.version} - a wallet for AI agents that only spends i
   reinpay address                          Print the wallet address
   reinpay status                           Balances, budgets left today and the rules
   reinpay today [--json]                   One screen: budget bars per token, what waits for you, blocks, next bills, brakes
+  reinpay headroom [--json]                What the agent could still pay each payee now: without you, with your yes, and what stops it
+  reinpay why <RP-id> [--json]             Replay one past decision rule by rule, with the rules sealed at the time
   reinpay unlock [--for=12h] | lock        Store (for a while) or remove the passphrase file the server signs with
   reinpay seal                             Check your rules, then seal them with your wallet key
   reinpay rules                            Show the rules
+  reinpay rules --plain                    The rules as plain sentences
   reinpay rules history [--last=10] [--json]   Every change to the rules and payees, signed and chained; checks the chain
+  reinpay rules template [cautious|balanced|open]   A ready rule set as the commands to run, compared with yours (prints only)
+  reinpay rules export [--out=file.json]   Your rules in a file signed with your wallet key (no grants, co-signer or autosend)
+  reinpay rules import <file.json>         Check the signature, show every change, apply after you type yes
   reinpay rule <name> <token> <amount>     Set daily | weekly | monthly | max | approve-above for a token, e.g. reinpay rule daily USDG 50
                                            (weekly and monthly accept "off"; weeks start on Monday, local time)
   reinpay rule repeat-guard <minutes>      Hold repeats of the same payment for that long (0 turns it off)
   reinpay rule breaker <count> <minutes> | off   Freeze when the agent is blocked that often (default 5 in 10 minutes)
   reinpay rule first-payment <ask|off>     Make the first payment to every payee wait for you
   reinpay rule memo <min-chars|off>        Block requests whose memo does not say what they are for
+  reinpay rule memo-block <add|remove> <word ...> | off   Block requests whose memo contains a word you name (e.g. airdrop, claim)
   reinpay rule usd max|daily <amount|off>  Limits in dollars across USDG and ETH (ETH priced from two on-chain pools)
   reinpay price                            The ETH price in USDG the USD rules would use right now
   reinpay rule expire-after <24h|90m|off>  Waiting payments expire after this long and stop holding the budget
   reinpay rule hours <9-18|off> [--weekdays]   Outside these local hours, every payment waits for you
   reinpay rule per-hour <count|0>          At most this many payments sent or waiting in any hour
+  reinpay rule per-day <count|0>           At most this many payments sent or waiting per day (resets at local midnight)
+  reinpay rule balance-share <percent|off> One payment may be at most this share of the wallet balance of that token (read from the chain)
   reinpay rule category <name> daily <token> <amount|off>   A daily budget for every payee in a category
   reinpay payee category <payee> <name|off>    Put a payee in a category (e.g. compute, data, api)
   reinpay payee challenge <payee>          The message the payee signs to prove they control their address
@@ -60,8 +71,10 @@ const HELP = `reinpay ${pkg.version} - a wallet for AI agents that only spends i
   reinpay payee export [--out=file.json]   Your payee list, signed with your wallet key, to share
   reinpay payee import <file.json>         Add payees from a signed list, after the same checks as payee add
   reinpay payee check <0xaddress>         Read an address from the chain before you add it: wallet or contract, history, Sourcify, lookalikes
+  reinpay payee rename <name> <new name>  Rename a payee (and the schedules that pay it); the address and limits stay
+  reinpay payee cooldown <name> <minutes|off>   At least this long between payments to one payee (sent or waiting)
   reinpay payee list | remove <name> | off <name> | on <name>
-  reinpay payee limit <name> <daily|max> <USDG|ETH> <amount|off>   A payee's own daily budget or max per payment
+  reinpay payee limit <name> <daily|max|ask-above> <USDG|ETH> <amount|off>   A payee's own daily budget, max per payment or approval line
   reinpay pending                          Payments waiting for you
   reinpay approve <RP-id> [RP-id ...] | --all   Check the rules again, simulate again, then sign and send (one yes for all)
   reinpay approve <RP-id> ... | --all --dry   Everything approve checks, fresh now, then stop before signing
@@ -91,6 +104,7 @@ const HELP = `reinpay ${pkg.version} - a wallet for AI agents that only spends i
   reinpay books --month=2026-11 [--csv | --json]    One month of sent payments for your books, with USD values and fees
   reinpay report [--days=7] [--json | --csv | --html [--out=report.html]]   What was sent, waiting and blocked, per day, with top payees
   reinpay export                           Show the private key. Terminal only.
+  reinpay selftest [--live] [--json]       Run Reinpay's own tests on this computer (your ~/.reinpay is not touched)
   reinpay --version [--check]              The installed version; --check asks GitHub whether a newer one is out
   reinpay changelog [--since=0.20.0]       What changed, from the installed CHANGELOG`;
 
@@ -245,6 +259,41 @@ async function main() {
   if (cmd === "lock") { K.lock(); return console.log("Locked. The passphrase file is removed."); }
   if (cmd === "export") { requireTTY("export"); console.log(K.exportKey(await ask("Passphrase (hidden): ", { hidden: true }))); return; }
   if (cmd === "status") { const st = await P.walletStatus(); st.configSeal = await P.sealStatus(); st.unlockedUntil = K.isUnlocked() ? (K.unlockedUntil() ? new Date(K.unlockedUntil()).toISOString() : "until reinpay lock") : null; st.frozen = (await import("../src/freeze.js")).frozen(); return console.log(JSON.stringify(st, null, 2)); }
+  if (cmd === "rules" && pos[0] === "export") {
+    const RS = await import("../src/ruleshare.js"); const { writeFileSync: wf, existsSync: ex } = await import("node:fs");
+    if (!K.isUnlocked()) requireTTY("rules export");
+    const f = await RS.exportRules(C.loadConfig().rules, K.loadAccount(K.isUnlocked() ? undefined : await ask("Passphrase to sign the rules (hidden): ", { hidden: true })));
+    const out = opt("out") || "reinpay-rules.json";
+    if (ex(out) && !flags.has("--force")) throw new Error(`${out} already exists. Use --out=<file> or --force.`);
+    wf(out, JSON.stringify(f, null, 2) + "\n");
+    return console.log(`Wrote ${out}: ${Object.keys(f.rules).length} rule settings, signed by ${f.by}. Grants, the co-signer and autosend are not in it.\nOn the other wallet: reinpay rules import ${out}`);
+  }
+  if (cmd === "rules" && pos[0] === "import") {
+    requireTTY("rules import");
+    const RS = await import("../src/ruleshare.js"); const { readFileSync: rf } = await import("node:fs");
+    let f; try { f = JSON.parse(rf(pos[1] || "", "utf8")); } catch { throw new Error(pos[1] ? `${pos[1]} is not a readable JSON file.` : "Usage: reinpay rules import <file.json>"); }
+    const c = await RS.checkRulesFile(f);
+    if (!c.ok) { console.log(`Not imported: ${c.reason}. Nothing changed.`); process.exit(1); }
+    const me = P.requireWallet(), cfg = C.loadConfig(), plan = RS.planRulesImport(f, cfg.rules);
+    console.log(`Rules file ${c.reason}${c.signer === me ? " (this wallet)" : ""}, made ${f.at}.`);
+    if (!plan.changes.length) { console.log("Your rules already match it. Nothing changed."); process.exit(0); }
+    console.log("It would change:"); const w = Math.max(...plan.changes.map((x) => x.path.length));
+    for (const x of plan.changes) console.log(`  ${x.path.padEnd(w)}  ${x.before === undefined ? "(none)" : typeof x.before === "string" ? x.before : JSON.stringify(x.before)} → ${x.after === undefined ? "(off)" : typeof x.after === "string" ? x.after : JSON.stringify(x.after)}`);
+    if ((await ask("Apply these rules? Type yes: ")).trim().toLowerCase() !== "yes") { console.log("Not imported. Nothing changed."); process.exit(1); }
+    C.saveConfig({ ...cfg, rules: plan.rules });
+    return console.log(`Imported ${plan.changes.length} change${plan.changes.length === 1 ? "" : "s"}.`);
+  }
+  if (cmd === "rules" && pos[0] === "template") {
+    const T = await import("../src/templates.js");
+    if (!pos[1]) { console.log("Rule templates (reinpay rules template <name> prints the commands):"); for (const [n, t] of Object.entries(T.TEMPLATES)) console.log(`  ${n.padEnd(9)} ${t.about}`); return; }
+    const cmds = T.commandsFor(pos[1]), diff = T.compare(C.loadConfig().rules, pos[1]);
+    if (flags.has("--json")) return console.log(JSON.stringify({ template: pos[1], commands: cmds, changes: diff }, null, 2));
+    console.log(`Template "${pos[1]}": ${T.TEMPLATES[pos[1]].about}.`);
+    console.log(diff.length ? "Compared with your rules now:" : "Your rules already match it.");
+    const w = Math.max(0, ...diff.map((d) => d.what.length)); for (const d of diff) console.log(`  ${d.what.padEnd(w)}  ${d.now} → ${d.then}`);
+    console.log("\nTo use it, run these in your own terminal (each one is sealed with your key):"); for (const c of cmds) console.log("  " + c);
+    return console.log("\nNothing was changed.");
+  }
   if (cmd === "rules" && pos[0] === "history") {
     const H = await import("../src/history.js");
     const h = H.loadHistory(), v = await H.verifyHistory(h, P.requireWallet(), C.loadConfig());
@@ -255,7 +304,46 @@ async function main() {
     for (const l of H.historyLines(h, { last })) console.log(l);
     return console.log(v.ok ? `\nEvery entry is signed by this wallet and follows the one before it. The rules sealed now are the last entry.` : `\nProblems:\n${v.problems.map((p) => "  " + p).join("\n")}`);
   }
+  if (cmd === "rules" && flags.has("--plain")) { const { plainRules } = await import("../src/plain.js"); const lines = plainRules(C.loadConfig(), { frozen: (await import("../src/freeze.js")).frozen() }); return console.log(lines.join("\n")); }
   if (cmd === "rules") return console.log(JSON.stringify(P.rulesView(), null, 2));
+  if (cmd === "why") {
+    if (!pos[0]) throw new Error("Usage: reinpay why <RP-id>");
+    const { getReceipt } = await import("../src/receipts.js"); const r = getReceipt(pos[0]); if (!r) throw new Error(`No receipt ${pos[0]}.`);
+    const w = await P.whyView(pos[0]);
+    if (flags.has("--json")) return console.log(JSON.stringify(w, null, 2));
+    const { explainLines } = await import("../src/explain.js");
+    console.log(`${r.id}  ${r.amount} ${r.token} to ${r.payee}, asked ${new Date(r.createdAt).toISOString().slice(0, 19).replace("T", " ")}, now ${r.status}`);
+    console.log(w.source === "history" ? `Replayed with the rules sealed at ${w.at.slice(0, 19).replace("T", " ")} and the payments before it:` : "Replayed with today's rules (the rules history does not reach back this far) and the payments before it:");
+    for (const l of explainLines(w.steps)) console.log(l);
+    return console.log(`\n${w.note}`);
+  }
+  if (cmd === "prompt") {
+    const { agentPrompt } = await import("../src/prompt.js");
+    const text = agentPrompt(C.loadConfig(), { readOnly: flags.has("--read-only"), frozen: (await import("../src/freeze.js")).frozen() });
+    if (opt("out")) { const { writeFileSync: wf, existsSync: ex } = await import("node:fs"); if (ex(opt("out")) && !flags.has("--force")) throw new Error(`${opt("out")} already exists. Use --force.`); wf(opt("out"), text + "\n"); return console.log(`Wrote ${opt("out")}: paste it into your agent's instructions. It holds your rules as they are now; run reinpay prompt again after you change them.`); }
+    return console.log(text);
+  }
+  if (cmd === "selftest") {
+    const { runSelftest } = await import("../src/selftest.js");
+    const json = flags.has("--json");
+    if (!json) console.log(`Running Reinpay's own tests on this computer${flags.has("--live") ? ", the mainnet ones too (reads and simulations only)" : " (offline)"}. Your ~/.reinpay is not touched.`);
+    const r = runSelftest({ live: flags.has("--live"), onFile: (x) => { if (!json) console.log(`  ${x.ok ? "✓" : "✗"} ${x.file.padEnd(26)} ${String(x.pass).padStart(3)} passed${x.fail ? `, ${x.fail} failed` : ""}${x.error ? `  (${x.error})` : ""}`); } });
+    if (json) return console.log(JSON.stringify(r, null, 2));
+    for (const x of r.results) for (const f of x.failures) console.log(`  FAIL ${x.file}: ${f}`);
+    console.log(`\n${r.files} files, ${r.pass} checks passed, ${r.fail} failed, in ${r.seconds} s. ${r.ok ? "Reinpay works on this computer." : "Something is wrong: run the failing file with node to see more."}`);
+    if (!r.ok) process.exit(1);
+    return;
+  }
+  if (cmd === "lab" && pos[0] === "run") {
+    const { runLab, ROWS } = await import("../src/lab.js");
+    const json = flags.has("--json"), out = opt("out");
+    if (!json) console.log("Reinpay Lab: every attack against every rule set, on throwaway wallets. Real rules, real mainnet simulations, nothing signed.");
+    const run = await runLab({ onCell: (c, row, a) => { if (!json) console.log(`  ${row.label.padEnd(9)} ${a.label.padEnd(18)} ${c.outcome.toUpperCase().padEnd(8)} ${c.rule || (c.outcome === "paid" ? "rules let it through" : "")}${c.requests > 1 ? `  [${c.paid} paid, ${c.held} held, ${c.blocked} blocked of ${c.requests}]` : ""}${c.voided ? ` (${c.voided} void)` : ""}`); } });
+    if (out) { const { writeFileSync: wf } = await import("node:fs"); wf(out, JSON.stringify(run, null, 1) + "\n"); }
+    if (json) return console.log(JSON.stringify(run, null, 2));
+    return console.log(`\nBlock ${run.block}. ${run.totals.blocked} blocked, ${run.totals.held} held for the owner, ${run.totals.paid} would pay, ${run.totals.void} void.${out ? ` Written to ${out}.` : ""}`);
+  }
+  if (cmd === "headroom") { const h = await P.headroomView(); if (flags.has("--json")) return console.log(JSON.stringify(h.rows, null, 2)); console.log("What the agent could ask for right now, per payee:"); for (const l of h.lines) console.log(l); return console.log("\nWorked out by the same rules that decide every payment. The repeat guard is left out: it is about one exact amount."); }
   if (cmd === "today") { const t = await P.todayView(); return console.log(flags.has("--json") ? JSON.stringify(t.data, null, 2) : t.lines.join("\n")); }
 
   if (cmd === "rule") {
@@ -284,6 +372,14 @@ async function main() {
       const u = { ...(cfg.rules.usd || {}) };
       if (a2 === "off") delete u[k]; else u[k] = a2;
       if (Object.keys(u).length) cfg.rules.usd = u; else delete cfg.rules.usd;
+    } else if (name === "memo-block") {
+      const words = pos.slice(2).map((w) => String(w).trim().toLowerCase()).filter(Boolean), list = new Set(cfg.rules.memoBlock || []);
+      if (a1 === "add") { if (!words.length) throw new Error("Usage: reinpay rule memo-block add <word> [word ...]"); for (const w of words) { if (w.length > 40) throw new Error("A blocked word or phrase can be at most 40 characters."); list.add(w); } }
+      else if (a1 === "remove") { for (const w of words) list.delete(w); }
+      else if (a1 === "off") list.clear();
+      else throw new Error("Usage: reinpay rule memo-block <add|remove> <word ...> | off");
+      if (list.size > 100) throw new Error("At most 100 blocked words.");
+      if (list.size) cfg.rules.memoBlock = [...list]; else delete cfg.rules.memoBlock;
     } else if (name === "memo") {
       if (String(a1) === "off") delete cfg.rules.memoMin;
       else { const n = Number(a1); if (!(Number.isInteger(n) && n >= 1 && n <= 200)) throw new Error("Usage: reinpay rule memo <1-200|off>"); cfg.rules.memoMin = n; }
@@ -293,6 +389,12 @@ async function main() {
     } else if (name === "hours") {
       if (String(a1) === "off") delete cfg.rules.hours;
       else cfg.rules.hours = { ...(await import("../src/rules.js")).parseHours(a1), ...(flags.has("--weekdays") ? { weekdays: true } : {}) };
+    } else if (name === "balance-share") {
+      if (String(a1) === "off") delete cfg.rules.balanceShare;
+      else { const n = Number(a1); if (!(n >= 0.01 && n <= 100) || !/^\d+(\.\d{1,2})?$/.test(String(a1))) throw new Error("Usage: reinpay rule balance-share <0.01-100 percent|off>"); cfg.rules.balanceShare = n; }
+    } else if (name === "per-day") {
+      const n = Number(a1); if (!(Number.isInteger(n) && n >= 0 && n <= 10000)) throw new Error("Usage: reinpay rule per-day <0-10000> (0 turns it off)");
+      if (n) cfg.rules.maxPerDay = n; else delete cfg.rules.maxPerDay;
     } else if (name === "per-hour") {
       const n = Number(a1); if (!(Number.isInteger(n) && n >= 0 && n <= 1000)) throw new Error("Usage: reinpay rule per-hour <0-1000> (0 turns it off)");
       if (n) cfg.rules.maxPerHour = n; else delete cfg.rules.maxPerHour;
@@ -413,6 +515,8 @@ async function main() {
       return console.log(`Added ${p.name} ${p.address}${p.expiresAt ? `, until ${p.expiresAt}` : ""}${p.isContract ? " (a contract, not a personal wallet: make sure it can receive tokens)" : ""}.`);
     }
     if (sub === "remove") return console.log(`Removed ${P.removePayee(name).name}.`);
+    if (sub === "cooldown") { const p = P.setPayeeCooldown(name, address); return console.log(p.cooldownMinutes ? `${p.name}: at least ${p.cooldownMinutes} min between payments (sent or waiting).` : `${p.name}: no cooldown.`); }
+    if (sub === "rename") { const r = P.renamePayee(name, address); return console.log(`Renamed ${r.from} to ${r.to} (${r.address})${r.schedules ? `, and ${r.schedules} schedule${r.schedules === 1 ? "" : "s"} that pay it` : ""}. Old receipts keep the name they were made with.`); }
     if (sub === "challenge") {
       const { proofMessage } = await import("../src/proof.js"); const { findPayee } = await import("../src/rules.js");
       const p = findPayee(C.loadConfig().payees, name); if (!p) throw new Error(`No payee "${name}".`);
@@ -441,7 +545,7 @@ async function main() {
     if (sub === "limit") {
       const [, , kind, tok, amount] = pos;
       const p = P.setPayeeLimit(name, kind, tok, amount);
-      return console.log(`${p.name}: daily ${JSON.stringify(p.daily || {})}, max per payment ${JSON.stringify(p.maxPerPayment || {})}.`);
+      return console.log(`${p.name}: daily ${JSON.stringify(p.daily || {})}, max per payment ${JSON.stringify(p.maxPerPayment || {})}, asks you above ${JSON.stringify(p.approveAbove || {})}.`);
     }
     throw new Error("Usage: reinpay payee <add|list|remove|off|on|limit|until|category|challenge|prove|export|import>");
   }
@@ -774,7 +878,7 @@ async function main() {
 }
 
 // Commands that change rules, payees, tokens or notifications seal the config with the wallet key afterwards.
-const MUTATING = ["rule", "autosend"].includes(cmd) || (cmd === "notify" && pos[0] === "memos") || (cmd === "schedule" && ["add", "remove", "pause", "resume"].includes(pos[0])) || (cmd === "grant" && pos[0] && pos[0] !== "list") || (cmd === "notify" && pos[0] !== "test") || (cmd === "payee" && ["add", "remove", "off", "on", "limit", "until", "import", "category", "prove"].includes(pos[0])) || (cmd === "token" && ["add", "remove"].includes(pos[0]));
+const MUTATING = ["rule", "autosend"].includes(cmd) || (cmd === "rules" && pos[0] === "import") || (cmd === "notify" && pos[0] === "memos") || (cmd === "schedule" && ["add", "remove", "pause", "resume"].includes(pos[0])) || (cmd === "grant" && pos[0] && pos[0] !== "list") || (cmd === "notify" && pos[0] !== "test") || (cmd === "payee" && ["add", "remove", "rename", "cooldown", "off", "on", "limit", "until", "import", "category", "prove"].includes(pos[0])) || (cmd === "token" && ["add", "remove"].includes(pos[0]));
 async function reseal(passphrase) {
   const K = await import("../src/keystore.js"), C = await import("../src/config.js"), { sealConfig } = await import("../src/seal.js");
   const pass = passphrase ?? (K.isUnlocked() ? undefined : await ask("Passphrase to seal your rules (hidden): ", { hidden: true }));

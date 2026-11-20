@@ -1,5 +1,75 @@
 # Changelog
 
+## 0.51.0 (unreleased): Reinpay Lab
+
+- `reinpay lab run [--out=] [--json]`: seven scams against five rule sets on throwaway wallets, real rules and real mainnet simulations, nothing signed; wording drawn from a block hash; each cell paid, held or blocked with the deciding rule.
+- Tests: 11 checks offline.
+
+## 0.50.0 (unreleased): selftest
+
+- `reinpay selftest [--live] [--json]`: Reinpay's own tests, run on this computer, each in its own process with a temporary home. The `test` folder now ships with the install.
+- Tests: 7 checks offline.
+
+## 0.49.0 (unreleased): agent prompt
+
+- `reinpay prompt [--read-only] [--out=]`: instructions for your agent on using the tools safely, with your rules in plain words.
+- Tests: 7 checks offline.
+
+## 0.48.0 (unreleased): rules in plain words
+
+- `reinpay rules --plain`: every rule as a sentence, one line per payee. `get_rules` carries the same sentences as `inPlainWords`.
+- Tests: 9 checks offline.
+
+## 0.47.0 (unreleased): a payee's own approval line
+
+- `reinpay payee limit <name> ask-above <token> <amount|off>`: above it, payments to that payee wait for you (rule `payee approval line`). In `check --explain`, `headroom` and shared payee lists (which now carry the cooldown too).
+- Tests: 8 checks offline.
+
+## 0.46.0 (unreleased): balance share
+
+- `reinpay rule balance-share <percent|off>`: one payment may be at most this share of the wallet's balance of that token, read from the chain; fails closed when it cannot be read. In `check --explain`, `--plan`, `approve --dry`, `headroom`, `get_rules` and rules files.
+- Tests: 8 checks offline.
+
+## 0.45.0 (unreleased): payments per day
+
+- `reinpay rule per-day <count|0>`: at most this many payments sent or waiting per local day (rule `payments per day`). In `check --explain`, `headroom`, `get_rules` and rules files.
+- Tests: 7 checks offline.
+
+## 0.44.0 (unreleased): rules files
+
+- `reinpay rules export [--out=]` and `reinpay rules import <file>`: rules in a signed file; import checks the signature, shows every change and asks for yes. Grants, the co-signer and autosend are never shared.
+- Tests: 11 checks offline.
+
+## 0.43.0 (unreleased): blocked words in memos
+
+- `reinpay rule memo-block <add|remove> <word ...> | off`: a memo with one of these words or phrases is refused (rule `memo words`). Case-insensitive, whole words. `get_rules` says the list exists without showing it.
+- Tests: 8 checks offline.
+
+## 0.42.0 (unreleased): payee cooldown
+
+- `reinpay payee cooldown <name> <minutes|off>`: at least this long between payments to one payee, counting sent and waiting ones. Shown in `check --explain` and `headroom`.
+- Tests: 10 checks offline.
+
+## 0.41.0 (unreleased): payee rename
+
+- `reinpay payee rename <name> <new name>`: address, limits and proof stay; schedules follow. The rules history shows renames, and schedules added or removed, as one line each.
+- Tests: 10 checks offline.
+
+## 0.40.0 (unreleased): rule templates
+
+- `reinpay rules template [cautious|balanced|open] [--json]`: a ready rule set compared with yours, as the commands to run. Prints only.
+- Tests: 11 checks offline.
+
+## 0.39.0 (unreleased): why
+
+- `reinpay why <RP-id> [--json]`: one past decision replayed rule by rule, with the rules sealed at the time (from the rules history) and the payments before it, and whether it matches the receipt.
+- Tests: 9 checks offline.
+
+## 0.38.0 (unreleased): headroom
+
+- `reinpay headroom [--json]`: per payee and token, the largest amount that would go through without you, the largest that would wait for you, and the rule that stops it above that. Found by asking the rules engine itself.
+- Tests: 9 checks offline, including that every number agrees with the decision at it and one unit above it.
+
 ## 0.37.0 (unreleased): approve, dry
 
 - `reinpay approve <RP-id> ... | --all --dry [--json]`: every check approve makes, fresh now, including a new mainnet simulation, then it stops before signing. Nothing recorded or changed, no passphrase.
