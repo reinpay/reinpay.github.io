@@ -1,0 +1,32 @@
+# Reinpay on chain, every hour: reads the REINPAY token from Robinhood Chain mainnet (supply, burns, holders)
+# with plain JSON-RPC and writes assets/chain/stats.json for reinpay.app/chain. No key, no secret.
+name: Reinpay on chain
+on:
+  schedule:
+    - cron: "37 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: reinpay-chain
+  cancel-in-progress: false
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Read the chain
+        run: node .github/chain-stats.mjs assets/chain
+      - name: Publish
+        run: |
+          git config user.name "Reinpay on chain"
+          git config user.email "chain@reinpay.app"
+          git add assets/chain
+          git diff --cached --quiet && exit 0
+          git commit -m "Reinpay on chain $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3; do git pull --rebase && git push && exit 0; sleep 5; done
+          exit 1
