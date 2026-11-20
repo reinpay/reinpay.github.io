@@ -1,10 +1,10 @@
 {
  "kind": "reinpay-chain-stats",
  "version": 1,
- "at": "2026-11-20T17:26:28.529Z",
+ "at": "2026-11-20T18:25:45.348Z",
  "chain": "Robinhood Chain mainnet",
  "chainId": 4663,
- "block": 119225970,
+ "block": 119261142,
  "token": "0x17c4735e9da7f1eeb76d1cc17c2f196f38de64b3",
  "decimals": 18,
  "totalSupply": "1000000000000000000000000000",
@@ -12,7 +12,7 @@
  "burned": "16727346368468941815606602",
  "burnedPct": 1.6727,
  "circulating": "983272653631531058184393398",
- "holders": 98,
+ "holders": 97,
  "logsMatchContract": true,
  "burns": [
   {
