@@ -66,6 +66,11 @@ for (let from = st.next; from <= head; from += STEP) {
 }
 for (const b of st.burns) if (!b.time) { const blk = await rpc("eth_getBlockByNumber", ["0x" + b.block.toString(16), false]); b.time = new Date(parseInt(blk.timestamp, 16) * 1000).toISOString(); }
 st.balances = Object.fromEntries([...bal].filter(([, v]) => v !== 0n).map(([k, v]) => [k, v.toString()]));
+// Every 15 minutes: publish only when something changed (a new burn, a holder count), or once an hour anyway.
+const prevPath = `${dir}/stats.json`, prev = existsSync(prevPath) ? JSON.parse(readFileSync(prevPath, "utf8")) : null;
+const holdersNow = [...bal].filter(([k, v]) => v > 0n && k !== DEAD && k !== ZERO).length;
+const hourly = !prev || Date.now() - Date.parse(prev.at) > 55 * 60 * 1000;
+if (prev && !hourly && prev.burns.length === st.burns.length && prev.holders === holdersNow && !process.env.FORCE) { console.log("no change since " + prev.at + ": nothing written"); process.exit(0); }
 writeFileSync(statePath, JSON.stringify(st));
 // What the contract itself says, read at the same head block
 const hb = "0x" + head.toString(16);
