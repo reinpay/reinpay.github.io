@@ -32,7 +32,7 @@
     ctx.save(); ctx.beginPath(); ctx.rect(sx(214), sy(84), 172 * S, 110 * S); ctx.clip(); ctx.fillStyle = "rgba(5,20,12,.92)"; ctx.fillRect(sx(214), sy(84), 172 * S, 110 * S);
     const blink = (sec % 4) < .12, eh = (blink ? 2 : 18) * S; ctx.fillStyle = "#5ff0a8"; ctx.shadowColor = "#5ff0a8"; ctx.shadowBlur = 14; ctx.fillRect(sx(262), sy(118) - eh / 2, 18 * S, eh); ctx.fillRect(sx(320), sy(118) - eh / 2, 18 * S, eh); ctx.shadowBlur = 0;
     ctx.save(); ctx.beginPath(); ctx.rect(sx(214), sy(150), 172 * S, 44 * S); ctx.clip(); ctx.font = `600 ${Math.max(7, 9 * S)}px "IBM Plex Mono", monospace`; ctx.fillStyle = "rgba(95,240,168,.8)";
-    const off = (sec * 14) % 14, base = Math.floor(sec) % LINES.length; for (let i = 0; i < 5; i++) ctx.fillText(LINES[(base + i) % LINES.length], sx(222), sy(162 + i * 13 - off)); ctx.restore();
+    const off = (sec * 14) % 14, base = Math.floor(sec) % LINES.length; if (S >= .7) for (let i = 0; i < 5; i++) ctx.fillText(LINES[(base + i) % LINES.length], sx(222), sy(162 + i * 13 - off)); ctx.restore();
     ctx.fillStyle = "rgba(95,240,168,.08)"; for (let y = 0; y < 110; y += 3) ctx.fillRect(sx(214), sy(84 + y), 172 * S, 1); ctx.restore();
     ctx.strokeStyle = "rgba(95,240,168,.9)"; ctx.lineWidth = 1.5; ctx.strokeRect(sx(214), sy(84), 172 * S, 110 * S);
     if (!reduce) requestAnimationFrame(frame);
@@ -44,10 +44,10 @@
   const dec = (raw, d) => (Number(BigInt(raw) / 10n ** BigInt(d - 6)) / 1e6).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   fetch(box.dataset.src + "?t=" + Date.now(), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((D) => {
     if (!D || D.kind !== "reinpay-chain-stats") return;
-    const last = D.burns[0];
-    $("in-burned").textContent = big(D.burned, D.decimals); $("in-holders").textContent = D.holders; $("in-block").textContent = D.block.toLocaleString("en-US");
-    if (last) { $("in-last").textContent = `#${last.n} · ${dec(last.amount, D.decimals)}`; }
-    $("in-at").textContent = D.at.slice(0, 16).replace("T", " ") + " UTC";
+    const last = D.burns[0], set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    set("in-burned", big(D.burned, D.decimals)); set("in-holders", D.holders); set("in-block", D.block.toLocaleString("en-US"));
+    if (last) set("in-last", `#${last.n} · ${dec(last.amount, D.decimals)}`);
+    set("in-at", D.at.slice(0, 16).replace("T", " ") + " UTC");
     LINES = [`> reading 4663 mainnet`, `> REINPAY burned ${big(D.burned, D.decimals)}`, `> holders ${D.holders}`, `> block ${D.block.toLocaleString("en-US")}`, last ? `> last burn #${last.n}` : "> no burns yet", `> ${D.burnedPct.toFixed(2)}% of supply burned`, "> rules sealed: ok", "> waiting for your yes"];
   }).catch(() => {});
 })();

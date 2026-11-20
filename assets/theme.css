@@ -253,3 +253,9 @@ section.flow, .flow { margin-top: 28px; }
 .intel-f small { display: block; font: 600 10.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: #5ff0a8; }
 .intel-f b { font: 600 20px var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 @media (max-width: 900px) { .intel-grid { grid-template-columns: 1fr; } #intel-canvas { height: 420px; } }
+.intel-mini { padding-block: 30px; border-block: 1px solid rgba(95,240,168,.15); }
+.intel-mini-grid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 32px; align-items: center; }
+.intel-mini #intel-canvas { height: 380px; }
+.intel-mini h2 { margin: 8px 0 0; text-wrap: balance; } .intel-mini h2 em { font-style: normal; color: #5ff0a8; }
+.intel-mini-feed { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 900px) { .intel-mini-grid { grid-template-columns: 1fr; } .intel-mini #intel-canvas { height: 300px; } .intel-mini-feed { grid-template-columns: 1fr; } }
