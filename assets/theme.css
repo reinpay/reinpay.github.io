@@ -243,3 +243,13 @@ section.flow, .flow { margin-top: 28px; }
 @media (max-width: 900px) { .oc-stats { grid-template-columns: 1fr 1fr; } }
 .oc-hero h1 { font-size: clamp(32px, 4.6vw, 54px); line-height: 1.05; text-wrap: balance; }
 @media (max-width: 560px) { .oc-stats b { font-size: 20px; overflow-wrap: normal; } }
+/* Reinpay Intelligence */
+.intel { background: radial-gradient(ellipse at 50% 30%, rgba(95,240,168,.08), transparent 60%), repeating-linear-gradient(0deg, rgba(95,240,168,.05) 0 1px, transparent 1px 40px), repeating-linear-gradient(90deg, rgba(95,240,168,.05) 0 1px, transparent 1px 40px); padding-block: 40px; }
+.intel-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, .8fr); gap: 24px; align-items: center; }
+.intel-copy h1 { font-size: clamp(32px, 4vw, 50px); line-height: 1.04; margin: 8px 0 12px; text-wrap: balance; } .intel-copy h1 em { font-style: normal; color: #5ff0a8; }
+#intel-canvas { width: 100%; height: min(78vh, 640px); display: block; }
+.intel-feed { display: flex; flex-direction: column; gap: 10px; }
+.intel-f { border: 1px solid rgba(95,240,168,.35); background: rgba(95,240,168,.05); padding: 10px 14px; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+.intel-f small { display: block; font: 600 10.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: #5ff0a8; }
+.intel-f b { font: 600 20px var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .intel-grid { grid-template-columns: 1fr; } #intel-canvas { height: 420px; } }
