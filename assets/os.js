@@ -105,3 +105,17 @@ if (box) fetch(box.dataset.src + "?t=" + Date.now(), { cache: "no-store" }).then
   set("os-burned", big(D.burned) + " REINPAY"); set("os-supply", D.burnedPct.toFixed(2) + "% · " + D.burns.length + " burns"); set("os-holders", D.holders); set("os-block", D.block.toLocaleString("en-US"));
 }).catch(() => {});
 }
+
+// SYS·MAP: pick a module
+document.querySelectorAll(".sm-mod").forEach((b, i, all) => b.addEventListener("click", () => {
+  all.forEach((x) => x.classList.toggle("on", x === b));
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set("sm-l", `MODULE ${b.dataset.n} / ${String(all.length).padStart(2, "0")} · ${b.dataset.l}`); set("sm-t", b.dataset.t.toLowerCase().replace(/(^|[ ·])\w/g, (m) => m.toUpperCase())); set("sm-d", b.dataset.d); set("sm-c", b.dataset.c);
+}));
+// token numbers
+const tk = document.getElementById("tk-burned");
+if (tk) fetch(document.querySelector(".os[data-src]").dataset.src + "?t=" + Date.now(), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((D) => {
+  if (!D || D.kind !== "reinpay-chain-stats") return;
+  tk.textContent = (BigInt(D.burned) / 10n ** BigInt(D.decimals)).toLocaleString("en-US");
+  document.getElementById("tk-pct").textContent = D.burnedPct.toFixed(2) + "%"; document.getElementById("tk-n").textContent = D.burns.length; document.getElementById("tk-h").textContent = D.holders;
+}).catch(() => {});
