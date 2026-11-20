@@ -1,0 +1,39 @@
+/* Reinpay OS look on every page: deep background, square panels, mono labels, a grid, green signal. Loaded after theme.css. */
+:root { --os-bg: #060908; --os-panel: #0c1210; --os-panel2: #101814; --os-line: #1d2a24; --os-g: #5ff0a8; --os-dim: #4e6158; --os-muted: #7e9187; }
+body { background: var(--os-bg) !important; }
+/* page header */
+.ph-os { position: relative; overflow: hidden; border-bottom: 1px solid var(--os-line); min-height: 440px; display: flex; align-items: center; background: radial-gradient(ellipse at 72% 50%, rgba(95,240,168,.07), transparent 60%); }
+.ph-os .ph-net { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ph-os .wrap { position: relative; z-index: 1; width: 100%; padding-block: 56px; }
+.ph-os .wrap > * { max-width: 600px; }
+.ph-os h1 { font: 700 clamp(44px, 6.2vw, 92px)/.95 "Familjen Grotesk", sans-serif !important; letter-spacing: -.04em !important; margin: 18px 0 16px !important; text-wrap: balance; }
+.ph-os h1 em { font-style: normal; color: var(--os-g); }
+.ph-os p { color: #a9b9b0; font-size: 18px; margin: 0; }
+.kick { font: 500 11.5px "IBM Plex Mono", monospace; letter-spacing: .16em; text-transform: uppercase; color: var(--os-muted); display: flex; gap: 12px; align-items: center; }
+.kick i { width: 40px; height: 1px; background: var(--os-dim); } .kick b { color: var(--os-g); font-weight: 500; }
+@media (max-width: 900px) { .ph-os { flex-direction: column; align-items: stretch; min-height: 0; } .ph-os .ph-net { position: relative; height: 300px; order: 2; } .ph-os .wrap { padding-block: 40px 10px; } }
+/* section heads */
+.section-head .eyebrow, .page-head .eyebrow, .lab-anti .eyebrow, .tokenbox .eyebrow { font: 500 11.5px "IBM Plex Mono", monospace !important; letter-spacing: .16em !important; color: var(--os-g) !important; }
+.section-head h2 { letter-spacing: -.03em; }
+/* panels: square, dark, hairline */
+.card, .step, .bullet, .box, .tablewrap, details.faq, .stat-tile, .tokenbox, .cta-box, .flowbox, .meter, .fundbox, .panel, .receipt,
+.lab-step, .lab-cell, .lab-score > *, .lab-anti, .lab-detail, .lab-check, .lab-tags .tag, .lab-hist > *, .progs > *, .prog-list li, .oc-bar, .bc-grid canvas, .intel-f, .app {
+  border-radius: 0 !important; background-color: var(--os-panel) !important; border-color: var(--os-line) !important; box-shadow: none !important; }
+.cmd pre, pre { border-radius: 0 !important; background: #050807 !important; border: 1px solid var(--os-line) !important; }
+.btn, .copy, button.copy, .ostabs button, .ck-tabs button, .lab-tabs button, select, input, textarea { border-radius: 2px !important; }
+.btn:not(.ghost):not(.launch) { background: var(--os-g) !important; color: #05110b !important; }
+.btn.ghost { border-color: #33463d !important; }
+.copy, button.copy { font-family: "IBM Plex Mono", monospace !important; letter-spacing: .1em; text-transform: uppercase; font-size: 11px !important; }
+.step h3, .card h3, .bullet b, .box h3 { letter-spacing: -.01em; }
+.step::before, .steps .step > b, .lab-step b { font-family: "IBM Plex Mono", monospace !important; }
+.tip { border-radius: 0 !important; border-left: 2px solid var(--os-g) !important; background: rgba(95,240,168,.05) !important; }
+.out { font-family: "IBM Plex Mono", monospace; color: var(--os-g) !important; }
+/* tables */
+table th { font: 500 11px "IBM Plex Mono", monospace !important; letter-spacing: .12em; text-transform: uppercase; color: var(--os-muted) !important; }
+table td, table th { border-color: var(--os-line) !important; }
+/* subtle grid behind plain sections */
+section.plain { background-image: repeating-linear-gradient(0deg, rgba(95,240,168,.022) 0 1px, transparent 1px 48px), repeating-linear-gradient(90deg, rgba(95,240,168,.022) 0 1px, transparent 1px 48px); }
+/* footer */
+footer { border-top: 1px solid var(--os-line) !important; background: #050807 !important; }
+footer, footer * { font-family: "IBM Plex Mono", monospace; }
+footer a:hover { color: var(--os-g) !important; }

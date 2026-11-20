@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/assets/style.css">
 <link rel="stylesheet" href="/assets/extra.css">
 <link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/osall.css">
 </head>
 <body data-page="docs">
 <div class="cabar"><b>$REINPAY</b> · ROBINHOOD CHAIN · CA <code>0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3</code> · <a href="https://robinhoodchain.blockscout.com/token/0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3" target="_blank" rel="noopener">BLOCKSCOUT ↗</a></div>
@@ -46,9 +47,9 @@
   </div>
 </nav>
 <main>
-<header class="page-head"><div class="wrap">
-  <div class="eyebrow">Docs</div>
-  <h1>Set up in five minutes.</h1>
+<header class="ph-os"><canvas class="ph-net" data-nodes="INSTALL,INIT,PAYEES,RULES,MCP,APPROVE,RECEIPTS" data-lines="> reinpay --help|> every command" aria-hidden="true"></canvas><div class="wrap">
+  <div class="kick">RP·OS <i></i> <b>DOCS</b></div>
+  <h1>Set up in <em>five minutes.</em></h1>
   <p>Install with npm, create the wallet in your terminal, set your rules, and connect your agent host.</p>
 </div></header>
 <section class="band" id="start">
@@ -233,5 +234,6 @@ document.querySelectorAll("[data-os]").forEach((b) => b.addEventListener("click"
 if (document.querySelector("[data-os]")) { const ua = navigator.userAgent; const os = /Mac/.test(ua) ? "mac" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null; if (os) document.querySelector(`[data-os="${os}"]`).click(); }
 </script>
 <script src="/assets/landing.js"></script>
+<script src="/assets/oshead.js"></script>
 </body>
 </html>

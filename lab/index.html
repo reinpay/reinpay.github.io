@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/assets/style.css">
 <link rel="stylesheet" href="/assets/extra.css">
 <link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/osall.css">
 </head>
 <body data-page="lab">
 <div class="cabar"><b>$REINPAY</b> · ROBINHOOD CHAIN · CA <code>0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3</code> · <a href="https://robinhoodchain.blockscout.com/token/0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3" target="_blank" rel="noopener">BLOCKSCOUT ↗</a></div>
@@ -50,8 +51,8 @@
   <div class="lab-top"><div><div class="eyebrow">Reinpay Lab</div><h1>Every scam pulls at the reins. <em>Watch what holds.</em></h1>
   <p id="lab-lead" class="lab-lead" aria-live="polite"></p>
   <p id="lab-lead-sub" class="lab-lead-sub"></p>
-  <p class="lede">Real scams against AI agent wallets. Real Reinpay rules, real Robinhood Chain mainnet simulations, throwaway wallets. Click any horse to see what happened.</p></div></div>
-  <div class="lab-stage"><canvas id="lab-canvas" aria-label="The horse: each strap of the bridle is one Reinpay defence"></canvas><div id="lab-tags" class="lab-tags"></div></div>
+  <p class="lede">Real scams against AI agent wallets. Real Reinpay rules, real Robinhood Chain mainnet simulations, throwaway wallets. Click any figure to see what happened.</p></div></div>
+  <div class="lab-stage"><canvas id="lab-canvas" aria-label="Reinpay Intelligence: each glowing part of the figure is one Reinpay defence"></canvas><div id="lab-tags" class="lab-tags"></div></div>
   <div id="lab-detail" class="lab-detail" aria-live="polite"></div>
 </div></section>
 <section class="plain" id="lab-root" data-base="/assets/"><div class="wrap">
@@ -91,7 +92,7 @@
 </div></section>
 <section class="plain"><div class="wrap">
   <div class="section-head"><div class="eyebrow">How a run works</div><h2>Scam, wallets, reins, record.</h2></div>
-  <div class="lab-steps"><div class="lab-step"><b>01</b><h3>The scam</h3><p>Seven tricks an agent can be talked into: a stranger payee, a “claim your airdrop” memo, a lookalike address, a token contract slipped into the payee list, the same ask five times, one big invoice, a flood of small ones.</p></div><div class="lab-step"><b>02</b><h3>The wallets</h3><p>Five throwaway wallets, one per rule set, each with a pretend 1 ETH that exists only inside the simulation.</p></div><div class="lab-step"><b>03</b><h3>The reins</h3><p>Every request goes through the real Reinpay rules. When they let it through, a real eth_simulateV1 call on Robinhood Chain mainnet checks it.</p></div><div class="lab-step"><b>04</b><h3>The record</h3><p>Each cell says would pay, held for the owner or blocked, and which part of the bridle did it. Nothing is ever signed or sent.</p></div></div>
+  <div class="lab-steps"><div class="lab-step"><b>01</b><h3>The scam</h3><p>Seven tricks an agent can be talked into: a stranger payee, a “claim your airdrop” memo, a lookalike address, a token contract slipped into the payee list, the same ask five times, one big invoice, a flood of small ones.</p></div><div class="lab-step"><b>02</b><h3>The wallets</h3><p>Five throwaway wallets, one per rule set, each with a pretend 1 ETH that exists only inside the simulation.</p></div><div class="lab-step"><b>03</b><h3>The reins</h3><p>Every request goes through the real Reinpay rules. When they let it through, a real eth_simulateV1 call on Robinhood Chain mainnet checks it.</p></div><div class="lab-step"><b>04</b><h3>The record</h3><p>Each cell says would pay, held for the owner or blocked, and which part of the agent did it. Nothing is ever signed or sent.</p></div></div>
   <div class="lab-anti"><div><div class="eyebrow">Copy the antidote</div><h2>The rules of the hardened row.</h2><p>They held every scam in this run. Run them in your own terminal; each one is sealed with your key.</p></div><div class="cmd"><pre>reinpay rules template cautious      # prints the commands; run them
 reinpay rule memo-block add airdrop claim "verify wallet" "seed phrase" unlock
 reinpay rule per-day 6</pre><button class="copy" type="button" data-copy>Copy</button></div></div>
@@ -138,6 +139,7 @@ if (document.querySelector("[data-os]")) { const ua = navigator.userAgent; const
 <script type="importmap">{"imports":{"viem":"/assets/check/viem.js"}}</script>
 <script src="/assets/landing.js"></script>
 <script src="/assets/lab.js"></script>
+<script src="/assets/oshead.js"></script>
 <script type="module" src="/assets/check/check.js"></script>
 </body>
 </html>
