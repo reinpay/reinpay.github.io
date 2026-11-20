@@ -96,3 +96,26 @@ footer { border-top: 1px solid var(--line); }
 .chip small { max-width: 120px; }
 .dir + section, .dir + .flow, .dir ~ .flow { margin-top: 28px; }
 section.flow, .flow { margin-top: 28px; }
+
+/* progress: release videos */
+.pvid { display: block; width: 100%; aspect-ratio: 16 / 9; background: #070a09; border: 1px solid var(--line); border-radius: 8px; object-fit: cover; }
+.prog-home { margin-top: 18px; }
+.prog-hero { display: grid; grid-template-columns: 1.35fr 1fr; gap: 28px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+.prog-hero h2 { font-size: clamp(24px, 2.4vw, 32px); line-height: 1.15; margin: 8px 0 10px; }
+.prog-hero p { color: var(--muted); margin: 0 0 18px; }
+.prog-hero .acts { display: flex; gap: 10px; flex-wrap: wrap; }
+.prog-txt .eyebrow { font: 500 11.5px var(--mono); letter-spacing: .16em; color: var(--brass); text-transform: uppercase; }
+.prog-note { color: var(--muted); font-size: 14px; border-left: 2px solid var(--brass); padding-left: 12px; margin: 0 0 22px; }
+.progs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.prog { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.prog:hover { border-color: var(--edge); }
+.prog-v { font: 500 12px var(--mono); letter-spacing: .14em; color: var(--rein); }
+.prog h3 { margin: 4px 0 6px; font-size: 20px; }
+.prog p { margin: 0 0 10px; color: var(--muted); font-size: 14.5px; }
+.prog a { font: 500 12px var(--mono); letter-spacing: .08em; color: var(--rein); text-decoration: none; }
+.prog-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.prog-list li { display: flex; gap: 12px; align-items: baseline; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+.prog-list b { font: 500 12.5px var(--mono); color: var(--rein); min-width: 52px; }
+.prog-list span { color: var(--muted); font-size: 14px; }
+@media (max-width: 900px) { .prog-hero, .progs { grid-template-columns: 1fr; } .prog-list { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .prog-list { grid-template-columns: 1fr; } }
