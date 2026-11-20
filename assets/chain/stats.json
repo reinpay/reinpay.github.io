@@ -1,20 +1,28 @@
 {
  "kind": "reinpay-chain-stats",
  "version": 1,
- "at": "2026-11-20T12:27:43.538Z",
+ "at": "2026-11-20T12:58:45.305Z",
  "chain": "Robinhood Chain mainnet",
  "chainId": 4663,
- "block": 119048989,
+ "block": 119066789,
  "token": "0x17c4735e9da7f1eeb76d1cc17c2f196f38de64b3",
  "decimals": 18,
  "totalSupply": "1000000000000000000000000000",
- "deadBalance": "16202077693493906198331714",
- "burned": "16202077693493906198331714",
- "burnedPct": 1.6202,
- "circulating": "983797922306506093801668286",
- "holders": 104,
+ "deadBalance": "16727346368468941815606602",
+ "burned": "16727346368468941815606602",
+ "burnedPct": 1.6727,
+ "circulating": "983272653631531058184393398",
+ "holders": 108,
  "logsMatchContract": true,
  "burns": [
+  {
+   "n": 7,
+   "block": 119064441,
+   "tx": "0x729b9cfe86794510369b438c11174c7db4f8bedd6b84a926bfc294df727f47ef",
+   "from": "0x9e9a44814544633b995829d917b70d3161db1293",
+   "amount": "525268674975035617274888",
+   "time": "2026-11-20T12:54:33.000Z"
+  },
   {
    "n": 6,
    "block": 118792138,
@@ -65,8 +73,8 @@
   }
  ],
  "human": {
-  "burned": "16202077.69",
-  "circulating": "983797922.30",
+  "burned": "16727346.36",
+  "circulating": "983272653.63",
   "totalSupply": "1000000000.00"
  }
 }
