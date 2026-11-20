@@ -3,7 +3,7 @@
   const box = document.getElementById("oc"); if (!box) return;
   const $ = (id) => document.getElementById(id);
   const big = (raw, d) => { const v = BigInt(raw), u = 10n ** BigInt(d); return (v / u).toLocaleString("en-US"); };
-  const dec = (raw, d) => (Number(BigInt(raw) / 10n ** BigInt(d - 2)) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const dec = (raw, d) => (Number(BigInt(raw) / 10n ** BigInt(d - 6)) / 1e6).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   fetch(box.dataset.src + "?t=" + Date.now(), { cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((D) => {
     if (!D || D.kind !== "reinpay-chain-stats") return;
     $("oc-burned").textContent = big(D.burned, D.decimals); $("oc-pct").textContent = D.burnedPct.toFixed(2);
