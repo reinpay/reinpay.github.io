@@ -267,3 +267,4 @@ section.flow, .flow { margin-top: 28px; }
 /* CA bar above the menu, every page */
 .cabar { border-bottom: 1px solid var(--line); background: #060908; text-align: center; padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); font: 500 11px var(--mono); letter-spacing: .1em; color: #5c6f65; overflow-wrap: anywhere; }
 .cabar b { color: #5ff0a8; font-weight: 600; } .cabar code { color: var(--ink); font: inherit; } .cabar a { color: #5c6f65; text-decoration: none; } .cabar a:hover { color: var(--ink); }
+#dc-canvas { width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid var(--line); background: #060908; display: block; }

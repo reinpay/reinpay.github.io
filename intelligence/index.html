@@ -60,6 +60,11 @@
     <p class="lab-small">Read at <span id="in-at">2026-11-20 13:06 UTC</span>. Details and every transaction on <a href="/chain/">On chain</a>.</p>
   </div>
 </div></section>
+<section class="plain" id="dc" data-chain="/assets/chain/stats.json" data-lab="/assets/lab/"><div class="wrap">
+  <div class="section-head"><div class="eyebrow">Today's report</div><h2 id="dc-title">Daily report.</h2><p>The last 24 hours, drawn in your browser from the same numbers: burns, holders and the latest lab run. It updates itself. Save it as a picture and copy the caption.</p></div>
+  <div class="bc-grid"><canvas id="dc-canvas" aria-label="Reinpay Intelligence daily report card"></canvas>
+  <div class="bc-side"><button class="btn" id="dc-dl" type="button" disabled>Download today's card (PNG)</button><div class="cmd"><pre id="dc-cap">Reading the chain…</pre><button class="copy" type="button" id="dc-copy">Copy caption</button></div></div></div>
+</div></section>
 <section class="plain"><div class="wrap">
   <div class="section-head"><div class="eyebrow">What it watches</div><h2>Three sources, all public.</h2></div>
   <div class="lab-steps">
@@ -109,6 +114,7 @@ if (document.querySelector("[data-os]")) { const ua = navigator.userAgent; const
 </script>
 <script src="/assets/landing.js"></script>
 <script src="/assets/intel.js"></script>
+<script src="/assets/dailycard.js"></script>
 <script src="/assets/oshead.js"></script>
 </body>
 </html>
