@@ -1,0 +1,84 @@
+// Reinpay on chain: reads the REINPAY token straight from Robinhood Chain mainnet and writes assets/chain/stats.json.
+// No key, no secret, no dependencies: plain JSON-RPC. Incremental: keeps every balance in assets/chain/state.json and
+// only reads the Transfer logs it has not seen yet.
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+const RPC = process.env.RPC || "https://rpc.mainnet.chain.robinhood.com";
+const TOKEN = "0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3".toLowerCase();
+const DEAD = "0x000000000000000000000000000000000000dead", ZERO = "0x0000000000000000000000000000000000000000";
+const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const dir = process.argv[2] || "assets/chain";
+mkdirSync(dir, { recursive: true });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let id = 0;
+async function rpc(method, params) {
+  for (let i = 1; ; i++) {
+    try {
+      const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method, params }) });
+      if (r.status === 429 || r.status >= 500) throw new Error("http " + r.status);
+      const j = await r.json(); if (j.error) { const e = new Error(j.error.message); e.rpc = true; throw e; } return j.result;
+    } catch (e) { if (e.rpc && !/rate|limit exceeded|busy/i.test(e.message)) throw e; if (i >= 6) throw e; await sleep(1500 * i); }
+  }
+}
+const call = (data, block = "latest") => rpc("eth_call", [{ to: TOKEN, data }, block]);
+const pad = (a) => "0x" + a.slice(2).padStart(64, "0");
+const word = (a) => a.slice(2).padStart(64, "0");
+async function logsRange(from, to, out) {
+  try {
+    const L = await rpc("eth_getLogs", [{ address: TOKEN, topics: [TRANSFER], fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }]);
+    out.push(...L);
+  } catch (e) {
+    if (to - from < 50) throw e;
+    const mid = Math.floor((from + to) / 2); await logsRange(from, mid, out); await logsRange(mid + 1, to, out);
+  }
+}
+async function deployBlock(head) {
+  // No archive state on this RPC, so find the first mint (Transfer from the zero address) instead, scanning back.
+  let first = null;
+  for (let to = head; to > 0; to -= 5000000) {
+    const from = Math.max(0, to - 4999999), L = [];
+    await logsRangeT(from, to, [TRANSFER, pad(ZERO)], L);
+    if (L.length) first = Math.min(...L.map((l) => parseInt(l.blockNumber, 16)));
+    else if (first !== null) break;
+  }
+  if (first === null) throw new Error("no mint found for the token");
+  return first;
+}
+async function logsRangeT(from, to, topics, out) {
+  try { out.push(...await rpc("eth_getLogs", [{ address: TOKEN, topics, fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }])); }
+  catch (e) { if (to - from < 50) throw e; const mid = Math.floor((from + to) / 2); await logsRangeT(from, mid, topics, out); await logsRangeT(mid + 1, to, topics, out); }
+}
+const statePath = `${dir}/state.json`;
+const S = existsSync(statePath) ? JSON.parse(readFileSync(statePath, "utf8")) : null;
+const head = parseInt(await rpc("eth_blockNumber", []), 16) - 3;
+const st = S || { token: TOKEN, deploy: await deployBlock(head), next: 0, balances: {}, burns: [] };
+if (!S) st.next = st.deploy;
+const bal = new Map(Object.entries(st.balances).map(([k, v]) => [k, BigInt(v)]));
+const STEP = 500000;
+for (let from = st.next; from <= head; from += STEP) {
+  const to = Math.min(head, from + STEP - 1), L = [];
+  await logsRange(from, to, L);
+  for (const l of L) {
+    const f = "0x" + l.topics[1].slice(26), t = "0x" + l.topics[2].slice(26), v = BigInt(l.data);
+    bal.set(f, (bal.get(f) || 0n) - v); bal.set(t, (bal.get(t) || 0n) + v);
+    if (t === DEAD || (t === ZERO && f !== ZERO)) st.burns.push({ block: parseInt(l.blockNumber, 16), tx: l.transactionHash, from: f, amount: v.toString() });
+  }
+  st.next = to + 1;
+}
+for (const b of st.burns) if (!b.time) { const blk = await rpc("eth_getBlockByNumber", ["0x" + b.block.toString(16), false]); b.time = new Date(parseInt(blk.timestamp, 16) * 1000).toISOString(); }
+st.balances = Object.fromEntries([...bal].filter(([, v]) => v !== 0n).map(([k, v]) => [k, v.toString()]));
+writeFileSync(statePath, JSON.stringify(st));
+// What the contract itself says, read at the same head block
+const hb = "0x" + head.toString(16);
+const decimals = parseInt(await call("0x313ce567", hb), 16);
+const total = BigInt(await call("0x18160ddd", hb));
+const deadBal = BigInt(await call("0x70a08231" + word(DEAD), hb));
+const sumDead = bal.get(DEAD) || 0n;
+const holders = [...bal].filter(([k, v]) => v > 0n && k !== DEAD && k !== ZERO).length;
+const burned = deadBal + (total < 10n ** BigInt(decimals + 9) ? 10n ** BigInt(decimals + 9) - total : 0n); // dead address plus any supply destroyed outright
+const fmt = (v) => { const s = v.toString().padStart(decimals + 1, "0"); const i = s.slice(0, -decimals), f = s.slice(-decimals, -decimals + 2); return `${i}.${f}`; };
+const out = { kind: "reinpay-chain-stats", version: 1, at: new Date().toISOString(), chain: "Robinhood Chain mainnet", chainId: 4663, block: head, token: TOKEN, decimals,
+  totalSupply: total.toString(), deadBalance: deadBal.toString(), burned: burned.toString(), burnedPct: Number((burned * 1000000n) / (10n ** BigInt(decimals + 9))) / 10000,
+  circulating: (total - deadBal).toString(), holders, logsMatchContract: sumDead === deadBal,
+  burns: st.burns.map((b, i) => ({ n: i + 1, ...b })).reverse(), human: { burned: fmt(burned), circulating: fmt(total - deadBal), totalSupply: fmt(total) } };
+writeFileSync(`${dir}/stats.json`, JSON.stringify(out, null, 1));
+console.log(JSON.stringify({ ...out, burns: out.burns.length, lastBurn: out.burns[0] }, null, 1));
