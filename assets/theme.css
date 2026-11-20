@@ -259,3 +259,8 @@ section.flow, .flow { margin-top: 28px; }
 .intel-mini h2 { margin: 8px 0 0; text-wrap: balance; } .intel-mini h2 em { font-style: normal; color: #5ff0a8; }
 .intel-mini-feed { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 900px) { .intel-mini-grid { grid-template-columns: 1fr; } .intel-mini #intel-canvas { height: 300px; } .intel-mini-feed { grid-template-columns: 1fr; } }
+/* Latest burn card */
+.bc-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+#bc-canvas { width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #070b09; display: block; }
+.bc-side { display: flex; flex-direction: column; gap: 14px; } .bc-side pre { white-space: pre-wrap; word-break: break-word; }
+@media (max-width: 900px) { .bc-grid { grid-template-columns: 1fr; } }
