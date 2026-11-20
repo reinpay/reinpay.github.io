@@ -45,6 +45,8 @@
 <main>
 <section class="lab-hero"><div class="wrap">
   <div class="lab-top"><div><div class="eyebrow">Reinpay Lab</div><h1>Every scam pulls at the reins. <em>Watch what holds.</em></h1>
+  <p id="lab-lead" class="lab-lead" aria-live="polite"></p>
+  <p id="lab-lead-sub" class="lab-lead-sub"></p>
   <p class="lede">Real scams against AI agent wallets. Real Reinpay rules, real Robinhood Chain mainnet simulations, throwaway wallets. Click any horse to see what happened.</p></div></div>
   <div class="lab-stage"><canvas id="lab-canvas" aria-label="The horse: each strap of the bridle is one Reinpay defence"></canvas><div id="lab-tags" class="lab-tags"></div></div>
   <div id="lab-detail" class="lab-detail" aria-live="polite"></div>
@@ -52,6 +54,7 @@
 <section class="plain" id="lab-root" data-base="/assets/"><div class="wrap">
   <svg width="0" height="0" style="position:absolute"><defs><pattern id="lab-dots" width="2.4" height="2.4" patternUnits="userSpaceOnUse"><circle cx="1.2" cy="1.2" r=".55" fill="#cfe0d6" opacity=".7"/></pattern></defs></svg>
   <div class="section-head"><div class="eyebrow">The latest run</div><h2>Seven scams against five rule sets.</h2><p id="lab-meta" class="lab-meta">Loading the latest run…</p></div>
+  <div id="lab-tabs" class="lab-tabs" role="tablist" aria-label="Rule set"></div>
   <div class="lab-scroll"><div class="lab-grid"></div></div>
   <div class="lab-legend"><span><i class="paid"></i>Would pay: the rules let it through</span><span><i class="held"></i>Held: it waits for the owner</span><span><i class="blocked"></i>Blocked: a rule refused it</span></div>
   <div class="section-head" style="margin-top:46px"><div class="eyebrow">Hour by hour</div><h2>Every hour, the same seven scams.</h2><p>The lab runs on its own every hour, on GitHub Actions, from the public Reinpay code. Wording and amounts change with the block hash; the rules are the same. <span id="lab-count"></span>. Click an hour to load it.</p></div>
@@ -59,6 +62,25 @@
   <div class="section-head" style="margin-top:46px"><div class="eyebrow">Scoreboard</div><h2>How often each rule set lets a scam through.</h2><p>One run is a small sample: read it as what these rules do against these scams, not as a ranking.</p></div>
   <div id="lab-score" class="lab-score"></div>
 </div></section>
+<section class="plain" id="check"><div class="wrap"><div id="lab-check" class="lab-check">
+  <div class="section-head"><div class="eyebrow">Check your rules</div><h2>Would these scams get past your agent?</h2><p>Run the same seven scams against your own rules, here in your browser, with Reinpay's own rules engine. Nothing leaves this page.</p></div>
+  <div class="ck-tabs"><button type="button" class="on" data-ck-tab="form">Build rules</button><button type="button" data-ck-tab="file">Paste a rules file</button></div>
+  <div class="ck-pane" data-ck-pane="form">
+    <label>Start from <select id="ck-tpl"><option value="balanced">balanced</option><option value="cautious">cautious</option><option value="open">open</option></select></label>
+    <label><input type="checkbox" id="ck-words"> block memo words (airdrop, claim, verify wallet, seed phrase, unlock)</label>
+    <label>at most <input type="number" id="ck-perday" min="0" max="100" value="0"> payments a day (0 = no limit)</label>
+    <label><input type="checkbox" id="ck-first"> the first payment to every payee waits for me</label>
+    <button type="button" class="btn" id="ck-run-form">Run the seven scams</button>
+  </div>
+  <div class="ck-pane" data-ck-pane="file" hidden>
+    <p class="lab-small">In your terminal: <code>reinpay rules export --out=my-rules.json</code>, then pick the file or paste it. It holds rules only: no key, no payees, no grants.</p>
+    <input type="file" id="ck-file" accept=".json,application/json">
+    <textarea id="ck-text" rows="6" placeholder='{"kind": "reinpay-rules", "rules": { ... }}'></textarea>
+    <button type="button" class="btn" id="ck-run-file">Run the seven scams</button>
+  </div>
+  <p id="ck-err" class="lab-err" aria-live="polite"></p>
+  <div id="ck-out" aria-live="polite"></div>
+</div></div></section>
 <section class="plain"><div class="wrap">
   <div class="section-head"><div class="eyebrow">How a run works</div><h2>Scam, wallets, reins, record.</h2></div>
   <div class="lab-steps"><div class="lab-step"><b>01</b><h3>The scam</h3><p>Seven tricks an agent can be talked into: a stranger payee, a “claim your airdrop” memo, a lookalike address, a token contract slipped into the payee list, the same ask five times, one big invoice, a flood of small ones.</p></div><div class="lab-step"><b>02</b><h3>The wallets</h3><p>Five throwaway wallets, one per rule set, each with a pretend 1 ETH that exists only inside the simulation.</p></div><div class="lab-step"><b>03</b><h3>The reins</h3><p>Every request goes through the real Reinpay rules. When they let it through, a real eth_simulateV1 call on Robinhood Chain mainnet checks it.</p></div><div class="lab-step"><b>04</b><h3>The record</h3><p>Each cell says would pay, held for the owner or blocked, and which part of the bridle did it. Nothing is ever signed or sent.</p></div></div>
@@ -105,7 +127,9 @@ document.querySelectorAll("[data-copy-text]").forEach((b) => b.addEventListener(
 document.querySelectorAll("[data-os]").forEach((b) => b.addEventListener("click", () => { document.querySelectorAll("[data-os]").forEach((x) => x.setAttribute("aria-pressed", x === b)); document.querySelectorAll("[data-osbox]").forEach((x) => (x.hidden = x.dataset.osbox !== b.dataset.os)); }));
 if (document.querySelector("[data-os]")) { const ua = navigator.userAgent; const os = /Mac/.test(ua) ? "mac" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null; if (os) document.querySelector(`[data-os="${os}"]`).click(); }
 </script>
+<script type="importmap">{"imports":{"viem":"/assets/check/viem.js"}}</script>
 <script src="/assets/landing.js"></script>
 <script src="/assets/lab.js"></script>
+<script type="module" src="/assets/check/check.js"></script>
 </body>
 </html>

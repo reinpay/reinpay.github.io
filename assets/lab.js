@@ -161,6 +161,7 @@
     (function loop(now) { T++; if (T % 2 === 0) { const sec = ((now || t0) - t0) / 1000; for (const m of minis) if (m.visible) m.draw(T, sec); } requestAnimationFrame(loop); })();
   }
 
+  window.ReinpayLabDraw = { mini(canvas, cell) { canvas.dataset.m = minis.length; setupMini(canvas, cell); animateMinis(); } };
   const WORD = { paid: "WOULD PAY", held: "HELD", blocked: "BLOCKED", void: "VOID" };
   async function main() {
     const root = document.getElementById("lab-root"); if (!root) return;
@@ -171,15 +172,23 @@
     const horse = bigHorse(document.getElementById("lab-canvas"), document.getElementById("lab-tags"));
     const render = (run) => {
     const byId = Object.fromEntries(run.attacks.map((a) => [a.id, a])), rowsById = Object.fromEntries(run.rows.map((r) => [r.id, r]));
+    { const stop = (id) => run.cells.filter((c) => c.row === id && c.outcome !== "paid" && c.outcome !== "void").length, n = run.attacks.length;
+      const d = stop("default"), h = stop("hardened"), none = stop("none"), lead = document.getElementById("lab-lead");
+      if (lead) lead.innerHTML = `<span>Default rules stop <b>${d} of ${n}</b> scams.</span> <span class="lab-lead-2">Hardened stops <b>${h === n ? `all ${n}` : `${h} of ${n}`}</b>.</span>`;
+      const sub = document.getElementById("lab-lead-sub"); if (sub) sub.textContent = `From the latest run, at block ${Number(run.block).toLocaleString("en-US")}. Stopped means blocked, or held until the owner says yes. With no rules at all, ${none} of ${n} are still stopped: the payee list and the token check cannot be turned off.`; }
     document.getElementById("lab-meta").innerHTML = `Run at block <a href="https://robinhoodchain.blockscout.com/block/${run.block}" target="_blank" rel="noopener">${Number(run.block).toLocaleString("en-US")}</a> · ${new Date(run.at).toUTCString().replace("GMT", "UTC")} · <b class="p">${run.totals.paid}</b> would pay · <b class="h">${run.totals.held}</b> held · <b class="k">${run.totals.blocked}</b> blocked${run.totals.void ? ` · ${run.totals.void} void` : ""}`;
     // grid
     const g = root.querySelector(".lab-grid");
     let html = `<div class="lab-corner">ROWS: RULE SETS<br>COLUMNS: SCAMS</div>` + run.attacks.map((a) => `<div class="lab-col">${a.label}</div>`).join("");
     for (const r of run.rows) {
-      html += `<div class="lab-row"><b>${r.label}</b><span>${r.about}</span></div>`;
-      for (const a of run.attacks) { const c = run.cells.find((x) => x.row === r.id && x.attack === a.id); html += `<button class="lab-cell ${c.outcome}" type="button" data-row="${r.id}" data-attack="${a.id}" aria-label="${r.label}, ${a.label}: ${WORD[c.outcome]}">${miniHorse(c)}<i>${WORD[c.outcome]}</i></button>`; }
+      html += `<div class="lab-row" data-row="${r.id}"><b>${r.label}</b><span>${r.about}</span></div>`;
+      for (const a of run.attacks) { const c = run.cells.find((x) => x.row === r.id && x.attack === a.id); html += `<button class="lab-cell ${c.outcome}" type="button" data-row="${r.id}" data-attack="${a.id}" aria-label="${r.label}, ${a.label}: ${WORD[c.outcome]}"><b class="lab-cname">${a.label}</b>${miniHorse(c)}<i>${WORD[c.outcome]}</i></button>`; }
     }
     g.innerHTML = html;
+    // on a phone: one rule set at a time, picked from tabs
+    const tabs = document.getElementById("lab-tabs");
+    const pick = (id) => { tabs.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.row === id)); g.querySelectorAll("[data-row]").forEach((el) => el.classList.toggle("off", el.dataset.row !== id)); };
+    if (tabs) { tabs.innerHTML = run.rows.map((r) => { const p = run.cells.filter((c) => c.row === r.id && c.outcome === "paid").length; return `<button type="button" data-row="${r.id}">${r.label}<small class="${p ? "p" : "k"}">${p ? `${p} pay` : "all stopped"}</small></button>`; }).join(""); tabs.onclick = (e) => { const b = e.target.closest("button"); if (b) pick(b.dataset.row); }; pick(tabs.dataset.sel || "default"); tabs.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) tabs.dataset.sel = b.dataset.row; }); }
     g.querySelectorAll(".lab-cell").forEach((b) => { const c = run.cells.find((x) => x.row === b.dataset.row && x.attack === b.dataset.attack), cv = b.querySelector("canvas"); cv.dataset.m = minis.length; setupMini(cv, c); });
     animateMinis();
     const detail = document.getElementById("lab-detail");
