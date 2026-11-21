@@ -28,7 +28,7 @@
   @keyframes in { from { opacity: 0; transform: translateX(16px); } }
   .btn { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: 22px; z-index: 2; background: rgba(4,7,10,.88); border: 1px solid rgba(255,138,61,.6); color: #ffd1a6; font: 600 13px "IBM Plex Mono"; padding: 10px 16px; cursor: pointer; }
   .btn:hover { background: rgba(255,138,61,.15); }
-  .status { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 3; font: 600 11.5px "IBM Plex Mono"; letter-spacing: .08em; color: #8aa597; background: rgba(4,7,10,.8); border: 1px solid rgba(95,240,168,.25); padding: 6px 12px; max-width: min(92vw, 640px); text-align: center; pointer-events: none; }
+  .status { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 3; font: 600 11.5px "IBM Plex Mono"; letter-spacing: .08em; color: #8aa597; background: rgba(4,7,10,.8); border: 1px solid rgba(95,240,168,.25); padding: 6px 12px; max-width: min(92vw, 560px); text-align: center; pointer-events: none; }
   .status.ok { color: #5ff0a8; } .status.bad { color: #ffb36b; border-color: rgba(255,138,61,.5); }
   @media (max-width: 1100px) { .status { top: auto; bottom: 86px; } }
   .embed .status { top: 10px; bottom: auto; font-size: 10.5px; }
@@ -334,7 +334,7 @@ function makeTypist() {
     for (let k = 0; k < 3; k++) { const wob = Math.sin(s * 9 + k * 2) * U * .3, ww = U * (1.9 - k * .5), hh = hgt * (1 - k * .18); g.beginPath(); g.moveTo(x - ww, y); g.bezierCurveTo(x - ww * 1.1, y - hh * .45, x - ww * .3 + wob, y - hh * .7, x + wob * .5, y - hh); g.bezierCurveTo(x + ww * .3 + wob, y - hh * .7, x + ww * 1.1, y - hh * .45, x + ww, y); g.closePath(); g.fill(); }
     if (s < .08) for (let k = 0; k < 140; k++) sparks.push({ x, y, vx: (Math.random() - .5) * 10, vy: -Math.random() * 12 - 2, life: 1 });
     const a = Math.min(1, s * 2) * Math.max(0, 1 - (s - 5) / 1.5); g.textAlign = "center"; g.fillStyle = `rgba(255,209,166,${a})`; g.font = `700 ${Math.max(22, U * 1.3)}px "Familjen Grotesk"`; g.fillText("🔥 " + fmt(fx2.amount) + " REINPAY BURNED", x, y - hgt - 18);
-    g.font = '600 13px "IBM Plex Mono"'; g.fillStyle = `rgba(227,235,229,${a * .85})`; g.fillText((fx2.replay ? "REPLAY OF THE LAST BURN · " : "LIVE · ") + fx2.tx.slice(0, 10) + "…" + fx2.tx.slice(-6), x, y - hgt + 4); g.textAlign = "left";
+    g.font = '600 13px "IBM Plex Mono"'; g.fillStyle = `rgba(227,235,229,${a * .85})`; g.fillText((fx2.label || (fx2.replay ? "REPLAY OF THE LAST BURN · " : "LIVE · ")) + fx2.tx.slice(0, 10) + "…" + fx2.tx.slice(-6), x, y - hgt + 4); g.textAlign = "left";
     return true;
   }
   function frame(now) {
@@ -359,6 +359,13 @@ function makeTypist() {
   const towerFor = (addr) => { const arr = [...towers.values()]; if (!arr.length) return null; let h = 0; for (let i = 2; i < 12; i++) h = (h * 31 + parseInt(addr[i], 16)) >>> 0; return arr[h % arr.length]; };
   const queue = []; setInterval(() => { const q = queue.shift(); if (q) q(); }, 450);
   let span0 = null, last = 0, moves = 0, lastLog = 0, lastBurn = null;
+  function showTransfer(fr, to, v, tx, replay) {
+    moves++; $("s-moves").textContent = fmt(moves);
+    const burn = to === DEAD, A = towerFor(fr), B = burn ? null : towerFor(to), tag = replay ? "REPLAY · " : "";
+    if (A) { A.flash = performance.now(); const r = burn ? A.route : A.route.concat((B || A).route.slice().reverse()); lights.push({ r, t: performance.now(), dur: burn ? 2000 : 3200, col: burn ? "#ff8a3d" : "#7aa7ff", done: () => { if (burn) fires.push({ t: performance.now(), amount: v, tx, replay, label: replay ? "REPLAY FROM THE SNAPSHOT · " : null }); else if (B) B.flash = performance.now(); } }); }
+    if (burn) { log(`🔥 ${tag}BURN · ${fmt(v)} REINPAY`, "burn"); if (!replay) setTimeout(loadBurned, 2500); }
+    else if (performance.now() - lastLog > 600) { log(`${tag}REINPAY · ${v < 1 ? v.toFixed(2) : fmt(v)} · ${fr.slice(0, 6)}… → ${to.slice(0, 6)}…`, "rp"); lastLog = performance.now(); }
+  }
   async function blocks() {
     const [h] = await rpc([["eth_blockNumber", []]]); if (!h) return false; const n = parseInt(h, 16); if (n <= last) return true;
     // a light first load (the inner lots first), then each poll adds the newest blocks until every lot has a tower
@@ -372,13 +379,7 @@ function makeTypist() {
     $("s-block").textContent = fmt(n);
     const from = last ? last + 1 : n - 6000; last = n;
     const [L] = await rpc([["eth_getLogs", [{ address: CA, fromBlock: "0x" + from.toString(16), toBlock: "0x" + n.toString(16), topics: [T] }]]]);
-    if (Array.isArray(L)) for (const l of L) queue.push(() => {
-      const fr = "0x" + l.topics[1].slice(26), to = "0x" + l.topics[2].slice(26), v = Number(BigInt(l.data) / 10n ** 16n) / 100; moves++; $("s-moves").textContent = fmt(moves);
-      const burn = to === DEAD, A = towerFor(fr), B = burn ? null : towerFor(to);
-      if (A) { A.flash = performance.now(); const r = burn ? A.route : A.route.concat((B || A).route.slice().reverse()); lights.push({ r, t: performance.now(), dur: burn ? 2000 : 3200, col: burn ? "#ff8a3d" : "#7aa7ff", done: () => { if (burn) fires.push({ t: performance.now(), amount: v, tx: l.transactionHash }); else if (B) B.flash = performance.now(); } }); }
-      if (burn) { log(`🔥 BURN · ${fmt(v)} REINPAY`, "burn"); setTimeout(loadBurned, 2500); }
-      else if (performance.now() - lastLog > 600) { log(`REINPAY · ${v < 1 ? v.toFixed(2) : fmt(v)} · ${fr.slice(0, 6)}… → ${to.slice(0, 6)}…`, "rp"); lastLog = performance.now(); }
-    });
+    if (Array.isArray(L)) for (const l of L) queue.push(() => showTransfer("0x" + l.topics[1].slice(26), "0x" + l.topics[2].slice(26), Number(BigInt(l.data) / 10n ** 16n) / 100, l.transactionHash, false));
     if (Math.random() < .3) log(`block #${fmt(n)} · ${ok.at(-1)?.transactions.length ?? "?"} txs`);
     return true;
   }
@@ -397,12 +398,31 @@ function makeTypist() {
   }
   $("replay").onclick = async () => { if (!lastBurn) await findLastBurn(); if (!lastBurn) return; const arr = [...towers.values()], A = arr[Math.floor(Math.random() * arr.length)]; log(`🔥 REPLAY · last burn · ${fmt(lastBurn.amount)} REINPAY`, "burn"); if (A) { A.flash = performance.now(); lights.push({ r: A.route, t: performance.now(), dur: 1600, col: "#ff8a3d", done: () => fires.push({ t: performance.now(), replay: true, ...lastBurn }) }); } else fires.push({ t: performance.now(), replay: true, ...lastBurn }); };
   const status = (t, cls) => { const e = $("status"); e.textContent = t; e.className = "status " + cls; };
-  let delay = 2400;
+  // When the browser cannot reach the RPC (some networks block it), play the site's own snapshot of the newest blocks and
+  // REINPAY transfers, written every 15 minutes by the public on-chain job, labelled as a replay with its time.
+  // The live RPC keeps being tried in the background; the first answer switches the city back to live.
+  let delay = 2400, fails = 0, mode = "live", snapAt = "", snapTimer = null;
+  async function playSnapshot() {
+    let d; try { d = await (await fetch("../assets/chain/city.json?t=" + Date.now())).json(); } catch { return false; }
+    if (!d?.blocks?.length || mode !== "live" || towers.size) return false;
+    mode = "replay"; snapAt = new Date(d.at).toISOString().slice(11, 16) + " UTC";
+    const t0 = performance.now(); d.blocks.forEach((b, i) => { placeTower(b.n, b.txs, b.gas); [...towers.values()].at(-1).born = t0 - 9000 + i * 20; });
+    $("s-block").textContent = fmt(d.head); const f = d.blocks[0], l = d.blocks.at(-1); if (l.ts > f.ts) $("s-bt").textContent = ((l.ts - f.ts) / (l.n - f.n)).toFixed(2) + " s";
+    log(`REPLAY · snapshot of block #${fmt(d.head)} at ${snapAt}`);
+    const T = d.transfers || []; let k = 0;
+    const step = () => { if (mode !== "replay" || !T.length) return; const x = T[k++ % T.length]; showTransfer(x.from, x.to, Number(BigInt(x.v) / 10n ** 16n) / 100, x.tx, true); snapTimer = setTimeout(step, Math.max(1500, 60000 / T.length)); };
+    step(); return true;
+  }
   async function tick() {
     if (document.hidden) { setTimeout(tick, 1500); return; }
     let ok = false; try { ok = await blocks(); } catch (e) { rpcErr = e?.message || "error"; }
-    if (ok) { delay = 2400; status("● LIVE · ROBINHOOD CHAIN MAINNET", "ok"); }
-    else { delay = Math.min(30000, delay * 2); status(`Robinhood Chain RPC did not answer (${rpcErr || "no reply"}) · retrying in ${Math.round(delay / 1000)} s`, "bad"); }
+    if (ok) { fails = 0; delay = 2400; if (mode === "replay") { mode = "live"; clearTimeout(snapTimer); log("● back to live"); } status("● LIVE · ROBINHOOD CHAIN MAINNET", "ok"); }
+    else {
+      fails++; delay = Math.min(30000, delay * 2);
+      if (fails >= 2 && mode === "live" && !towers.size) await playSnapshot();
+      if (mode === "replay") status(`REPLAY · mainnet snapshot ${snapAt} · live RPC unreachable from your network`, "bad");
+      else status(`Robinhood Chain RPC did not answer (${rpcErr || "no reply"}) · retrying in ${Math.round(delay / 1000)} s`, "bad");
+    }
     setTimeout(tick, delay);
   }
   loadStats().then((ok) => { if (!ok) { loadBurned(); findLastBurn(); } }); tick();
