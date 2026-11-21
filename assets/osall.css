@@ -138,3 +138,15 @@ button.sc-chip { cursor: pointer; }
 @media (max-width: 1400px) { .nav-wallet { order: -1; } }
 /* make room for Connect wallet: X and GitHub stay in the footer and the folded menu */
 @media (min-width: 1401px) { .navlinks > a[aria-label="Reinpay on X"], .navlinks > a[aria-label="Reinpay on GitHub"] { display: none !important; } .navlinks { gap: 13px !important; } }
+
+/* Sentinel on Scan */
+.sc-sent h3 { margin: 6px 0 10px; font: 600 22px "Familjen Grotesk", sans-serif; }
+.sc-ok { color: var(--os-g); } .sc-warn { color: #e2b057; } .sc-bad { color: #f0836e; font-weight: 600; }
+.sc-sent .btn { margin-top: 8px; }
+
+/* On chain: history chart */
+.hist-tabs { display: flex; gap: 8px; margin: 6px 0 14px; } .hist-tabs button { background: none; border: 1px solid var(--os-line, #1d2a24); color: #8aa597; font: 500 13px "IBM Plex Mono", monospace; padding: 8px 14px; cursor: pointer; } .hist-tabs button.on { color: #060908; background: #5ff0a8; border-color: #5ff0a8; }
+.hist-card { position: relative; border: 1px solid rgba(95,240,168,.28); background: rgba(95,240,168,.03); padding: 14px; } #hist-canvas { width: 100%; height: 340px; display: block; touch-action: pan-y; }
+.hist-tip { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin-top: 8px; font: 500 13px "IBM Plex Mono", monospace; color: #8aa597; } .hist-tip b { font: 700 22px "Familjen Grotesk", sans-serif; }
+.hist-sum { font: 500 12.5px "IBM Plex Mono", monospace; margin-top: 10px; }
+@media (max-width: 640px) { #hist-canvas { height: 260px; } }

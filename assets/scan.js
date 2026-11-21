@@ -102,10 +102,32 @@
       <div class="sc-grid"><div class="sc-panel"><div class="sc-lbl">OVERVIEW</div>${kv("KIND", kind)}${kv("ETH", units(big(bal), 18, 6))}${kv(isCode ? "NONCE" : "TRANSACTIONS SENT", parseInt(nonce, 16).toLocaleString("en-US"))}${isCode ? kv("SOURCIFY", sour ? `verified (${sour.replace("_", " ")})` : sour === null ? "not verified" : "could not be reached") : ""}${token ? kv("TOKEN", `${esc(token.name || token.s)} · ${token.d} decimals`) + kv("SUPPLY", units(token.supply, token.d, 2)) : ""}</div>
       <div class="sc-panel sc-v ${v}"><div class="sc-lbl">SAFE TO PAY? · REINPAY</div><h3>${word2}</h3><p>${why}</p>${v === "stop" ? "" : `<div class="cmd"><pre>reinpay payee check ${addr}\nreinpay payee add "&lt;name&gt;" ${addr}</pre><button class="copy" type="button" data-copy>Copy</button></div>`}<p class="dim" style="font-size:12.5px">The same verdict as <code>reinpay payee check</code>, which also compares it with your own payees for lookalikes.</p></div>
       <div class="sc-panel"><div class="sc-lbl">TOKENS HELD · ${held.length}</div>${held.length ? held.map((x) => kv(esc(x.t.s), units(x.v, META[x.t.a.toLowerCase()]?.d ?? 18))).join("") : '<p class="dim">No USDG, REINPAY or stock tokens.</p>'}</div></div>
+      ${isCode ? "" : `<div class="sc-panel sc-sent" style="margin-top:14px"><div class="sc-lbl">SENTINEL · OPEN APPROVALS</div><div id="sc-sent"><p class="dim">Which contracts can still move this wallet's tokens? Sentinel reads every approval it signed in the last ~24 hours and checks what is still open today.</p><button class="btn ghost" type="button" id="sc-sent-go">Check approvals</button></div></div>`}
       <div class="sc-panel" style="margin-top:14px"><div class="sc-lbl" id="sc-tl">TOKEN TRANSFERS · READING THE CHAIN…</div><div class="sc-tw"><table class="sc-t"><tbody id="sc-tr"></tbody></table></div></div>`;
+    if (!isCode) $("sc-sent-go").onclick = () => sentinel(addr, parseInt(head, 16));
     const tr = await transfers(addr, parseInt(head, 16)); await tokenMeta(tr.logs.map((l) => l.address));
     $("sc-tl").textContent = `TOKEN TRANSFERS · USDG, REINPAY AND STOCK TOKENS · LAST ${tr.logs.length} IN ${tr.span.toLocaleString("en-US")} BLOCKS`;
     $("sc-tr").innerHTML = tr.logs.length ? txRows(tr.logs, addr) : '<tr><td class="dim">No token transfers in that range.</td></tr>';
+  }
+  // ---------- Sentinel: open token approvals of a wallet (last ~24 hours of Approval events), read only ----------
+  async function sentinel(addr, head) {
+    const box = $("sc-sent"), AP = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925", span = 870000, calls = [];
+    box.innerHTML = '<p class="dim">Reading approvals from Robinhood Chain mainnet… this takes up to a minute.</p>';
+    try {
+      for (let f = head - span; f <= head; f += 30000) calls.push(["eth_getLogs", [{ fromBlock: "0x" + f.toString(16), toBlock: "0x" + Math.min(f + 29999, head).toString(16), topics: [AP, pad(addr)] }]]);
+      const res = await rpc(calls); if (res.some((r) => !Array.isArray(r))) throw new Error("Robinhood Chain is busy right now. Try again in a moment.");
+      const pairs = new Map(); for (const l of res.flat()) if (l.topics.length > 2) pairs.set(l.address.toLowerCase() + "|0x" + l.topics[2].slice(26), 1);
+      const P = [...pairs.keys()].map((k) => k.split("|"));
+      const now = P.length ? await rpc(P.map(([t, sp]) => ["eth_call", [{ to: t, data: "0xdd62ed3e" + word(addr) + word(sp) }, "latest"]])) : [];
+      const open = P.map(([t, sp], i) => ({ t, sp, v: big(typeof now[i] === "string" ? now[i] : "0x") })).filter((x) => x.v > 0n);
+      if (!open.length) { box.innerHTML = `<h3 class="sc-ok">No open approvals</h3><p class="dim">None of the ${res.flat().length} approvals this wallet signed in the last ~24 hours are still open. Older approvals are not covered: the public RPC limits how far back it can search per wallet.</p>`; return; }
+      await tokenMeta(open.map((x) => x.t));
+      const sps = [...new Set(open.map((x) => x.sp))], codes = await rpc(sps.map((sp) => ["eth_getCode", [sp, "latest"]])), K = {}; sps.forEach((sp, i) => (K[sp] = typeof codes[i] === "string" && codes[i] !== "0x"));
+      const UNL = 2n ** 200n, unl = open.filter((x) => x.v >= UNL).length, wal = open.filter((x) => !K[x.sp]).length;
+      const rows = open.slice(0, 20).map((x) => { const m = META[x.t] || {}; return `<tr><td>${esc(m.s || short(x.t))}</td><td class="${x.v >= UNL ? "sc-bad" : ""}">${x.v >= UNL ? "UNLIMITED" : units(x.v, m.d ?? 18, 2)}</td><td>${link(x.sp)} <span class="dim">${K[x.sp] ? "contract" : "wallet"}</span></td></tr>`; }).join("");
+      const head2 = wal ? ["sc-bad", `${wal} approval${wal > 1 ? "s" : ""} to a plain wallet`] : unl ? ["sc-warn", `${unl} unlimited approval${unl > 1 ? "s" : ""}`] : ["sc-ok", "Approvals look bounded"];
+      box.innerHTML = `<h3 class="${head2[0]}">${head2[1]}</h3><div class="sc-tw"><table class="sc-t"><tbody><tr><td class="dim">token</td><td class="dim">allowed</td><td class="dim">spender</td></tr>${rows}</tbody></table></div><p class="dim" style="font-size:12.5px">${open.length} open approval${open.length > 1 ? "s" : ""} from the last ~24 hours. To close one, set it to 0 from your own wallet. Reinpay only reads; it never asks you to sign. Older approvals are not covered by this scan.</p><div class="cmd"><pre>reinpay terminal: approvals ${addr}</pre><button class="copy" type="button" data-copy>Copy</button></div>`;
+    } catch (e) { box.innerHTML = `<p class="sc-err">${esc(e.message)}</p><button class="btn ghost" type="button" id="sc-sent-go">Try again</button>`; $("sc-sent-go").onclick = () => sentinel(addr, head); }
   }
   async function showTx(h) {
     const [tx, rc] = await rpc([["eth_getTransactionByHash", [h]], ["eth_getTransactionReceipt", [h]]]);

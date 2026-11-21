@@ -41,6 +41,7 @@ if (root) {
     ["supply", "burned, outside the dead address, holders"],
     ["lab", "the latest Reinpay Lab run: what each rule set stopped"],
     ["scan <0xaddress>", "kind, balances, and whether it is safe to pay"],
+    ["approvals <0xaddress>", "Sentinel: open token approvals from the last ~24 hours"],
     ["tx <0xhash>", "a transaction: status, value, token transfers"],
     ["block <number>", "a block: time and transactions"],
     ["check <payee> <amount> [ETH|USDG]", "Reinpay's real rules decide a pretend payment"],
@@ -61,6 +62,31 @@ if (root) {
     async burns() { const D = await json("chain/stats.json"); if (!D) throw new Error("The burn record could not be read."); line(`${D.burns.length} burns · ${units(BigInt(D.burned), 18, 2)} REINPAY · ${D.burnedPct.toFixed(2)}% of supply`, "tg"); for (const b of D.burns) line(`  #${String(b.n).padEnd(3, " ").replace(/ /g, "&nbsp;")} ${b.time.slice(0, 10)}  ${units(BigInt(b.amount), 18, 2).padStart(16, " ").replace(/ /g, "&nbsp;")}  <a href="${EX}/tx/${b.tx}" target="_blank" rel="noopener">${b.tx.slice(0, 12)}…</a>`); line(`read at block ${D.block.toLocaleString("en-US")}`, "dim"); },
     async supply() { const D = await json("chain/stats.json"); if (!D) throw new Error("The record could not be read."); kv("total supply", units(BigInt(D.totalSupply), 18, 0)); kv("burned", `${units(BigInt(D.burned), 18, 2)} (${D.burnedPct.toFixed(2)}%)`, "tg"); kv("outside dead", units(BigInt(D.circulating), 18, 0)); kv("holders", `${D.holders} (wallets, pools and contracts)`); kv("checked", D.logsMatchContract ? "dead balance = sum of burn logs ✓" : "see the explorer"); },
     async lab() { const L = await json("lab/latest.json"); if (!L) throw new Error("The lab run could not be read."); const n = L.attacks.length; line(`Reinpay Lab · run at block ${Number(L.block).toLocaleString("en-US")} · ${n} scams`, "tg"); for (const r of L.rows) { const cs = L.cells.filter((c) => c.row === r.id), st = cs.filter((c) => c.outcome !== "paid" && c.outcome !== "void").length; line(`  ${r.label.padEnd(10, " ").replace(/ /g, "&nbsp;")} <span class="${st === n ? "tg" : st >= n - 2 ? "ty" : "tr"}">${"█".repeat(st)}${"░".repeat(n - st)}</span> stopped ${st} of ${n}`); } line("Throwaway wallets, real rules, real mainnet simulations. Nothing signed.", "dim"); },
+    async approvals(a) {
+      if (!/^0x[0-9a-fA-F]{40}$/.test(a || "")) throw new Error("Usage: approvals <0xaddress>");
+      const addr = a.toLowerCase(), ot = "0x" + word(addr), AP = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925";
+      const [h] = await rpc([["eth_blockNumber", []]]), hb = parseInt(h, 16), span = 870000, wins = [];
+      for (let f = hb - span; f <= hb; f += 30000) wins.push(["eth_getLogs", [{ fromBlock: "0x" + f.toString(16), toBlock: "0x" + Math.min(f + 29999, hb).toString(16), topics: [AP, ot] }]]);
+      line("Sentinel · reading approvals signed in the last ~24 hours…", "dim");
+      const chunk = async (part, allowNull = false) => { const out3 = []; for (let i = 0; i < part.length; i += 40) { let got = null; for (let k = 1; k <= 6 && !got; k++) { try { const r = await rpc(part.slice(i, i + 40)); if (allowNull || r.every((x) => x !== null)) got = r; } catch {} if (!got) await sleep(600 * k * k); } if (!got) throw new Error("Robinhood Chain is busy. Try again in a moment."); out3.push(...got); } return out3; }; const res = await chunk(wins); if (res.some((r) => !Array.isArray(r))) throw new Error("Robinhood Chain is busy. Try again in a moment.");
+      const pairs = new Map(); for (const l of res.flat()) if (l.topics.length > 2) pairs.set(l.address.toLowerCase() + "|0x" + l.topics[2].slice(26), 1);
+      const P = [...pairs.keys()].map((k) => k.split("|"));
+      const now = P.length ? await chunk(P.map(([t, sp]) => ["eth_call", [{ to: t, data: "0xdd62ed3e" + word(addr) + word(sp) }, "latest"]]), true) : [];
+      const open = P.map(([t, sp], i) => ({ t, sp, v: big(now[i]) })).filter((x) => x.v > 0n);
+      line(`Sentinel · approvals for ${addr.slice(0, 6)}…${addr.slice(-4)}`, "tg");
+      if (!open.length) { line("  No open approvals from the last ~24 hours.", "tg"); line("Older approvals are not covered: the public RPC limits how far back it searches per wallet.", "dim"); return; }
+      const toks = [...new Set(open.map((x) => x.t))], sps = [...new Set(open.map((x) => x.sp))];
+      const meta = await chunk(toks.flatMap((t) => [["eth_call", [{ to: t, data: "0x95d89b41" }, "latest"]], ["eth_call", [{ to: t, data: "0x313ce567" }, "latest"]]]), true);
+      const T = {}; toks.forEach((t, i) => (T[t] = { sym: str(meta[2 * i]) || t.slice(0, 8), dec: meta[2 * i + 1] ? parseInt(meta[2 * i + 1], 16) : 18 }));
+      const codes = await chunk(sps.map((sp) => ["eth_getCode", [sp, "latest"]])), K = {}; sps.forEach((sp, i) => (K[sp] = codes[i] && codes[i] !== "0x"));
+      let unl = 0, wal = 0;
+      for (const x of open.slice(0, 12)) {
+        const big2 = x.v >= 2n ** 200n; if (big2) unl++; if (!K[x.sp]) wal++;
+        line(`  ${esc(T[x.t].sym).padEnd(12, " ").replace(/ /g, "&nbsp;")} <span class="${big2 ? "tr" : ""}">${(big2 ? "UNLIMITED" : units(x.v, T[x.t].dec, 2)).padStart(16, " ").replace(/ /g, "&nbsp;")}</span>  → <a href="${EX}/address/${x.sp}" target="_blank" rel="noopener">${x.sp.slice(0, 10)}…</a> <span class="dim">${K[x.sp] ? "contract" : "wallet"}</span>`);
+      }
+      line(wal ? `${wal} approval(s) to a plain wallet: high risk signal.` : unl ? `${unl} unlimited approval(s). Review them.` : "Approvals look bounded.", wal ? "tr" : unl ? "ty" : "tg");
+      line("Reinpay only reads. To close an approval, set it to 0 from your own wallet. Older approvals are not covered by this scan.", "dim");
+    },
     async scan(a) {
       if (!/^0x[0-9a-fA-F]{40}$/.test(a || "")) throw new Error("Usage: scan <0xaddress>");
       const addr = a.toLowerCase();
