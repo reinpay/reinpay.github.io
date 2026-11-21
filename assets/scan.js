@@ -90,6 +90,8 @@
     const bals = await rpc(KNOWN.map((t) => ["eth_call", [{ to: t.a, data: "0x70a08231" + word(addr) }, "latest"]]));
     await tokenMeta(KNOWN.map((t) => t.a));
     const held = KNOWN.map((t, i) => ({ t, v: big(bals[i]) })).filter((x) => x.v > 0n);
+    const hv = (sym) => { const h = held.find((x) => x.t.s === sym); return h ? units(h.v, META[h.t.a.toLowerCase()]?.d ?? 18, 2) : "0"; };
+    window.__hcBase = { addr, eth: units(big(bal), 18, 4), usdg: hv("USDG"), reinpay: hv("REINPAY"), tokens: held.length };
     let token = null, sour;
     if (isCode) {
       const r = await rpc([["eth_call", [{ to: addr, data: "0x95d89b41" }, "latest"]], ["eth_call", [{ to: addr, data: "0x313ce567" }, "latest"]], ["eth_call", [{ to: addr, data: "0x18160ddd" }, "latest"]], ["eth_call", [{ to: addr, data: "0x06fdde03" }, "latest"]]]);
@@ -102,7 +104,7 @@
       <div class="sc-grid"><div class="sc-panel"><div class="sc-lbl">OVERVIEW</div>${kv("KIND", kind)}${kv("ETH", units(big(bal), 18, 6))}${kv(isCode ? "NONCE" : "TRANSACTIONS SENT", parseInt(nonce, 16).toLocaleString("en-US"))}${isCode ? kv("SOURCIFY", sour ? `verified (${sour.replace("_", " ")})` : sour === null ? "not verified" : "could not be reached") : ""}${token ? kv("TOKEN", `${esc(token.name || token.s)} · ${token.d} decimals`) + kv("SUPPLY", units(token.supply, token.d, 2)) : ""}</div>
       <div class="sc-panel sc-v ${v}"><div class="sc-lbl">SAFE TO PAY? · REINPAY</div><h3>${word2}</h3><p>${why}</p>${v === "stop" ? "" : `<div class="cmd"><pre>reinpay payee check ${addr}\nreinpay payee add "&lt;name&gt;" ${addr}</pre><button class="copy" type="button" data-copy>Copy</button></div>`}<p class="dim" style="font-size:12.5px">The same verdict as <code>reinpay payee check</code>, which also compares it with your own payees for lookalikes.</p></div>
       <div class="sc-panel"><div class="sc-lbl">TOKENS HELD · ${held.length}</div>${held.length ? held.map((x) => kv(esc(x.t.s), units(x.v, META[x.t.a.toLowerCase()]?.d ?? 18))).join("") : '<p class="dim">No USDG, REINPAY or stock tokens.</p>'}</div></div>
-      ${isCode ? "" : `<div class="sc-panel sc-sent" style="margin-top:14px"><div class="sc-lbl">SENTINEL · OPEN APPROVALS</div><div id="sc-sent"><p class="dim">Which contracts can still move this wallet's tokens? Sentinel reads every approval it signed in the last ~24 hours and checks what is still open today.</p><button class="btn ghost" type="button" id="sc-sent-go">Check approvals</button></div></div>`}
+      ${isCode ? "" : `<div class="sc-panel sc-sent" style="margin-top:14px"><div class="sc-lbl">SENTINEL · OPEN APPROVALS</div><div id="sc-sent"><p class="dim">Which contracts can still move this wallet's tokens? Sentinel reads every approval it signed in the last ~24 hours and checks what is still open today.</p><button class="btn ghost" type="button" id="sc-sent-go">Check approvals and make my health card</button></div><div id="hc"></div></div>`}
       <div class="sc-panel" style="margin-top:14px"><div class="sc-lbl" id="sc-tl">TOKEN TRANSFERS · READING THE CHAIN…</div><div class="sc-tw"><table class="sc-t"><tbody id="sc-tr"></tbody></table></div></div>`;
     if (!isCode) $("sc-sent-go").onclick = () => sentinel(addr, parseInt(head, 16));
     const tr = await transfers(addr, parseInt(head, 16)); await tokenMeta(tr.logs.map((l) => l.address));
@@ -120,10 +122,11 @@
       const P = [...pairs.keys()].map((k) => k.split("|"));
       const now = P.length ? await rpc(P.map(([t, sp]) => ["eth_call", [{ to: t, data: "0xdd62ed3e" + word(addr) + word(sp) }, "latest"]])) : [];
       const open = P.map(([t, sp], i) => ({ t, sp, v: big(typeof now[i] === "string" ? now[i] : "0x") })).filter((x) => x.v > 0n);
-      if (!open.length) { box.innerHTML = `<h3 class="sc-ok">No open approvals</h3><p class="dim">None of the ${res.flat().length} approvals this wallet signed in the last ~24 hours are still open. Older approvals are not covered: the public RPC limits how far back it can search per wallet.</p>`; return; }
+      const card = (o, u, w) => window.reinpayHealthCard && window.reinpayHealthCard({ ...window.__hcBase, open: o, unlimited: u, toWallet: w, block: head, at: new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC" });
+      if (!open.length) { card(0, 0, 0); box.innerHTML = `<h3 class="sc-ok">No open approvals</h3><p class="dim">None of the ${res.flat().length} approvals this wallet signed in the last ~24 hours are still open. Older approvals are not covered: the public RPC limits how far back it can search per wallet.</p>`; return; }
       await tokenMeta(open.map((x) => x.t));
       const sps = [...new Set(open.map((x) => x.sp))], codes = await rpc(sps.map((sp) => ["eth_getCode", [sp, "latest"]])), K = {}; sps.forEach((sp, i) => (K[sp] = typeof codes[i] === "string" && codes[i] !== "0x"));
-      const UNL = 2n ** 200n, unl = open.filter((x) => x.v >= UNL).length, wal = open.filter((x) => !K[x.sp]).length;
+      const UNL = 2n ** 200n, unl = open.filter((x) => x.v >= UNL).length, wal = open.filter((x) => !K[x.sp]).length; card(open.length, unl, wal);
       const rows = open.slice(0, 20).map((x) => { const m = META[x.t] || {}; return `<tr><td>${esc(m.s || short(x.t))}</td><td class="${x.v >= UNL ? "sc-bad" : ""}">${x.v >= UNL ? "UNLIMITED" : units(x.v, m.d ?? 18, 2)}</td><td>${link(x.sp)} <span class="dim">${K[x.sp] ? "contract" : "wallet"}</span></td></tr>`; }).join("");
       const head2 = wal ? ["sc-bad", `${wal} approval${wal > 1 ? "s" : ""} to a plain wallet`] : unl ? ["sc-warn", `${unl} unlimited approval${unl > 1 ? "s" : ""}`] : ["sc-ok", "Approvals look bounded"];
       box.innerHTML = `<h3 class="${head2[0]}">${head2[1]}</h3><div class="sc-tw"><table class="sc-t"><tbody><tr><td class="dim">token</td><td class="dim">allowed</td><td class="dim">spender</td></tr>${rows}</tbody></table></div><p class="dim" style="font-size:12.5px">${open.length} open approval${open.length > 1 ? "s" : ""} from the last ~24 hours. To close one, set it to 0 from your own wallet. Reinpay only reads; it never asks you to sign. Older approvals are not covered by this scan.</p><div class="cmd"><pre>reinpay terminal: approvals ${addr}</pre><button class="copy" type="button" data-copy>Copy</button></div>`;

@@ -150,3 +150,8 @@ button.sc-chip { cursor: pointer; }
 .hist-tip { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin-top: 8px; font: 500 13px "IBM Plex Mono", monospace; color: #8aa597; } .hist-tip b { font: 700 22px "Familjen Grotesk", sans-serif; }
 .hist-sum { font: 500 12.5px "IBM Plex Mono", monospace; margin-top: 10px; }
 @media (max-width: 640px) { #hist-canvas { height: 260px; } }
+
+/* Wallet Health Card */
+.hc-grid { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); gap: 18px; margin-top: 18px; align-items: start; } #hc-canvas { width: 100%; aspect-ratio: 16/9; display: block; border: 1px solid rgba(95,240,168,.3); }
+.hc-side .btn { width: 100%; margin-bottom: 12px; } .hc-side pre { white-space: pre-wrap; }
+@media (max-width: 860px) { .hc-grid { grid-template-columns: 1fr; } }
