@@ -18,10 +18,10 @@
     for (let i = 1; ; i++) {
       try {
         const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-        if ((r.status === 429 || r.status >= 500) && i < 4) { await new Promise((x) => setTimeout(x, 800 * i)); continue; }
+        if ((r.status === 429 || r.status >= 500) && i < 7) { await new Promise((x) => setTimeout(x, 700 * i * i)); continue; }
         const j = await r.json(); const by = Object.fromEntries((Array.isArray(j) ? j : [j]).map((x) => [x.id, x]));
         return body.map((b) => (by[b.id]?.error ? { error: by[b.id].error.message } : by[b.id]?.result ?? null));
-      } catch (e) { if (i >= 4) throw new Error("Robinhood Chain could not be reached. Try again in a moment."); await new Promise((x) => setTimeout(x, 900 * i)); }
+      } catch (e) { if (i >= 7) throw new Error("Robinhood Chain is busy right now. Try again in a moment."); await new Promise((x) => setTimeout(x, 700 * i * i)); }
     }
   }
   const one = async (m, p) => (await rpc([[m, p]]))[0];
@@ -49,7 +49,7 @@
       }
     } catch { /* the strip waits for the next tick */ }
   }
-  let busy = false; live(); setInterval(() => { if (!document.hidden && !busy) live(); }, 6000);
+  let busy = false; const hasQ = new URLSearchParams(location.search).has("q"); if (!hasQ) live(); setInterval(() => { if (!document.hidden && !busy) live(); }, 6000);
   fetch(root.dataset.stats + "?t=" + Date.now(), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((D) => { if (D) $("sc-burn").textContent = (BigInt(D.burned) / 10n ** 18n).toLocaleString("en-US"); }).catch(() => {});
 
   // ---------- the verdict, same rules as reinpay payee check ----------
