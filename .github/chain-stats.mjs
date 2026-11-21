@@ -86,4 +86,26 @@ const out = { kind: "reinpay-chain-stats", version: 1, at: new Date().toISOStrin
   circulating: (total - deadBal).toString(), holders, logsMatchContract: sumDead === deadBal,
   burns: st.burns.map((b, i) => ({ n: i + 1, ...b })).reverse(), human: { burned: fmt(burned), circulating: fmt(total - deadBal), totalSupply: fmt(total) } };
 writeFileSync(`${dir}/stats.json`, JSON.stringify(out, null, 1));
+// History, one point per hour: holders and total burned at the end of each hour since launch.
+// Built once from every Transfer log (block times read from the chain), then one point appended per hour.
+const histPath = `${dir}/history.json`;
+let H = existsSync(histPath) ? JSON.parse(readFileSync(histPath, "utf8")) : null;
+const tsOf = async (b) => parseInt((await rpc("eth_getBlockByNumber", ["0x" + b.toString(16), false])).timestamp, 16);
+const point = (t, block, balMap, burnedAt) => ({ t: new Date(t * 1000).toISOString(), block, holders: [...balMap].filter(([k, v]) => v > 0n && k !== DEAD && k !== ZERO).length, burned: Number(burnedAt / 10n ** 16n) / 100 });
+if (!H) {
+  const all = []; await logsRange(st.deploy, head, all);
+  const t0 = await tsOf(st.deploy), t1 = await tsOf(head), bt = (t1 - t0) / (head - st.deploy);
+  const blockAt = async (T) => { let b = Math.round(st.deploy + (T - t0) / bt); for (let k = 0; k < 3; k++) { b = Math.max(st.deploy, Math.min(head, b)); const d = (await tsOf(b)) - T; if (Math.abs(d) < 2) break; b -= Math.round(d / bt); } return Math.max(st.deploy, Math.min(head, b)); };
+  const b2 = new Map(); let burnedRun = 0n, i = 0, pts = [];
+  for (let T = Math.ceil(t0 / 3600) * 3600; T <= t1; T += 3600) {
+    const edge = await blockAt(T);
+    while (i < all.length && parseInt(all[i].blockNumber, 16) <= edge) { const l = all[i++], f = "0x" + l.topics[1].slice(26), t = "0x" + l.topics[2].slice(26), v = BigInt(l.data); b2.set(f, (b2.get(f) || 0n) - v); b2.set(t, (b2.get(t) || 0n) + v); if (t === DEAD || (t === ZERO && f !== ZERO)) burnedRun += v; }
+    pts.push(point(T, edge, b2, burnedRun));
+  }
+  H = { kind: "reinpay-chain-history", version: 1, token: TOKEN, note: "holders and total REINPAY burned at the end of each hour, read from Robinhood Chain mainnet", points: pts };
+}
+const last = H.points[H.points.length - 1];
+if (!last || Date.now() - Date.parse(last.t) > 55 * 60 * 1000) H.points.push(point(Math.floor(Date.now() / 1000), head, bal, deadBal));
+writeFileSync(histPath, JSON.stringify(H));
+
 console.log(JSON.stringify({ ...out, burns: out.burns.length, lastBurn: out.burns[0] }, null, 1));
