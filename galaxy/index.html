@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reinpay Galaxy · the story of REINPAY</title>
+<meta name="description" content="Every REINPAY holder as a star, the dead address as a black hole, and Reinpay Intelligence telling the whole story of REINPAY on Robinhood Chain mainnet, from the first block to today.">
+<link rel="canonical" href="https://reinpay.app/galaxy/">
+<meta name="theme-color" content="#020406">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Familjen+Grotesk:wght@600;700&display=swap">
+<style>
+  html, body { margin: 0; height: 100%; background: #020406; color: #e3ebe5; font-family: "IBM Plex Mono", monospace; overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  .hud { position: fixed; left: max(24px, env(safe-area-inset-left)); top: 22px; z-index: 2; pointer-events: none; }
+  .k { font: 600 12px "IBM Plex Mono"; letter-spacing: .2em; color: #e2b057; }
+  h1 { margin: 8px 0 0; font: 700 clamp(30px, 4.4vw, 56px)/1 "Familjen Grotesk"; letter-spacing: -.03em; }
+  h1 em { font-style: normal; color: #5ff0a8; }
+  .sub { margin: 10px 0 0; font: 500 12px "IBM Plex Mono"; color: #6f8a7d; max-width: 430px; line-height: 1.6; }
+  .back { display: inline-block; margin-top: 14px; font: 600 12px "IBM Plex Mono"; color: #5ff0a8; text-decoration: none; pointer-events: auto; border: 1px solid rgba(95,240,168,.4); padding: 7px 12px; background: rgba(2,4,6,.7); }
+  .clock { position: fixed; right: max(24px, env(safe-area-inset-right)); top: 22px; z-index: 2; text-align: right; pointer-events: none; }
+  .clock small { display: block; font: 600 10.5px "IBM Plex Mono"; letter-spacing: .16em; color: #6f8a7d; }
+  .clock b { display: block; font: 700 26px "Familjen Grotesk"; margin-top: 4px; }
+  .clock .mode { margin-top: 8px; font: 600 11px "IBM Plex Mono"; letter-spacing: .14em; color: #e2b057; }
+  .stats { position: fixed; left: max(24px, env(safe-area-inset-left)); bottom: 22px; z-index: 2; display: grid; grid-template-columns: repeat(4, auto); gap: 1px; background: rgba(95,240,168,.25); border: 1px solid rgba(95,240,168,.3); }
+  .stats div { background: rgba(2,4,6,.86); padding: 10px 16px; }
+  .stats small { display: block; font: 600 10.5px "IBM Plex Mono"; letter-spacing: .14em; color: #6f8a7d; }
+  .stats b { display: block; font: 700 22px "Familjen Grotesk"; margin-top: 4px; }
+  .stats b.g { color: #5ff0a8; } .stats b.f { color: #ffb36b; }
+  .cap { position: fixed; left: 50%; bottom: 104px; transform: translateX(-50%); z-index: 3; width: min(92vw, 820px); text-align: center; font: 600 clamp(16px, 2vw, 22px)/1.45 "Familjen Grotesk"; color: #f1f6f2; text-shadow: 0 2px 18px #000, 0 0 2px #000; pointer-events: none; min-height: 2.9em; }
+  .cap span { background: rgba(2,4,6,.62); padding: 4px 12px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .start { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; background: radial-gradient(circle at 50% 55%, rgba(2,4,6,.2), rgba(2,4,6,.82)); }
+  .start[hidden] { display: none; }
+  .start .box { text-align: center; padding: 0 20px; }
+  .start p { font: 500 13px "IBM Plex Mono"; color: #8aa597; max-width: 460px; line-height: 1.6; margin: 14px auto 22px; }
+  .play { font: 700 18px "Familjen Grotesk"; color: #04130b; background: #5ff0a8; border: 0; padding: 14px 26px; cursor: pointer; box-shadow: 0 0 40px rgba(95,240,168,.35); }
+  .quiet { display: block; margin: 14px auto 0; font: 600 12px "IBM Plex Mono"; color: #8aa597; background: none; border: 0; cursor: pointer; text-decoration: underline; }
+  .ctl { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: 22px; z-index: 3; display: flex; gap: 8px; }
+  .ctl button { font: 600 12.5px "IBM Plex Mono"; color: #cfe9dc; background: rgba(2,4,6,.88); border: 1px solid rgba(95,240,168,.45); padding: 10px 14px; cursor: pointer; }
+  .tip { position: fixed; z-index: 4; pointer-events: none; font: 500 12px "IBM Plex Mono"; background: rgba(2,4,6,.92); border: 1px solid rgba(95,240,168,.45); padding: 8px 10px; line-height: 1.55; transform: translate(14px, -50%); white-space: nowrap; }
+  .tip[hidden] { display: none; } .tip b { color: #5ff0a8; }
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, auto); left: 12px; bottom: 12px; } .stats div { padding: 8px 12px; } .stats b { font-size: 18px; } .sub { display: none; } h1 { font-size: 26px; } .k { font-size: 10px; letter-spacing: .14em; } .hud { left: 16px; top: 14px; } .clock { left: 16px; right: auto; top: 128px; text-align: left; } .clock b { font-size: 18px; } .clock .mode { font-size: 10px; } .back { margin-top: 10px; padding: 6px 10px; } .cap { bottom: 150px; font-size: 15px; } .ctl { right: 12px; bottom: auto; top: 128px; } .ctl button { padding: 8px 10px; font-size: 11px; } }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Reinpay Galaxy: every REINPAY holder on Robinhood Chain mainnet as a star, the dead address as a black hole, and Reinpay Intelligence at the core."></canvas>
+<div class="hud"><div class="k">REINPAY GALAXY · ROBINHOOD CHAIN MAINNET</div><h1>The story of <em>REINPAY.</em></h1><p class="sub">Every star is a real wallet that holds REINPAY · the black hole is the dead address · drag to turn the galaxy</p><a class="back" href="/">← reinpay.app</a></div>
+<div class="clock"><small id="clk-l">ON CHAIN TIME (UTC)</small><b id="clk">…</b><div class="mode" id="mode">LOADING THE CHAIN…</div></div>
+<div class="stats"><div><small>HOLDERS</small><b class="g" id="s-h">…</b></div><div><small>WALLETS EVER</small><b id="s-e">…</b></div><div><small>BURNS</small><b class="f" id="s-b">…</b></div><div><small>REINPAY BURNED</small><b class="f" id="s-x">…</b></div></div>
+<div class="cap" id="cap" aria-live="polite"></div>
+<div class="start" id="start" hidden><div class="box"><div class="k">REINPAY INTELLIGENCE</div><h1 style="margin-top:12px">Let me tell you <em>the story.</em></h1><p>From the first block to today, read from Robinhood Chain mainnet. About two minutes, with voice.</p><button class="play" id="play" type="button">▶ Play the story</button><button class="quiet" id="quiet" type="button">Play without sound (subtitles only)</button></div></div>
+<div class="ctl"><button type="button" id="snd" hidden>🔊 Voice on</button><button type="button" id="again" hidden>↺ Play again</button></div>
+<div class="tip" id="tip" hidden></div>
+<script>
+// Reinpay Galaxy. Data: assets/chain/galaxy.json, written from every REINPAY Transfer log on Robinhood Chain mainnet by the
+// public on-chain job (holders, when each first received REINPAY, burns, holder count over time). Nothing is signed.
+(() => {
+  const DEV = "0x9e9a44814544633b995829d917b70d3161db1293", RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (id) => document.getElementById(id), cv = $("c"), g = cv.getContext("2d");
+  let W, H, F; const fit = () => { const d = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; g.setTransform(d, 0, 0, d, 0, 0); F = Math.min(W, H) * (W < H ? 1.7 : 1.05); }; addEventListener("resize", fit); fit();
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const hash = (a) => { let h = 2166136261; for (let i = 2; i < a.length; i++) { h ^= a.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967296; };
+  const fmt = (n) => Math.round(n).toLocaleString("en-US"), M = (raw) => Number(BigInt(raw) / 10n ** 14n) / 1e4;
+  const words = (m) => m >= 1e6 ? (m / 1e6).toFixed(2).replace(/\.?0+$/, "") + " million" : fmt(m);
+  const utc = (t, full) => { const d = new Date(t * 1000); return (full ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) + " · " : "") + d.toISOString().slice(11, 16); };
+
+  // ---------- the scene: background stars, a spiral disk of dust, holder stars, the black hole, the core ----------
+  const BG = Array.from({ length: 900 }, () => { const u = rnd() * 2 - 1, a = rnd() * 6.283, r = 60 + rnd() * 40; return [Math.sqrt(1 - u * u) * Math.cos(a) * r, u * r, Math.sqrt(1 - u * u) * Math.sin(a) * r, rnd()]; });
+  const ARMS = 3, COLS = ["95,240,168", "122,167,255", "226,176,87"];
+  const DUST = Array.from({ length: 2600 }, () => { const arm = Math.floor(rnd() * ARMS), r = Math.pow(rnd(), .7) * 15 + .6, a = arm * 2.094 + r * .42 + (rnd() - .5) * (.9 - r / 30), y = (rnd() - .5) * (1.1 - r / 18) * .9; return [Math.cos(a) * r, y, Math.sin(a) * r, arm, rnd()]; });
+  const HOLE = [10.5, 0, 6.5];
+  let D = null, stars = [], rotY = .6, tilt = .52, drag = null, spin = RM ? 0 : .045;
+  function place(a, first, t0, t1) { const q = Math.min(1, Math.max(0, (first - t0) / Math.max(1, t1 - t0))), h = hash(a), arm = Math.floor(h * ARMS), r = 1.6 + Math.sqrt(q) * 11.5 + (hash(a + "r") - .5) * 1.4, ang = arm * 2.094 + r * .42 + (hash(a + "a") - .5) * .55; return [Math.cos(ang) * r, (hash(a + "y") - .5) * .7, Math.sin(ang) * r]; }
+  const proj = (x, y, z) => { const c = Math.cos(rotY), s = Math.sin(rotY), x1 = x * c - z * s, z1 = x * s + z * c, ct = Math.cos(tilt), st = Math.sin(tilt), y2 = y * ct - z1 * st, z2 = y * st + z1 * ct, k = F / (z2 + 34); return [W / 2 + x1 * k, H * .52 + y2 * k, k, z2]; };
+
+  // ---------- story state ----------
+  let T = 0, story = null, live = false, burnsShown = 0, comets = [], flashes = [], speaking = false, mouth = 0;
+  const holdersAt = (t) => { let lo = 0, hi = D.series.length - 1, v = 0; while (lo <= hi) { const m = (lo + hi) >> 1; if (D.series[m][0] <= t) { v = D.series[m][1]; lo = m + 1; } else hi = m - 1; } return v; };
+  function hud() {
+    if (!D) return; const t = live ? D.now : T, bs = D.burns.filter((b) => b.time <= t);
+    $("clk").textContent = utc(t, true); $("s-h").textContent = live ? D.holders.length : holdersAt(t);
+    $("s-e").textContent = stars.filter((s) => s.first <= t).length; $("s-b").textContent = bs.length;
+    $("s-x").textContent = (bs.reduce((a, b) => a + M(b.amount), 0) / 1e6).toFixed(2) + "M";
+  }
+
+  function frame(now) {
+    const s = now / 1000; if (!drag) rotY += spin / 60;
+    g.globalCompositeOperation = "source-over"; g.fillStyle = "#020406"; g.fillRect(0, 0, W, H);
+    const neb = g.createRadialGradient(W / 2, H * .52, 0, W / 2, H * .52, Math.max(W, H) * .6); neb.addColorStop(0, "rgba(40,90,70,.28)"); neb.addColorStop(.5, "rgba(20,30,60,.12)"); neb.addColorStop(1, "rgba(2,4,6,0)"); g.fillStyle = neb; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = "lighter";
+    for (const [x, y, z, b] of BG) { const [px, py, k] = proj(x, y, z); if (k <= 0) continue; g.fillStyle = `rgba(200,220,255,${.25 + b * .5})`; g.fillRect(px, py, 1.2, 1.2); }
+    const t = live ? D?.now : T, grow = D ? (live ? 1 : Math.min(1, Math.max(.15, (T - D.deploy.time) / Math.max(1, D.now - D.deploy.time)))) : .15;
+    for (const [x, y, z, arm, b] of DUST) { if (Math.hypot(x, z) > 2 + grow * 14) continue; const [px, py, k] = proj(x, y, z); g.fillStyle = `rgba(${COLS[arm]},${.08 + b * .16})`; const sz = Math.max(.8, k * .045); g.fillRect(px, py, sz, sz); }
+    // core glow
+    const [cx, cy, ck] = proj(0, 0, 0); let gr = g.createRadialGradient(cx, cy, 0, cx, cy, ck * 3.2); gr.addColorStop(0, "rgba(220,255,235,.9)"); gr.addColorStop(.15, "rgba(95,240,168,.5)"); gr.addColorStop(1, "rgba(95,240,168,0)"); g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, ck * 3.2, 0, 6.283); g.fill();
+    // holder stars, back to front
+    const vis = []; if (D) for (const st of stars) { if (st.first > t) continue; const gone = st.left && st.left <= t, p = proj(...st.p); vis.push([p[3], st, p, gone]); }
+    vis.sort((a, b) => b[0] - a[0]);
+    for (const [, st, [px, py, k], gone] of vis) {
+      const age = (t - st.first), pop = Math.min(1, age / 1800), r = Math.max(1.2, k * st.size) * (gone ? .45 : 1) * (.4 + .6 * pop), tw = .85 + .15 * Math.sin(s * 2 + st.ph);
+      const col = gone ? "160,170,180" : st.col, a = gone ? .35 : 1;
+      gr = g.createRadialGradient(px, py, 0, px, py, r * 4); gr.addColorStop(0, `rgba(${col},${.55 * a * tw})`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.beginPath(); g.arc(px, py, r * 4, 0, 6.283); g.fill();
+      g.fillStyle = `rgba(255,255,255,${.9 * a})`; g.beginPath(); g.arc(px, py, r * .55, 0, 6.283); g.fill();
+      if (!gone && age < 600 && !live) { g.strokeStyle = `rgba(${col},${1 - age / 600})`; g.lineWidth = 1.2; g.beginPath(); g.arc(px, py, r * 2 + age / 600 * 18, 0, 6.283); g.stroke(); }
+      st.scr = [px, py, Math.max(6, r * 2)];
+    }
+    // the black hole: the dead address, growing with the total burned
+    if (D) { const burned = D.burns.filter((b) => b.time <= t).reduce((a, b) => a + M(b.amount), 0), [hx, hy, hk] = proj(...HOLE), R = hk * (.35 + Math.sqrt(burned / 2e7) * .9);
+      g.globalCompositeOperation = "source-over"; for (let i = 0; i < 3; i++) { g.strokeStyle = `rgba(255,${150 - i * 30},70,${.5 - i * .13})`; g.lineWidth = 2 - i * .5; g.beginPath(); g.ellipse(hx, hy, R * (1.9 + i * .5), R * (.55 + i * .16), Math.sin(s * .3) * .1, 0, 6.283); g.stroke(); }
+      g.fillStyle = "#000"; g.beginPath(); g.arc(hx, hy, R, 0, 6.283); g.fill(); g.strokeStyle = "rgba(255,170,90,.9)"; g.lineWidth = 1.5; g.beginPath(); g.arc(hx, hy, R, 0, 6.283); g.stroke();
+      g.fillStyle = "rgba(255,200,150,.85)"; g.font = '600 11px "IBM Plex Mono"'; g.textAlign = "center"; g.fillText("0x…dEaD · " + (burned / 1e6).toFixed(2) + "M BURNED", hx, hy + R * 1.2 + 16); g.textAlign = "left"; g.globalCompositeOperation = "lighter";
+      D.holePx = [hx, hy, R];
+    }
+    // burn comets: from the dev wallet's star (or the core) into the black hole
+    for (let i = comets.length - 1; i >= 0; i--) { const c = comets[i], q = (now - c.t) / 1600; if (q >= 1) { comets.splice(i, 1); flashes.push({ t: now, b: c.b }); continue; }
+      const A = proj(...c.from), B = proj(...HOLE), e = q * q, mx = (A[0] + B[0]) / 2, my = Math.min(A[1], B[1]) - 80, P = (u) => [(1 - u) ** 2 * A[0] + 2 * (1 - u) * u * mx + u * u * B[0], (1 - u) ** 2 * A[1] + 2 * (1 - u) * u * my + u * u * B[1]];
+      for (let k = 0; k < 18; k++) { const [x, y] = P(Math.max(0, e - k * .012)); g.fillStyle = `rgba(255,${180 - k * 6},80,${1 - k / 18})`; g.beginPath(); g.arc(x, y, 5 - k * .22, 0, 6.283); g.fill(); } }
+    g.globalCompositeOperation = "source-over";
+    for (let i = flashes.length - 1; i >= 0; i--) { const f = flashes[i], q = (now - f.t) / 2600; if (q >= 1) { flashes.splice(i, 1); continue; } const [hx, hy, R] = D.holePx;
+      for (let k = 0; k < 3; k++) { g.strokeStyle = `rgba(255,150,70,${(1 - q) * (1 - k * .25)})`; g.lineWidth = 3; g.beginPath(); g.arc(hx, hy, R + q * (120 + k * 40), 0, 6.283); g.stroke(); }
+      g.fillStyle = `rgba(255,214,170,${Math.min(1, (1 - q) * 2)})`; g.font = `700 ${Math.max(18, Math.min(W, H) * .028)}px "Familjen Grotesk"`; g.textAlign = "center"; g.fillText(`🔥 BURN #${f.b.n} · ${fmt(M(f.b.amount))} REINPAY`, hx, hy - R - 30 - q * 20); g.textAlign = "left"; }
+    // Reinpay Intelligence at the core: a terminal head that talks
+    head(cx, cy - ck * 1.6, Math.max(40, ck * 1.5), s);
+    hud(); requestAnimationFrame(frame);
+  }
+  function head(x, y, w, s) {
+    const h = w * .72; g.fillStyle = "rgba(5,20,12,.95)"; g.strokeStyle = "#5ff0a8"; g.lineWidth = 2; g.shadowColor = "#5ff0a8"; g.shadowBlur = 18; g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, w * .07); g.fill(); g.stroke(); g.shadowBlur = 0;
+    const blink = (s % 3.4) < .12, eh = blink ? 2 : h * .2; g.fillStyle = "#5ff0a8"; g.fillRect(x - w * .22, y - h * .18 - eh / 2, w * .1, eh); g.fillRect(x + w * .12, y - h * .18 - eh / 2, w * .1, eh);
+    mouth += ((speaking ? .35 + .65 * Math.abs(Math.sin(s * 17) * Math.sin(s * 7.3)) : .08) - mouth) * .35;
+    g.fillRect(x - w * .2, y + h * .2 - mouth * h * .09, w * .4, Math.max(2, mouth * h * .18));
+    g.font = `600 ${Math.max(9, w * .12)}px "IBM Plex Mono"`; g.fillStyle = "#cfe9dc"; g.textAlign = "center"; g.fillText("REINPAY INTELLIGENCE", x, y - h / 2 - 10); g.textAlign = "left";
+  }
+
+  // ---------- drag to turn, hover a star ----------
+  cv.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY, rotY, tilt]; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", (e) => {
+    if (drag) { rotY = drag[2] + (e.clientX - drag[0]) * .006; tilt = Math.max(.12, Math.min(1.25, drag[3] + (e.clientY - drag[1]) * .004)); return; }
+    let best = null, bd = 1e9; for (const st of stars) { if (!st.scr || st.first > (live ? D.now : T)) continue; const d = Math.hypot(st.scr[0] - e.clientX, st.scr[1] - e.clientY); if (d < Math.max(10, st.scr[2]) && d < bd) { bd = d; best = st; } }
+    const tip = $("tip"); if (!best) { tip.hidden = true; return; } tip.hidden = false; tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px";
+    tip.innerHTML = `<b>${best.a.slice(0, 6)}…${best.a.slice(-4)}</b> · ${best.contract ? "contract" : "wallet"}<br>` + (best.left && best.left <= (live ? D.now : T) ? `held REINPAY ${utc(best.first, true)} → ${utc(best.left, true)}` : `${best.pct.toFixed(best.pct < .01 ? 4 : 2)}% of supply · since ${utc(best.first, true)} UTC`);
+  });
+  cv.addEventListener("pointerup", () => (drag = null)); cv.addEventListener("pointerleave", () => { drag = null; $("tip").hidden = true; });
+
+  // ---------- the story, written from the data ----------
+  function script() {
+    const L = [], b = D.burns, t0 = D.deploy.time, day = (t) => new Date(t * 1000).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+    const allDev = b.length && b.every((x) => x.from.toLowerCase() === DEV);
+    const reach = (n) => D.series.find((p) => p[1] >= n)?.[0];
+    L.push({ t: t0, say: `This is REINPAY. It was born on Robinhood Chain mainnet on ${day(t0)}, at ${utc(t0)} UTC, with one billion tokens.` });
+    L.push({ t: t0 + 30, say: "I am Reinpay Intelligence. I read the chain, and every star you are about to see is a real wallet." });
+    const events = b.map((x) => ({ t: x.time, burn: x }));
+    const r100 = reach(100); if (r100) events.push({ t: r100, say: `By ${utc(r100)} UTC on the first day, one hundred wallets were holding REINPAY.` });
+    const r10 = reach(10); if (r10 && (!r100 || r10 < r100)) events.push({ t: r10, say: "The first holders arrived, and the galaxy started to grow." });
+    events.sort((a, c) => a.t - c.t);
+    for (const e of events) {
+      if (e.burn) { const x = e.burn, m = M(x.amount);
+        const mins = (x.time - t0) / 60, lead = x.n === 1 ? (mins < 2 ? "Less than two minutes after launch, the first burn." : `${Math.round(mins)} minutes after launch, the first burn.`) : `Burn number ${x.n}.`;
+        L.push({ t: x.time, burn: x, say: `${lead} ${words(m)} REINPAY, sent into the dead address. Gone for good.` });
+        if (x.n === 5) L.push({ t: x.time + 60, say: `Stars come and go. ${stars.length} wallets have held REINPAY so far. The grey ones have moved on.` });
+      } else L.push(e);
+    }
+    const tot = b.reduce((a, x) => a + M(x.amount), 0), pct = (tot / 1e9 * 100).toFixed(2);
+    L.push({ t: D.now, say: `Today, ${D.holders.length} wallets hold REINPAY. ${words(tot)} REINPAY has been burned, ${pct} percent of the supply, in ${b.length} burns${allDev ? ", all sent from the dev wallet" : ""}.` });
+    const dv = D.dev; if (dv && BigInt(dv.received) > 0n && dv.elsewhere === "0" && dv.balance === "0" && dv.toDead === dv.received) L.push({ t: D.now, say: "And one more thing. Every REINPAY the dev wallet ever received, it burned. Nothing went anywhere else. Today the dev wallet holds zero." });
+    L.push({ t: D.now, say: "That is the story so far. I am still watching the chain, and the next star could be you." });
+    return L;
+  }
+  let voiceOn = true, voice = null;
+  const pickVoice = () => { const vs = speechSynthesis.getVoices(); voice = vs.find((v) => /en[-_]US/i.test(v.lang) && /Google|Samantha|Daniel|Aria|Guy|Jenny/i.test(v.name)) || vs.find((v) => /^en/i.test(v.lang)) || null; };
+  if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } else voiceOn = false;
+  const showCap = (txt) => { $("cap").innerHTML = txt ? `<span>${txt}</span>` : ""; };
+  function say(txt) {
+    showCap(txt); const est = Math.max(2600, txt.split(" ").length * 390);
+    return new Promise((res) => {
+      if (!voiceOn || !("speechSynthesis" in window)) { speaking = true; setTimeout(() => { speaking = false; res(); }, est); return; }
+      const u = new SpeechSynthesisUtterance(txt); if (voice) u.voice = voice; u.lang = "en-US"; u.rate = .98; u.pitch = .85;
+      let done = false; const fin = () => { if (done) return; done = true; speaking = false; res(); };
+      u.onstart = () => (speaking = true); u.onend = fin; u.onerror = fin; setTimeout(fin, est * 2.2 + 3000); speechSynthesis.speak(u);
+    });
+  }
+  const tween = (to, ms) => new Promise((res) => { const from = T, t0 = performance.now(); const step = (n) => { const q = Math.min(1, (n - t0) / ms); T = from + (to - from) * (1 - Math.pow(1 - q, 2)); if (q < 1 && story) requestAnimationFrame(step); else res(); }; requestAnimationFrame(step); });
+  async function play(withVoice) {
+    voiceOn = withVoice && "speechSynthesis" in window; $("start").hidden = true; $("again").hidden = true; $("snd").hidden = !("speechSynthesis" in window); $("snd").textContent = voiceOn ? "🔊 Voice on" : "🔇 Voice off";
+    live = false; T = D.deploy.time - 60; const my = story = {}; burnsShown = 0; $("mode").textContent = "▶ THE STORY · REPLAYED FROM THE CHAIN";
+    for (const line of script()) { if (story !== my) return;
+      const gap = line.t - T, ms = gap <= 0 ? 400 : Math.min(9000, 1800 + Math.sqrt(gap) * 22);
+      await tween(Math.max(T, line.t), ms); if (story !== my) return;
+      if (line.burn) { const dev = stars.find((s) => s.a === line.burn.from.toLowerCase()); comets.push({ t: performance.now(), from: dev ? dev.p : [0, 0, 0], b: line.burn }); }
+      await say(line.say); await new Promise((r) => setTimeout(r, 350));
+    }
+    if (story !== my) return; story = null; goLive(); $("again").hidden = false;
+  }
+  function goLive() { live = true; showCap(""); $("mode").textContent = `● DATA AS OF ${utc(D.now, true)} UTC · DRAG TO TURN`; }
+  $("play").onclick = () => play(true); $("quiet").onclick = () => play(false);
+  $("again").onclick = () => { if ("speechSynthesis" in window) speechSynthesis.cancel(); play(voiceOn); };
+  $("snd").onclick = () => { voiceOn = !voiceOn; if (!voiceOn && "speechSynthesis" in window) speechSynthesis.cancel(); $("snd").textContent = voiceOn ? "🔊 Voice on" : "🔇 Voice off"; };
+
+  // ---------- data ----------
+  fetch("../assets/chain/galaxy.json?t=" + Date.now()).then((r) => r.json()).then((d) => {
+    D = d; D.now = Math.max(d.series.at(-1)[0], Math.floor(Date.parse(d.at) / 1000)); const t0 = d.deploy.time;
+    const sup = 1e9, top = d.holders[0]?.a;
+    stars = d.holders.map((h) => { const pct = M(h.bal) / sup * 100; return { a: h.a, first: h.first, contract: h.contract, pct, size: .05 + Math.sqrt(pct) * .11, col: h.a === top ? "226,176,87" : h.contract ? "122,167,255" : "95,240,168", ph: hash(h.a) * 6.28, p: place(h.a, h.first, t0, D.now) }; })
+      .concat(d.former.map((f) => ({ a: f.a, first: f.first, left: f.left, contract: false, pct: 0, size: .05, col: "95,240,168", ph: hash(f.a) * 6.28, p: place(f.a, f.first, t0, D.now) })));
+    T = d.deploy.time - 60; goLive(); $("start").hidden = false;
+  }).catch(() => { $("mode").textContent = "COULD NOT LOAD THE GALAXY DATA"; });
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
