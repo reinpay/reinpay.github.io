@@ -155,3 +155,13 @@ button.sc-chip { cursor: pointer; }
 .hc-grid { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); gap: 18px; margin-top: 18px; align-items: start; } #hc-canvas { width: 100%; aspect-ratio: 16/9; display: block; border: 1px solid rgba(95,240,168,.3); }
 .hc-side .btn { width: 100%; margin-bottom: 12px; } .hc-side pre { white-space: pre-wrap; }
 @media (max-width: 860px) { .hc-grid { grid-template-columns: 1fr; } }
+
+/* Reinpay City on the home page: the live city in a 16:9 frame */
+.cityos { padding: 70px 0 20px; }
+.cityos .fbar { gap: 12px; flex-wrap: wrap; }
+.cityos .city-full { padding: 6px 12px; font-size: 12px; }
+.city-embed { position: relative; aspect-ratio: 16 / 9; background: #04070a; }
+.city-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+@media (max-width: 760px) { .city-embed { aspect-ratio: 1 / 1; } }
+/* the City link made the top menu one item longer: tighten it on screens just above the hamburger breakpoint */
+@media (min-width: 1401px) and (max-width: 1640px) { .navlinks { gap: 10px !important; } .navlinks > a:not(.btn) { letter-spacing: .04em !important; font-size: 10.5px !important; } nav .wrap { flex-wrap: nowrap; } }

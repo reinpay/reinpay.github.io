@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reinpay City · Robinhood Chain, live</title>
+<meta name="description" content="Robinhood Chain mainnet drawn live as a neon city: every tower is a real block, every light on the streets a real REINPAY transfer, and burns become fire at the centre. Read only, nothing signed.">
+<link rel="canonical" href="https://reinpay.app/city/">
+<meta name="theme-color" content="#04070a">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Familjen+Grotesk:wght@600;700&display=swap">
+<style>
+  html, body { margin: 0; height: 100%; background: #04070a; color: #e3ebe5; font-family: "IBM Plex Mono", monospace; overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hud { position: fixed; left: max(24px, env(safe-area-inset-left)); top: 22px; z-index: 2; pointer-events: none; }
+  .hud .k { font: 600 12px "IBM Plex Mono"; letter-spacing: .2em; color: #e2b057; }
+  .hud h1 { margin: 8px 0 0; font: 700 clamp(30px, 4.4vw, 56px)/1 "Familjen Grotesk"; letter-spacing: -.03em; }
+  .hud h1 em { font-style: normal; color: #5ff0a8; }
+  .hud .sub { margin: 10px 0 0; font: 500 12px "IBM Plex Mono"; color: #6f8a7d; max-width: 440px; line-height: 1.6; }
+  .stats { position: fixed; left: max(24px, env(safe-area-inset-left)); bottom: 22px; z-index: 2; display: grid; grid-template-columns: repeat(4, auto); gap: 1px; background: rgba(95,240,168,.25); border: 1px solid rgba(95,240,168,.3); }
+  .stats div { background: rgba(4,7,10,.85); padding: 10px 16px; }
+  .stats small { display: block; font: 600 10.5px "IBM Plex Mono"; letter-spacing: .14em; color: #6f8a7d; }
+  .stats b { display: block; font: 700 22px "Familjen Grotesk"; margin-top: 4px; }
+  .stats b.g { color: #5ff0a8; } .stats b.f { color: #ffb36b; }
+  .feed { position: fixed; right: max(24px, env(safe-area-inset-right)); top: 22px; z-index: 2; width: 300px; font: 500 12px "IBM Plex Mono"; color: #8aa597; pointer-events: none; }
+  .feed .t { color: #e2b057; letter-spacing: .16em; font-weight: 600; margin-bottom: 8px; }
+  .feed div.e { padding: 6px 10px; border-left: 2px solid #5ff0a8; background: rgba(4,7,10,.75); margin-bottom: 6px; animation: in .5s; }
+  .feed div.e.burn { border-color: #ff8a3d; color: #ffd1a6; } .feed div.e.rp { border-color: #7aa7ff; }
+  @keyframes in { from { opacity: 0; transform: translateX(16px); } }
+  .btn { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: 22px; z-index: 2; background: rgba(4,7,10,.88); border: 1px solid rgba(255,138,61,.6); color: #ffd1a6; font: 600 13px "IBM Plex Mono"; padding: 10px 16px; cursor: pointer; }
+  .btn:hover { background: rgba(255,138,61,.15); }
+  .back { display: inline-block; margin-top: 14px; font: 600 12px "IBM Plex Mono"; color: #5ff0a8; text-decoration: none; pointer-events: auto; border: 1px solid rgba(95,240,168,.4); padding: 7px 12px; background: rgba(4,7,10,.7); }
+  .back:hover { background: rgba(95,240,168,.12); }
+  @media (max-width: 760px) { .feed { display: none; } .stats { grid-template-columns: repeat(2, auto); } }
+  /* embed mode: inside the home page frame, the page around it already carries the title */
+  .embed .hud, .embed .feed { display: none; }
+  .embed .stats { left: 14px; bottom: 14px; } .embed .stats div { padding: 7px 12px; } .embed .stats b { font-size: 17px; }
+  .embed .btn { right: 14px; bottom: 14px; }
+  @media (max-width: 700px) { .embed .stats { display: none; } .embed .btn { font-size: 11px; padding: 7px 10px; right: 10px; bottom: 10px; } }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Reinpay City: Robinhood Chain mainnet drawn live as an isometric neon city. Each tower is a real block, joined by glowing paths; REINPAY transfers travel the paths and burns become fire at the centre."></canvas>
+<div class="hud"><div class="k">REINPAY CITY · ROBINHOOD CHAIN MAINNET</div><h1>The chain, <em>alive.</em></h1><p class="sub">Every tower is a real block · every light on the paths a real REINPAY transfer · read live, nothing signed</p><a class="back" href="/">← reinpay.app</a></div>
+<div class="feed" id="feed"><div class="t">LIVE FEED</div></div>
+<div class="stats"><div><small>LATEST BLOCK</small><b id="s-block">…</b></div><div><small>BLOCK TIME</small><b id="s-bt">…</b></div><div><small>REINPAY MOVES SEEN</small><b class="g" id="s-moves">0</b></div><div><small>REINPAY BURNED</small><b class="f" id="s-burned">…</b></div></div>
+<button class="btn" id="replay" type="button">🔥 Replay the last burn</button>
+<script>
+// Reinpay Intelligence at work: the computer-head figure seated at a desk, typing. Dot-drawn like the rest of the site.
+// makeTypist() returns draw(g, cx, cy, size, sec); size is the width in pixels of the whole scene (desk included).
+function makeTypist() {
+  // shapes in a 1000 x 700 design space, three-quarter view: figure on the left, facing the monitor on the right
+  const SH = {
+    head: "M250 96 L430 96 Q442 96 442 108 L442 222 Q442 234 430 234 L250 234 Q238 234 238 222 L238 108 Q238 96 250 96 Z",
+    neck: "M322 234 L358 234 L362 262 L318 262 Z",
+    torso: "M268 266 Q340 252 412 268 L438 330 L430 452 Q350 470 270 452 L262 330 Z",
+    upperL: "M286 276 L262 290 L300 392 L330 380 Z",
+    upperR: "M402 276 L432 290 L470 382 L440 396 Z",
+    thigh: "M282 446 L432 446 L560 470 L560 520 L420 512 L282 500 Z",
+    shin: "M520 470 L566 470 L572 640 L534 640 Z",
+  };
+  const BOX = { head: [236, 94, 444, 236], neck: [316, 232, 364, 264], torso: [258, 250, 440, 472], upperL: [258, 274, 334, 396], upperR: [398, 274, 474, 398], thigh: [280, 444, 562, 522], shin: [518, 468, 574, 642] };
+  const SHARE = { head: .22, neck: .02, torso: .3, upperL: .07, upperR: .07, thigh: .2, shin: .07 };
+  function sample(n) {
+    const t = document.createElement("canvas").getContext("2d"); let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647, out = [];
+    for (const [k, d] of Object.entries(SH)) {
+      const p = new Path2D(d), [x0, y0, x1, y1] = BOX[k]; let m = 0, c = 0;
+      while (m < n * SHARE[k] && c < 90000) {
+        c++; const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0); if (!t.isPointInPath(p, x, y)) continue;
+        if (k === "head" && x > 254 && x < 426 && y > 112 && y < 218) continue; // the screen face stays clear
+        let e = 0; for (const [a, b] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) if (!t.isPointInPath(p, x + a, y + b)) e++;
+        if (!e && r() > .42) continue; out.push({ x, y, k, e: e > 0, ph: r() * 6.28 }); m++;
+      }
+    }
+    return out;
+  }
+  const DOTS = sample(5200);
+  // props drawn with the same dots: monitor bezel and stand, keyboard, chair
+  const PROPS = {
+    bezel: ["M620 150 L960 150 Q972 150 972 162 L972 382 Q972 394 960 394 L620 394 Q608 394 608 382 L608 162 Q608 150 620 150 Z", [606, 148, 974, 396], 1300, [628, 168, 952, 376]],
+    stand: ["M778 394 L802 394 L806 424 L774 424 Z M730 424 L850 424 L854 432 L726 432 Z", [724, 392, 856, 434], 220],
+    keyboard: ["M462 412 L652 412 L664 432 L450 432 Z", [448, 410, 666, 434], 420],
+    back: ["M226 250 L262 244 L268 470 L232 474 Z", [224, 242, 270, 476], 380],
+    seat: ["M232 470 L452 474 L448 498 L236 494 Z", [230, 468, 454, 500], 380],
+    post: ["M332 498 L350 498 L350 612 L332 612 Z M270 612 L412 612 L412 624 L270 624 Z", [268, 496, 414, 626], 260],
+  };
+  const PD = []; { const t = document.createElement("canvas").getContext("2d"); let sd = 11; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    for (const [k, [d, [x0, y0, x1, y1], n, hole]] of Object.entries(PROPS)) { const p = new Path2D(d); let m = 0, c = 0;
+      while (m < n && c < 80000) { c++; const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0); if (!t.isPointInPath(p, x, y)) continue; if (hole && x > hole[0] && x < hole[2] && y > hole[1] && y < hole[3]) continue;
+        let e = 0; for (const [a, b] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) if (!t.isPointInPath(p, x + a, y + b) || (hole && x + a > hole[0] && x + a < hole[2] && y + b > hole[1] && y + b < hole[3])) e++;
+        if (!e && r() > .45) continue; PD.push({ x, y, k, e: e > 0 }); m++; } } }
+  let fs0 = 3; const rnd = () => (fs0 = (fs0 * 16807) % 2147483647) / 2147483647;
+  const FA = Array.from({ length: 400 }, () => { const e = rnd() < .45; return { t: rnd(), a: e ? (rnd() < .5 ? -1 : 1) * (.85 + rnd() * .15) : rnd() * 2 - 1 }; });
+  const HAND = Array.from({ length: 70 }, () => { const a = rnd() * 6.283, r = Math.sqrt(rnd()); return { x: Math.cos(a) * r * 13, y: Math.sin(a) * r * 7 }; });
+  const CODE = ["reinpay check \"GPU credits\" 0.0015", "→ waits for you · approval line", "reinpay scan 0x9e9a…1293", "→ wallet · safe to pay", "reinpay x402 check api.example", "→ payee on list · dry run ok", "reinpay burns", "→ 8 burns · 17,808,188 REINPAY", "reinpay status", "→ block 119,6xx,xxx · 0.10 s", "reinpay rules hardened", "→ 6 checks · first fail decides"];
+  const keys = [];
+
+
+  return function draw(g, cx, cy, size, s) {
+    const S = size / 1060, OX = cx - 600 * S, OY = cy - 400 * S, X = (x) => OX + x * S, Y = (y) => OY + y * S;
+    // desk
+    g.strokeStyle = "rgba(95,240,168,.55)"; g.lineWidth = 2; g.beginPath(); g.moveTo(X(470), Y(430)); g.lineTo(X(960), Y(430)); g.stroke();
+    g.fillStyle = "rgba(95,240,168,.06)"; g.fillRect(X(470), Y(430), 490 * S, 14 * S);
+    g.strokeStyle = "rgba(95,240,168,.3)"; for (const lx of [500, 930]) { g.beginPath(); g.moveTo(X(lx), Y(444)); g.lineTo(X(lx), Y(650)); g.stroke(); }
+    // monitor on the desk
+    const mx0 = 628, my0 = 168, mw = 324, mh = 208;
+    // props in dots
+    for (const d of PD) { const kb = d.k === "keyboard", r = (d.e ? 1.3 : 1) * Math.max(.8, S * 1.2); g.fillStyle = d.e ? (kb || d.k === "bezel" || d.k === "stand" ? "rgba(140,205,176,.95)" : "rgba(214,228,220,.75)") : (kb || d.k === "bezel" || d.k === "stand" ? "rgba(140,205,176,.35)" : "rgba(214,228,220,.28)"); g.fillRect(X(d.x) - r, Y(d.y) - r, r * 2, r * 2); }
+    // screen with a glow
+    g.fillStyle = "rgba(5,20,12,.96)"; g.fillRect(X(mx0), Y(my0), mw * S, mh * S);
+    g.strokeStyle = "#5ff0a8"; g.lineWidth = 2; g.shadowColor = "#5ff0a8"; g.shadowBlur = 22; g.strokeRect(X(mx0), Y(my0), mw * S, mh * S); g.shadowBlur = 0;
+    const sg = g.createRadialGradient(X(790), Y(272), 0, X(790), Y(272), 260 * S); sg.addColorStop(0, "rgba(95,240,168,.10)"); sg.addColorStop(1, "rgba(95,240,168,0)"); g.fillStyle = sg; g.fillRect(X(560), Y(120), 460 * S, 360 * S);
+    // scrolling code on the monitor, typed out character by character
+    g.save(); g.beginPath(); g.rect(X(mx0 + 8), Y(my0 + 8), (mw - 16) * S, (mh - 16) * S); g.clip();
+    const rate = 14, total = s * rate, fs = 12.5 * S; g.font = `500 ${fs}px "IBM Plex Mono"`;
+    let used = 0, lineIdx = 0, lines = [];
+    while (true) { const L = CODE[lineIdx % CODE.length]; if (used + L.length + 6 > total) { lines.push(L.slice(0, Math.max(0, total - used))); break; } lines.push(L); used += L.length + 6; lineIdx++; }
+    const show = lines.slice(-9);
+    show.forEach((L, i) => { const out = L.startsWith("→"); g.fillStyle = out ? "#8ccdb0" : "#5ff0a8"; g.fillText((out ? "  " : "$ ") + L, X(mx0 + 16), Y(my0 + 28 + i * 20)); });
+    const last = show[show.length - 1] || ""; if (Math.floor(s * 2) % 2 === 0) { g.fillStyle = "#5ff0a8"; g.fillRect(X(mx0 + 16) + g.measureText("$ " + last).width + 2, Y(my0 + 28 + (show.length - 1) * 20) - fs * .8, fs * .55, fs * .95); }
+    g.restore();
+
+    // keyboard
+    // keyboard keys: two rows that light up as they are pressed
+    for (let row = 0; row < 2; row++) for (let k = 0; k < 12; k++) { const kx = 470 + row * 6 + k * 15, ky = 416 + row * 8, hot = ((k * 7 + row * 3 + Math.floor(s * 12)) % 17) < 2;
+      g.fillStyle = hot ? "rgba(95,240,168,.95)" : "rgba(95,240,168,.22)"; if (hot) { g.shadowColor = "#5ff0a8"; g.shadowBlur = 8; } g.fillRect(X(kx), Y(ky), 11 * S, 5 * S); g.shadowBlur = 0; }
+
+    // typing hands: forearms from the elbows to the keys, fingers bouncing
+    const elbowL = [318, 388], elbowR = [452, 392];
+    const typeL = Math.sin(s * 17) > 0.3, typeR = Math.sin(s * 19 + 1.7) > 0.3;
+    const handL = [508 + Math.sin(s * 3) * 8, 408 - (typeL ? 7 : 0)], handR = [592 + Math.cos(s * 2.6) * 10, 408 - (typeR ? 7 : 0)];
+    for (const [[ex, ey], [hx, hy], t] of [[elbowL, handL, typeL], [elbowR, handR, typeR]]) {
+      // forearm drawn with dots, like the rest of the body
+      const len = Math.hypot(hx - ex, hy - ey), n = Math.round(len * 1.6);
+      for (let i = 0; i < n; i++) { const q = FA[i % FA.length], tt = q.t, px = ex + (hx - ex) * tt, py = ey + (hy - ey) * tt, w = 9 - tt * 2.5, ox = q.a * w * -(hy - ey) / len, oy = q.a * w * (hx - ex) / len, edge = Math.abs(q.a) > .8;
+        const rr = (edge ? 1.3 : 1) * Math.max(.8, S * 1.2); g.fillStyle = edge ? "rgba(214,228,220,.88)" : "rgba(214,228,220,.4)"; g.fillRect(X(px + ox) - rr, Y(py + oy) - rr, rr * 2, rr * 2); }
+      // hand: a small cluster of dots with glowing fingertips
+      for (const q of HAND) { const rr = Math.max(.8, S * 1.2); g.fillStyle = "rgba(214,228,220,.85)"; g.fillRect(X(hx + q.x) - rr, Y(hy + q.y) - rr, rr * 2, rr * 2); }
+      g.fillStyle = t ? "#5ff0a8" : "rgba(95,240,168,.5)"; g.shadowColor = "#5ff0a8"; g.shadowBlur = t ? 10 : 0; for (const fx of [6, 11, 16]) { g.beginPath(); g.arc(X(hx + fx), Y(hy + 6), 1.8 * S + .5, 0, 6.283); g.fill(); } g.shadowBlur = 0;
+      if (t && Math.random() < .5) keys.push({ x: hx + (Math.random() - .5) * 16, y: 416, t: s });
+    }
+    // key sparks
+    for (let i = keys.length - 1; i >= 0; i--) { const k = keys[i], a = s - k.t; if (a > .5) { keys.splice(i, 1); continue; } g.fillStyle = `rgba(95,240,168,${1 - a * 2})`; g.beginPath(); g.arc(X(k.x), Y(k.y - a * 40), (1 - a) * 3 * S + 1, 0, 6.283); g.fill(); }
+
+    // the figure itself, dot by dot, breathing slightly
+    const br = Math.sin(s * 1.5) * 1.5;
+    for (let b = 0; b < 2; b++) for (const d of DOTS) {
+      if ((b === 0) !== !d.e) continue;
+      const lift = d.k === "head" || d.k === "neck" ? br * .6 + (typeL || typeR ? .8 : 0) : d.k === "torso" || d.k.startsWith("upper") ? br : 0;
+      const r = (d.e ? 1.3 : 1) * Math.max(.8, S * 1.2);
+      g.fillStyle = d.e ? "rgba(214,228,220,.88)" : "rgba(214,228,220,.38)";
+      g.fillRect(X(d.x + Math.sin(s * 1.2 + d.ph) * .5) - r, Y(d.y + lift) - r, r * 2, r * 2);
+    }
+    // the head is a screen, eyes looking right at the monitor, a line of its own work below
+    const hl = br * .6;
+    g.fillStyle = "rgba(5,20,12,.95)"; g.fillRect(X(254), Y(112 + hl), 172 * S, 106 * S);
+    g.strokeStyle = "#5ff0a8"; g.lineWidth = 2; g.strokeRect(X(254), Y(112 + hl), 172 * S, 106 * S);
+    const look = 10 + Math.sin(s * .7) * 4, blink = (s % 4.2) < .12;
+    g.fillStyle = "#5ff0a8"; g.shadowColor = "#5ff0a8"; g.shadowBlur = 12;
+    for (const ex of [300, 360]) { const h = blink ? 2 : 22; g.fillRect(X(ex + look), Y(150 + hl) - (h * S) / 2, 18 * S, h * S); }
+    g.shadowBlur = 0; g.font = `500 ${10 * S}px "IBM Plex Mono"`; g.fillStyle = "#8ccdb0";
+    g.fillText(["> typing…", "> checking rules", "> nothing signed"][Math.floor(s / 2) % 3], X(266), Y(206 + hl));
+  };
+}
+
+</script>
+<script>
+// Reinpay City: Robinhood Chain mainnet as an isometric neon city, read live with plain JSON-RPC in the browser.
+// Each real block becomes a tower on a lot; lots are joined to the central plaza by glowing paths. REINPAY transfers
+// travel the paths from one tower to another; transfers to the dead address travel to the plaza and burn there.
+(() => {
+  if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");
+  const RPC = "https://rpc.mainnet.chain.robinhood.com";
+  const CA = "0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3", T = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", DEAD = "0x000000000000000000000000000000000000dead";
+  const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const EMB = document.body.classList.contains("embed");
+  const cv = document.getElementById("c"), g = cv.getContext("2d"); let W, H, U, OX, OY;
+  const fit = () => { const d = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; g.setTransform(d, 0, 0, d, 0, 0); U = Math.min(W / 88, H / 56); if (EMB && W < 700) U = Math.max(U, W / 58); OX = W / 2; OY = H * .54; };
+  addEventListener("resize", fit); fit();
+  const P = (x, y, z = 0) => [OX + (x - y) * .866 * U, OY + (x + y) * .5 * U - z * U];
+  const $ = (id) => document.getElementById(id), fmt = (n) => Math.round(n).toLocaleString("en-US");
+  let rid = 0;
+  async function rpc(calls) {
+    if (calls.length > 40) { const out = []; for (let i = 0; i < calls.length; i += 40) out.push(...(await rpc(calls.slice(i, i + 40)))); return out; }
+    for (let k = 1; k <= 6; k++) { try { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(calls.map(([m, p]) => ({ jsonrpc: "2.0", id: ++rid, method: m, params: p }))) }); if (r.ok) { const j = await r.json(); return calls.map((_, i) => j[i]?.result ?? null); } } catch {} await new Promise((r) => setTimeout(r, 700 * k)); }
+    return calls.map(() => null);
+  }
+
+  // ---------- layout: lots on a grid around a central plaza, avenues between them ----------
+  const STEP = 5, R = 5, LOTS = [];
+  for (let gx = -R; gx <= R; gx++) for (let gy = -R; gy <= R; gy++) { if (Math.abs(gx) <= 1 && Math.abs(gy) <= 1) continue; if (Math.hypot(gx, gy) > R + .4) continue; LOTS.push({ gx, gy, x: gx * STEP, y: gy * STEP, d: Math.hypot(gx, gy) }); }
+  LOTS.sort((a, b) => a.d - b.d);
+  // route from a lot to the plaza: along its row to x = 0 avenue, then down the avenue to the plaza edge
+  // route from a lot to the plaza: out to the street beside it, along the street to the main avenue, down the avenue
+  const route = (L) => [[L.x + 1, L.y + 1], [L.x + 1, L.y + 3.5], [-1.5, L.y + 3.5], [-1.5, 0], [0, 0]];
+  // the street grid: one road in every gap between lots, clipped to the city's circle
+  const RR = (R + .6) * STEP, ROADS = [];
+  for (let k = -R - 1; k <= R; k++) { const c = k * STEP + 3.5, half = Math.sqrt(Math.max(0, RR * RR - c * c)); if (half > 1) { ROADS.push([[c, -half], [c, half]]); ROADS.push([[-half, c], [half, c]]); } }
+  const PAL = [["95,240,168", "#5ff0a8"], ["122,167,255", "#7aa7ff"], ["226,176,87", "#e2b057"], ["240,131,110", "#f0836e"]];
+  const towers = new Map(); let slot = 0; window.__t = towers;
+  function placeTower(block, txs, gas) {
+    const i = slot++ % LOTS.length, L = LOTS[i];
+    towers.delete(i); towers.set(i, { L, block, txs, h: 1.4 + Math.min(5.5, txs * .35 + gas * 9), c: txs >= 12 ? 2 : txs >= 7 ? 1 : txs >= 4 ? 0 : (block % 6 === 0 ? 3 : 0), born: performance.now(), route: route(L) });
+  }
+  const poly = (pts, fill, stroke, lw = 1.1) => { g.beginPath(); pts.forEach((p, k) => (k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw; g.stroke(); } };
+  function prism(x, y, z, w, d, h, rgb, glow, opt = {}) {
+    const st = `rgba(${rgb},${.55 + .4 * glow})`, halo = `rgba(${rgb},${Math.min(.35, .08 + .14 * glow)})`, hw = 3 + 3 * glow;
+    const out = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y, z), P(x + w, y, z + h), P(x, y, z + h), P(x, y + d, z + h)];
+    poly(out, null, halo, hw);
+    poly([P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)], "rgba(14,26,22,.96)", st);
+    poly([P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)], "rgba(8,16,14,.96)", st);
+    poly([P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)], `rgba(${rgb},${.12 + .2 * glow})`, st, 1.4);
+    if (opt.slats) { const n = Math.max(2, Math.floor(h / .55)); for (let k = 1; k < n; k++) { const zz = z + (k * h) / n, on = ((k + opt.seed) % 5 === 0) || ((k * 3 + opt.seed + Math.floor(opt.s * 2)) % 11 === 0); g.strokeStyle = `rgba(${rgb},${on ? .95 : .3})`; g.lineWidth = on ? 1.6 : 1; g.beginPath(); const a = P(x + w * .18, y + d, zz), b2 = P(x + w * .82, y + d, zz); g.moveTo(a[0], a[1]); g.lineTo(b2[0], b2[1]); g.stroke(); } }
+    if (opt.port) { const zz = z + h * .32, ph = h * .22; poly([P(x + w, y + d * .28, zz), P(x + w, y + d * .72, zz), P(x + w, y + d * .72, zz + ph), P(x + w, y + d * .28, zz + ph)], `rgba(${rgb},${.35 + .5 * glow})`, `rgb(${rgb})`); }
+  }
+  function tower(t, now) {
+    const s = now / 1000, age = Math.min(1, (now - t.born) / 9000), grow = Math.min(1, (now - t.born) / 900), h = t.h * (1 - Math.pow(1 - grow, 3));
+    const fl = t.flash && now - t.flash < 1600 ? 1 - (now - t.flash) / 1600 : 0, glow = Math.min(1.3, .35 + .65 * (1 - age) + fl + .12 * Math.sin(s * 2 + t.block));
+    const [rgb, hex] = PAL[t.c], { x, y } = t.L;
+    prism(x + .15, y + .15, 0, 1.7, 1.7, .2, rgb, glow * .5);
+    prism(x + .35, y + .35, .2, 1.3, 1.3, h, rgb, glow, { slats: true, port: true, seed: t.block % 7, s });
+    prism(x + .67, y + .67, .2 + h, .66, .66, .25, rgb, glow);
+    const [rx, ry] = P(x + 1, y + 1, h + .5); g.fillStyle = `rgba(${rgb},.25)`; g.beginPath(); g.arc(rx, ry, Math.max(5, U * .35), 0, 6.283); g.fill(); g.fillStyle = hex; g.beginPath(); g.arc(rx, ry, Math.max(2, U * .14), 0, 6.283); g.fill();
+    if (age < 1 || fl) { const bh = U * (3 + 5 * (1 - age)), gr = g.createLinearGradient(0, ry, 0, ry - bh); gr.addColorStop(0, `rgba(${rgb},${.55 * (1 - age) + .6 * fl})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.beginPath(); g.moveTo(rx - U * .3, ry); g.lineTo(rx + U * .3, ry); g.lineTo(rx + U * .07, ry - bh); g.lineTo(rx - U * .07, ry - bh); g.closePath(); g.fill(); }
+    t.top = [x + 1, y + 1, h];
+  }
+  function card(t, now) {
+    const age = (now - t.born) / 1000; if (age > 7) return; const a = Math.min(1, age * 2) * Math.min(1, (7 - age) / 1.5);
+    const [x0, y0] = P(t.L.x - .5, t.L.y + 1, t.h + 3), w = U * 5.4, hh = U * 1.9;
+    g.save(); g.globalAlpha = a; g.translate(x0, y0); g.transform(1, .5774, 0, 1, 0, 0);
+    g.fillStyle = "rgba(6,12,10,.92)"; g.strokeStyle = PAL[t.c][1]; g.lineWidth = 1.2; g.beginPath(); g.roundRect(0, -hh, w, hh, 5); g.fill(); g.stroke();
+    g.fillStyle = PAL[t.c][1]; g.beginPath(); g.arc(U * .4, -hh + U * .45, U * .13, 0, 6.283); g.fill();
+    g.fillStyle = "#8aa597"; g.font = `600 ${Math.max(8, U * .34)}px "IBM Plex Mono"`; g.fillText("BLOCK", U * .7, -hh + U * .56);
+    g.fillStyle = "#e3ebe5"; g.font = `700 ${Math.max(10, U * .62)}px "Familjen Grotesk"`; g.fillText("#" + t.block.toLocaleString("en-US"), U * .38, -hh + U * 1.38);
+    g.fillStyle = "#8aa597"; g.font = `500 ${Math.max(8, U * .34)}px "IBM Plex Mono"`; g.fillText(t.txs + " txs", U * 4.1, -hh + U * 1.38);
+    g.restore();
+  }
+  // ---------- the plaza and the Reinpay figure ----------
+  const SH = { head: "M210 70 L390 70 Q402 70 402 82 L402 196 Q402 208 390 208 L210 208 Q198 208 198 196 L198 82 Q198 70 210 70 Z", neck: "M282 208 L318 208 L322 236 L278 236 Z", torso: "M232 240 Q300 228 368 240 L388 300 L376 420 Q300 436 224 420 L212 300 Z", armL: "M232 244 L204 252 L170 360 L158 452 L178 456 L196 366 L224 300 Z", armR: "M368 244 L396 252 L430 360 L442 452 L422 456 L404 366 L376 300 Z", legL: "M228 418 L298 428 L290 560 L282 690 L254 690 L250 560 Z", legR: "M302 428 L372 418 L350 560 L346 690 L318 690 L310 560 Z" };
+  const BOX = { head: [196, 68, 404, 210], neck: [276, 206, 324, 238], torso: [210, 226, 390, 438], armL: [156, 242, 236, 458], armR: [364, 242, 444, 458], legL: [226, 416, 300, 692], legR: [300, 416, 374, 692] };
+  const SHARE = { head: .2, neck: .02, torso: .3, armL: .1, armR: .1, legL: .14, legR: .14 };
+  const DOTS = (() => { const t = document.createElement("canvas").getContext("2d"); let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647, out = []; for (const [k, d] of Object.entries(SH)) { const p = new Path2D(d), [x0, y0, x1, y1] = BOX[k]; let m = 0, c = 0; while (m < 3600 * SHARE[k] && c < 300000) { c++; const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0); if (!t.isPointInPath(p, x, y)) continue; if (k === "head" && x > 214 && x < 386 && y > 84 && y < 194) continue; let e = 0; for (const [a, b] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) if (!t.isPointInPath(p, x + a, y + b)) e++; if (!e && r() > .5) continue; out.push({ x, y, e: e > 0, ph: r() * 6.28 }); m++; } } return out; })();
+  function plaza(now) {
+    const s = now / 1000;
+    for (let k = 0; k < 3; k++) { const r = 5.2 - k * 1.4, z = k * .35; const ring = []; for (let a = 0; a <= 64; a++) { const t = (a / 64) * 6.283; ring.push(P(Math.cos(t) * r, Math.sin(t) * r, z + .35)); } const side = ring.map(([x, y]) => [x, y + .35 * U]);
+      g.fillStyle = "rgba(10,22,18,.96)"; g.beginPath(); ring.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); for (let i = side.length - 1; i >= 0; i--) g.lineTo(side[i][0], side[i][1]); g.closePath(); g.fill();
+      g.strokeStyle = `rgba(95,240,168,${.75 - k * .12})`; g.lineWidth = 1.6; g.shadowColor = "#5ff0a8"; g.shadowBlur = 16; g.beginPath(); ring.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.stroke(); g.shadowBlur = 0; }
+  }
+  // Reinpay Intelligence at work in the middle of the plaza: seated, typing, wrapped in three orbits.
+  // Lights launch off the orbits and arc through the air onto the towers.
+  const typist = makeTypist(), launches = []; let feedAcc = 0, feedOrder = [];
+  const ORB = [[.46, .15, -.14, .35, "95,240,168"], [.5, .19, .1, -.22, "122,167,255"], [.42, .11, -.36, .5, "226,176,87"]];
+  let core = null;
+  function coreGeo() { const size = U * 21, [fx, fy] = P(0, 0, .9), S = size / 1060; return { size, cx: fx, cy: fy - 250 * S }; }
+  const orbPos = (i, k, sec) => { const { size, cx, cy } = core, [rx, ry, tilt, sp] = ORB[i], t = sec * sp + k * Math.PI + i, ox = Math.cos(t) * size * rx, oy = Math.sin(t) * size * ry, c = Math.cos(tilt), sn = Math.sin(tilt); return { x: cx + ox * c - oy * sn, y: cy + size * .02 + ox * sn + oy * c, front: Math.sin(t) > 0 }; };
+  function orbits(sec, front) {
+    const { size, cx, cy } = core;
+    ORB.forEach(([rx, ry, tilt, , col], i) => {
+      g.save(); g.translate(cx, cy + size * .02); g.rotate(tilt);
+      const arc = () => { g.beginPath(); g.ellipse(0, 0, size * rx, size * ry, 0, front ? 0 : Math.PI, front ? Math.PI : Math.PI * 2); };
+      g.strokeStyle = `rgba(${col},${front ? .22 : .1})`; g.lineWidth = front ? 8 : 5; arc(); g.stroke();
+      g.strokeStyle = `rgba(${col},${front ? .95 : .45})`; g.lineWidth = front ? 2.2 : 1.3; g.shadowColor = `rgb(${col})`; g.shadowBlur = front ? 22 : 10; arc(); g.stroke(); g.shadowBlur = 0;
+      g.restore();
+      for (let k = 0; k < 2; k++) { const o = orbPos(i, k, sec); if (o.front !== front) continue; g.fillStyle = `rgba(${col},.25)`; g.beginPath(); g.arc(o.x, o.y, front ? 10 : 6, 0, 6.283); g.fill(); g.fillStyle = "#fff"; g.shadowColor = `rgb(${col})`; g.shadowBlur = 24; g.beginPath(); g.arc(o.x, o.y, front ? 4 : 2.6, 0, 6.283); g.fill(); g.shadowBlur = 0; }
+    });
+  }
+  function figure(now) {
+    const sec = RM ? 2 : now / 1000; core = coreGeo(); const { size, cx, cy } = core;
+    const gl = g.createRadialGradient(cx, cy, 0, cx, cy, size * .5); gl.addColorStop(0, "rgba(6,12,10,.85)"); gl.addColorStop(.7, "rgba(6,12,10,.5)"); gl.addColorStop(1, "rgba(6,12,10,0)"); g.fillStyle = gl; g.fillRect(cx - size * .55, cy - size * .55, size * 1.1, size * 1.1);
+    orbits(sec, false); typist(g, cx, cy, size, sec); orbits(sec, true);
+    g.font = `600 ${Math.max(10, U * .42)}px "IBM Plex Mono"`; g.fillStyle = "#cfe9dc"; g.textAlign = "center"; g.fillText("REINPAY INTELLIGENCE · AT WORK", cx, cy - size * .3); g.textAlign = "left";
+  }
+  // a light leaves an orbit and arcs onto a tower roof; the tower flashes when it lands
+  function launch(now, t, col) {
+    if (!core || !t || !t.top) return; const i = Math.floor(Math.random() * 3), o = orbPos(i, Math.random() < .5 ? 0 : 1, now / 1000);
+    launches.push({ t: now, dur: 1100 + Math.random() * 500, x0: o.x, y0: o.y, tw: t, col: col || `rgb(${ORB[i][4]})` });
+  }
+  function drawLaunches(now) {
+    for (let i = launches.length - 1; i >= 0; i--) {
+      const L = launches[i], q = (now - L.t) / L.dur; if (q >= 1) { L.tw.flash = now; launches.splice(i, 1); continue; }
+      const [x1, y1] = P(...L.tw.top), mx = (L.x0 + x1) / 2, my = Math.min(L.y0, y1) - U * (4 + Math.hypot(x1 - L.x0, y1 - L.y0) / U * .25);
+      const pt = (u) => [(1 - u) ** 2 * L.x0 + 2 * (1 - u) * u * mx + u * u * x1, (1 - u) ** 2 * L.y0 + 2 * (1 - u) * u * my + u * u * y1];
+      const e = 1 - (1 - q) ** 2;
+      g.strokeStyle = L.col; g.globalAlpha = .6; g.lineWidth = 2; g.beginPath(); for (let u = Math.max(0, e - .35); u <= e; u += .02) { const [x, y] = pt(u); u === Math.max(0, e - .35) ? g.moveTo(x, y) : g.lineTo(x, y); } g.stroke(); g.globalAlpha = 1;
+      for (let k = 0; k < 10; k++) { const [x, y] = pt(Math.max(0, e - k * .018)); g.globalAlpha = 1 - k / 10; if (!k) { g.fillStyle = L.col; g.globalAlpha = .3; g.beginPath(); g.arc(x, y, 10, 0, 6.283); g.fill(); g.globalAlpha = 1; } g.fillStyle = k ? L.col : "#fff"; g.beginPath(); g.arc(x, y, k ? 2.6 - k * .2 : 3.6, 0, 6.283); g.fill(); }
+      g.globalAlpha = 1; g.shadowBlur = 0;
+    }
+  }
+  // ---------- paths and travelling lights ----------
+  const lights = [], fires = [], sparks = [];
+  const lenOf = (r) => r.slice(1).reduce((a, p, i) => a + Math.hypot(p[0] - r[i][0], p[1] - r[i][1]), 0);
+  const at = (r, q) => { let L = lenOf(r) * q; for (let i = 1; i < r.length; i++) { const s = Math.hypot(r[i][0] - r[i - 1][0], r[i][1] - r[i - 1][1]); if (L <= s) { const k = s ? L / s : 0; return [r[i - 1][0] + (r[i][0] - r[i - 1][0]) * k, r[i - 1][1] + (r[i][1] - r[i - 1][1]) * k]; } L -= s; } return r[r.length - 1]; };
+  function streets(now) {
+    const line = (a, b, z) => { const p = P(a[0], a[1], z), q = P(b[0], b[1], z); g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.stroke(); };
+    for (const [a, b] of ROADS) {
+      const vert = a[0] === b[0], o = .95, e1 = vert ? [[a[0] - o, a[1]], [b[0] - o, b[1]]] : [[a[0], a[1] - o], [b[0], b[1] - o]], e2 = vert ? [[a[0] + o, a[1]], [b[0] + o, b[1]]] : [[a[0], a[1] + o], [b[0], b[1] + o]];
+      g.strokeStyle = "rgba(95,240,168,.11)"; g.lineWidth = U * 1.7; line(a, b, 0);
+      g.strokeStyle = "rgba(95,240,168,.5)"; g.lineWidth = 1.2; line(e1[0], e1[1], 0); line(e2[0], e2[1], 0);
+      g.setLineDash([U * .5, U * .7]); g.lineDashOffset = -now / 25; g.strokeStyle = "rgba(160,255,205,.85)"; g.lineWidth = 2; line(a, b, .02); g.setLineDash([]);
+    }
+  }
+  function paths(now) {
+    g.lineWidth = 1;
+    for (const t of towers.values()) { const r = t.route, age = Math.min(1, (now - t.born) / 9000); g.strokeStyle = `rgba(${PAL[t.c][0]},${.32 + .4 * (1 - age)})`; g.lineWidth = 1.5; g.beginPath(); r.forEach(([x, y], i) => { const p = P(x, y, .05); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); }); g.stroke(); }
+    // ambient pulses on random paths
+    if (!RM && Math.random() < .45 && towers.size) { const arr = [...towers.values()], t = arr[Math.floor(Math.random() * arr.length)]; lights.push({ r: t.route.slice().reverse(), t: now, dur: 2600, col: PAL[t.c][1], small: true }); }
+    for (let i = lights.length - 1; i >= 0; i--) { const L = lights[i], q = (now - L.t) / L.dur; if (q > 1) { lights.splice(i, 1); if (L.done) L.done(); continue; } if (q < 0) continue; const [x, y] = at(L.r, q), [px, py] = P(x, y, .1);
+      g.fillStyle = L.col; g.globalAlpha = .25; g.beginPath(); g.arc(px, py, L.small ? 6 : 12, 0, 6.283); g.fill(); g.globalAlpha = 1; g.beginPath(); g.arc(px, py, L.small ? 2.4 : 5, 0, 6.283); g.fill();
+      if (!L.small) for (let k = 1; k < 8; k++) { const [tx, ty] = at(L.r, Math.max(0, q - k * .012)), [qx, qy] = P(tx, ty, .1); g.fillStyle = L.col; g.globalAlpha = 1 - k / 8; g.beginPath(); g.arc(qx, qy, 2.6, 0, 6.283); g.fill(); g.globalAlpha = 1; } }
+  }
+  function ground() {
+    g.strokeStyle = "rgba(95,240,168,.06)"; g.lineWidth = 1;
+    for (let k = -28; k <= 28; k += 2) { let a = P(k, -28), b = P(k, 28); g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); a = P(-28, k); b = P(28, k); g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); }
+  }
+  function fire(fx2, now) {
+    const s = (now - fx2.t) / 1000; if (s > 6.5) return false;
+    const [x, y] = P(0, 0, .9), f = U / 10;
+    for (let k = 0; k < 3; k++) { const r = Math.max(0, (s * 26 + k * 7) * f * 2.2), a = Math.max(0, 1 - s / 3 - k * .15); g.strokeStyle = `rgba(255,138,61,${a})`; g.lineWidth = 3; g.beginPath(); g.ellipse(x, y, r, r * .5, 0, 0, 6.283); g.stroke(); }
+    const hgt = Math.min(1, s * 2) * Math.max(0, 1 - (s - 4.5) / 2) * U * 14 * (1 + Math.sin(s * 18) * .05), fg = g.createLinearGradient(0, y, 0, y - hgt); fg.addColorStop(0, "rgba(255,90,40,.92)"); fg.addColorStop(.5, "rgba(255,179,107,.6)"); fg.addColorStop(1, "rgba(255,220,160,0)"); g.fillStyle = fg;
+    for (let k = 0; k < 3; k++) { const wob = Math.sin(s * 9 + k * 2) * U * .3, ww = U * (1.9 - k * .5), hh = hgt * (1 - k * .18); g.beginPath(); g.moveTo(x - ww, y); g.bezierCurveTo(x - ww * 1.1, y - hh * .45, x - ww * .3 + wob, y - hh * .7, x + wob * .5, y - hh); g.bezierCurveTo(x + ww * .3 + wob, y - hh * .7, x + ww * 1.1, y - hh * .45, x + ww, y); g.closePath(); g.fill(); }
+    if (s < .08) for (let k = 0; k < 140; k++) sparks.push({ x, y, vx: (Math.random() - .5) * 10, vy: -Math.random() * 12 - 2, life: 1 });
+    const a = Math.min(1, s * 2) * Math.max(0, 1 - (s - 5) / 1.5); g.textAlign = "center"; g.fillStyle = `rgba(255,209,166,${a})`; g.font = `700 ${Math.max(22, U * 1.3)}px "Familjen Grotesk"`; g.fillText("🔥 " + fmt(fx2.amount) + " REINPAY BURNED", x, y - hgt - 18);
+    g.font = '600 13px "IBM Plex Mono"'; g.fillStyle = `rgba(227,235,229,${a * .85})`; g.fillText((fx2.replay ? "REPLAY OF THE LAST BURN · " : "LIVE · ") + fx2.tx.slice(0, 10) + "…" + fx2.tx.slice(-6), x, y - hgt + 4); g.textAlign = "left";
+    return true;
+  }
+  function frame(now) {
+    const bg = g.createRadialGradient(W / 2, H * .55, 0, W / 2, H * .55, Math.max(W, H) * .75); bg.addColorStop(0, "#0a1813"); bg.addColorStop(1, "#04070a"); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    ground(); streets(now); paths(now);
+    const list = [...towers.values()].sort((a, b) => (a.L.x + a.L.y) - (b.L.x + b.L.y));
+    let drawnCore = false;
+    for (const t of list) { if (!drawnCore && t.L.x + t.L.y > 0) { plaza(now); figure(now); drawnCore = true; } tower(t, now); }
+    if (!drawnCore) { plaza(now); figure(now); }
+    for (let i = fires.length - 1; i >= 0; i--) if (!fire(fires[i], now)) fires.splice(i, 1);
+    for (let i = sparks.length - 1; i >= 0; i--) { const p = sparks[i]; p.x += p.vx; p.y += p.vy; p.vy += .3; p.life -= .016; if (p.life <= 0) { sparks.splice(i, 1); continue; } g.fillStyle = `rgba(255,${150 + Math.random() * 80},80,${p.life})`; g.fillRect(p.x, p.y, 2.5, 2.5); }
+    // the orbits feed every tower in turn: a full sweep of the city about every 6 seconds, in a shuffled order
+    if (!RM && towers.size) { const arr = [...towers.values()]; feedAcc += arr.length / 360; while (feedAcc >= 1) { feedAcc--; if (!feedOrder.length) feedOrder = arr.map((_, k) => k).sort(() => Math.random() - .5); const t = arr[feedOrder.pop()]; if (t) launch(now, t); } }
+    drawLaunches(now);
+    const newest = list.filter((t) => now - t.born < 7000).sort((a, b) => b.born - a.born).slice(0, 2); for (const t of newest) card(t, now);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- live data ----------
+  const feed = $("feed"), log = (html, cls = "") => { const d = document.createElement("div"); d.className = "e " + cls; d.innerHTML = html; feed.insertBefore(d, feed.children[1] || null); while (feed.children.length > 9) feed.lastChild.remove(); };
+  const towerFor = (addr) => { const arr = [...towers.values()]; if (!arr.length) return null; let h = 0; for (let i = 2; i < 12; i++) h = (h * 31 + parseInt(addr[i], 16)) >>> 0; return arr[h % arr.length]; };
+  const queue = []; setInterval(() => { const q = queue.shift(); if (q) q(); }, 450);
+  let span0 = null, last = 0, moves = 0, lastLog = 0, lastBurn = null;
+  async function blocks() {
+    const [h] = await rpc([["eth_blockNumber", []]]); if (!h) return; const n = parseInt(h, 16); if (n <= last) return;
+    const want = last ? Math.min(6, n - last) : LOTS.length, nums = Array.from({ length: want }, (_, i) => n - want + 1 + i);
+    const bs = await rpc(nums.map((b) => ["eth_getBlockByNumber", ["0x" + b.toString(16), false]]));
+    const t0 = performance.now(); bs.forEach((b, i) => { if (!b) return; placeTower(parseInt(b.number, 16), b.transactions.length, parseInt(b.gasUsed, 16) / parseInt(b.gasLimit, 16)); const nt = [...towers.values()].at(-1); if (!last) nt.born = t0 - 9000 + i * 20; else setTimeout(() => launch(performance.now(), nt, "#5ff0a8"), 500); });
+    const ok = bs.filter(Boolean);
+    // block time over the whole span seen since the page opened (timestamps are whole seconds, so short spans are noisy)
+    if (ok.length) { const bn = parseInt(ok.at(-1).number, 16), bt = parseInt(ok.at(-1).timestamp, 16); if (!span0) span0 = [parseInt(ok[0].number, 16), parseInt(ok[0].timestamp, 16)]; if (bn - span0[0] >= 40 && bt > span0[1]) $("s-bt").textContent = ((bt - span0[1]) / (bn - span0[0])).toFixed(2) + " s"; }
+    $("s-block").textContent = fmt(n);
+    const from = last ? last + 1 : n - 30000; last = n;
+    const [L] = await rpc([["eth_getLogs", [{ address: CA, fromBlock: "0x" + from.toString(16), toBlock: "0x" + n.toString(16), topics: [T] }]]]);
+    if (Array.isArray(L)) for (const l of L) queue.push(() => {
+      const fr = "0x" + l.topics[1].slice(26), to = "0x" + l.topics[2].slice(26), v = Number(BigInt(l.data) / 10n ** 16n) / 100; moves++; $("s-moves").textContent = fmt(moves);
+      const burn = to === DEAD, A = towerFor(fr), B = burn ? null : towerFor(to);
+      if (A) { A.flash = performance.now(); const r = burn ? A.route : A.route.concat((B || A).route.slice().reverse()); lights.push({ r, t: performance.now(), dur: burn ? 2000 : 3200, col: burn ? "#ff8a3d" : "#7aa7ff", done: () => { if (burn) fires.push({ t: performance.now(), amount: v, tx: l.transactionHash }); else if (B) B.flash = performance.now(); } }); }
+      if (burn) { log(`🔥 BURN · ${fmt(v)} REINPAY`, "burn"); setTimeout(loadBurned, 2500); }
+      else if (performance.now() - lastLog > 600) { log(`REINPAY · ${v < 1 ? v.toFixed(2) : fmt(v)} · ${fr.slice(0, 6)}… → ${to.slice(0, 6)}…`, "rp"); lastLog = performance.now(); }
+    });
+    if (Math.random() < .3) log(`block #${fmt(n)} · ${ok.at(-1)?.transactions.length ?? "?"} txs`);
+  }
+  async function loadBurned() { const [d] = await rpc([["eth_call", [{ to: CA, data: "0x70a08231" + "0".repeat(24) + DEAD.slice(2) }, "latest"]]]); if (d) $("s-burned").textContent = (Number(BigInt(d) / 10n ** 16n) / 1e8).toFixed(2) + "M"; }
+  async function findLastBurn() {
+    const [h] = await rpc([["eth_blockNumber", []]]); if (!h) return; const n = parseInt(h, 16), pad = "0x" + "0".repeat(24) + DEAD.slice(2);
+    for (let to = n; to > n - 3_000_000 && !lastBurn; to -= 1_000_000) { let L = null; for (let k = 0; k < 4 && !Array.isArray(L); k++) { if (k) await new Promise((r) => setTimeout(r, 1500 * k)); [L] = await rpc([["eth_getLogs", [{ address: CA, fromBlock: "0x" + Math.max(0, to - 999_999).toString(16), toBlock: "0x" + to.toString(16), topics: [T, null, pad] }]]]); } if (!Array.isArray(L)) return; // a window that cannot be read is never skipped: an older burn must not pose as the last one
+      if (L.length) { const l = L[L.length - 1]; lastBurn = { amount: Number(BigInt(l.data) / 10n ** 16n) / 100, tx: l.transactionHash }; } }
+  }
+  $("replay").onclick = async () => { if (!lastBurn) await findLastBurn(); if (!lastBurn) return; const arr = [...towers.values()], A = arr[Math.floor(Math.random() * arr.length)]; log(`🔥 REPLAY · last burn · ${fmt(lastBurn.amount)} REINPAY`, "burn"); if (A) { A.flash = performance.now(); lights.push({ r: A.route, t: performance.now(), dur: 1600, col: "#ff8a3d", done: () => fires.push({ t: performance.now(), replay: true, ...lastBurn }) }); } else fires.push({ t: performance.now(), replay: true, ...lastBurn }); };
+  loadBurned(); blocks(); setInterval(blocks, 2400); findLastBurn();
+})();
+</script>
+</body>
+</html>
