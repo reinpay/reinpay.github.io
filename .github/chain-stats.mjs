@@ -70,7 +70,7 @@ st.balances = Object.fromEntries([...bal].filter(([, v]) => v !== 0n).map(([k, v
 const prevPath = `${dir}/stats.json`, prev = existsSync(prevPath) ? JSON.parse(readFileSync(prevPath, "utf8")) : null;
 const holdersNow = [...bal].filter(([k, v]) => v > 0n && k !== DEAD && k !== ZERO).length;
 const hourly = !prev || Date.now() - Date.parse(prev.at) > 55 * 60 * 1000;
-if (prev && !hourly && prev.burns.length === st.burns.length && prev.holders === holdersNow && !process.env.FORCE) { console.log("no change since " + prev.at + ": nothing written"); process.exit(0); }
+if (prev && !hourly && prev.burns.length === st.burns.length && prev.holders === holdersNow && !process.env.FORCE) { console.log("no change since " + prev.at + ": stats unchanged"); await extras(); process.exit(0); }
 writeFileSync(statePath, JSON.stringify(st));
 // What the contract itself says, read at the same head block
 const hb = "0x" + head.toString(16);
@@ -110,13 +110,51 @@ writeFileSync(histPath, JSON.stringify(H));
 
 console.log(JSON.stringify({ ...out, burns: out.burns.length, lastBurn: out.burns[0] }, null, 1));
 
-// Reinpay City snapshot: the newest blocks and REINPAY transfers, for visitors whose network cannot reach the RPC from the
-// browser. reinpay.app/city plays it labelled as a replay with its time. Kept apart so it can never break the stats above.
-try {
-  const head = parseInt(await rpc("eth_blockNumber", []), 16), blocks = [];
-  for (let b = head - 87; b <= head; b++) { const k = await rpc("eth_getBlockByNumber", ["0x" + b.toString(16), false]); if (k) blocks.push({ n: b, ts: parseInt(k.timestamp, 16), txs: k.transactions.length, gas: +(parseInt(k.gasUsed, 16) / parseInt(k.gasLimit, 16)).toFixed(4) }); }
-  const L = []; await logsRange(head - 30000, head, L);
-  const transfers = L.slice(-300).map((l) => ({ b: parseInt(l.blockNumber, 16), tx: l.transactionHash, from: "0x" + l.topics[1].slice(26), to: "0x" + l.topics[2].slice(26), v: BigInt(l.data).toString() }));
-  writeFileSync(`${dir}/city.json`, JSON.stringify({ kind: "reinpay-city-snapshot", version: 1, chainId: 4663, token: TOKEN, at: new Date().toISOString(), head, blocks, transfers }));
-  console.log("city snapshot", head, blocks.length, "blocks", transfers.length, "transfers");
-} catch (e) { console.log("city snapshot skipped:", e.message); }
+await extras();
+
+// Extras written on every run, changed or not: the Reinpay City snapshot and the Reinpay Galaxy data.
+// Each is kept apart (try/catch) so neither can break the stats above.
+async function extras() {
+  // Reinpay City: the newest blocks and REINPAY transfers, played as a labelled replay where the browser cannot reach the RPC
+  try {
+    const top = parseInt(await rpc("eth_blockNumber", []), 16), blocks = [];
+    for (let b = top - 87; b <= top; b++) { const k = await rpc("eth_getBlockByNumber", ["0x" + b.toString(16), false]); if (k) blocks.push({ n: b, ts: parseInt(k.timestamp, 16), txs: k.transactions.length, gas: +(parseInt(k.gasUsed, 16) / parseInt(k.gasLimit, 16)).toFixed(4) }); }
+    const L = []; await logsRange(top - 30000, top, L);
+    const transfers = L.slice(-300).map((l) => ({ b: parseInt(l.blockNumber, 16), tx: l.transactionHash, from: "0x" + l.topics[1].slice(26), to: "0x" + l.topics[2].slice(26), v: BigInt(l.data).toString() }));
+    writeFileSync(`${dir}/city.json`, JSON.stringify({ kind: "reinpay-city-snapshot", version: 1, chainId: 4663, token: TOKEN, at: new Date().toISOString(), head: top, blocks, transfers }));
+    console.log("city snapshot", top, blocks.length, "blocks", transfers.length, "transfers");
+  } catch (e) { console.log("city snapshot skipped:", e.message); }
+  // Reinpay Galaxy: every holder with the time it first received REINPAY, former holders with the time they left, burns,
+  // the holder count at every change, and the dev wallet's in and out. Incremental: galaxy-state.json keeps where it stopped.
+  try {
+    const gp = `${dir}/galaxy-state.json`, DEVW = "0x9e9a44814544633b995829d917b70d3161db1293";
+    const G = existsSync(gp) ? JSON.parse(readFileSync(gp, "utf8")) : { next: st.deploy, deploy: null, bal: {}, first: {}, left: {}, holders: 0, series: [], burns: [], code: {}, dev: { in: "0", dead: "0", other: "0" } };
+    const gb = new Map(Object.entries(G.bal).map(([k, v]) => [k, BigInt(v)])), ts = new Map(), isH = (a) => a !== ZERO && a !== DEAD;
+    const tsOf = async (bn) => { if (!ts.has(bn)) ts.set(bn, parseInt((await rpc("eth_getBlockByNumber", [bn, false])).timestamp, 16)); return ts.get(bn); };
+    let dIn = BigInt(G.dev.in), dDead = BigInt(G.dev.dead), dOther = BigInt(G.dev.other);
+    for (let from = G.next; from <= head; from += 500000) {
+      const to = Math.min(head, from + 499999), L = []; await logsRange(from, to, L);
+      L.sort((a, b) => parseInt(a.blockNumber, 16) - parseInt(b.blockNumber, 16) || parseInt(a.logIndex, 16) - parseInt(b.logIndex, 16));
+      for (const l of L) {
+        const t = await tsOf(l.blockNumber), fr = "0x" + l.topics[1].slice(26), to2 = "0x" + l.topics[2].slice(26), v = BigInt(l.data);
+        if (!G.deploy) G.deploy = { block: parseInt(l.blockNumber, 16), time: t };
+        for (const [a, d] of [[fr, -v], [to2, v]]) { const b0 = gb.get(a) || 0n, b1 = b0 + d; gb.set(a, b1);
+          if (isH(a)) { if (b0 <= 0n && b1 > 0n) { G.holders++; if (!G.first[a]) G.first[a] = t; delete G.left[a]; } else if (b0 > 0n && b1 <= 0n) { G.holders--; G.left[a] = t; } } }
+        if (to2 === DEAD && v > 0n) G.burns.push({ n: G.burns.length + 1, block: parseInt(l.blockNumber, 16), time: t, tx: l.transactionHash, from: fr, amount: v.toString() });
+        if (to2 === DEVW) dIn += v; if (fr === DEVW) (to2 === DEAD ? (dDead += v) : (dOther += v));
+        const last = G.series[G.series.length - 1]; if (!last || last[0] !== t) G.series.push([t, G.holders]); else last[1] = G.holders;
+      }
+      G.next = to + 1;
+    }
+    const cur = [...gb].filter(([a, b]) => isH(a) && b > 0n), need = cur.map(([a]) => a).filter((a) => !(a in G.code));
+    for (const a of need) { const c = await rpc("eth_getCode", [a, "latest"]); G.code[a] = !!(c && c !== "0x"); }
+    G.bal = Object.fromEntries([...gb].filter(([, v]) => v !== 0n).map(([k, v]) => [k, v.toString()])); G.dev = { in: dIn.toString(), dead: dDead.toString(), other: dOther.toString() };
+    writeFileSync(gp, JSON.stringify(G));
+    const holdersG = cur.map(([a, b]) => ({ a, bal: b.toString(), first: G.first[a], contract: G.code[a] })).sort((x, y) => (BigInt(y.bal) > BigInt(x.bal) ? 1 : -1));
+    const former = Object.entries(G.left).map(([a, t]) => ({ a, first: G.first[a], left: t }));
+    const burnedG = G.burns.reduce((a, b) => a + BigInt(b.amount), 0n);
+    writeFileSync(`${dir}/galaxy.json`, JSON.stringify({ kind: "reinpay-galaxy", version: 1, chainId: 4663, token: TOKEN, at: new Date().toISOString(), head, deploy: G.deploy, supply: (10n ** 27n).toString(), burned: burnedG.toString(),
+      dev: { a: DEVW, received: G.dev.in, toDead: G.dev.dead, elsewhere: G.dev.other, balance: (gb.get(DEVW) || 0n).toString() }, holders: holdersG, former, burns: G.burns, series: G.series }));
+    console.log("galaxy", holdersG.length, "holders", former.length, "former", G.burns.length, "burns", G.series.length, "points");
+  } catch (e) { console.log("galaxy skipped:", e.message); }
+}
