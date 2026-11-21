@@ -109,3 +109,14 @@ if (!last || Date.now() - Date.parse(last.t) > 55 * 60 * 1000) H.points.push(poi
 writeFileSync(histPath, JSON.stringify(H));
 
 console.log(JSON.stringify({ ...out, burns: out.burns.length, lastBurn: out.burns[0] }, null, 1));
+
+// Reinpay City snapshot: the newest blocks and REINPAY transfers, for visitors whose network cannot reach the RPC from the
+// browser. reinpay.app/city plays it labelled as a replay with its time. Kept apart so it can never break the stats above.
+try {
+  const head = parseInt(await rpc("eth_blockNumber", []), 16), blocks = [];
+  for (let b = head - 87; b <= head; b++) { const k = await rpc("eth_getBlockByNumber", ["0x" + b.toString(16), false]); if (k) blocks.push({ n: b, ts: parseInt(k.timestamp, 16), txs: k.transactions.length, gas: +(parseInt(k.gasUsed, 16) / parseInt(k.gasLimit, 16)).toFixed(4) }); }
+  const L = []; await logsRange(head - 30000, head, L);
+  const transfers = L.slice(-300).map((l) => ({ b: parseInt(l.blockNumber, 16), tx: l.transactionHash, from: "0x" + l.topics[1].slice(26), to: "0x" + l.topics[2].slice(26), v: BigInt(l.data).toString() }));
+  writeFileSync(`${dir}/city.json`, JSON.stringify({ kind: "reinpay-city-snapshot", version: 1, chainId: 4663, token: TOKEN, at: new Date().toISOString(), head, blocks, transfers }));
+  console.log("city snapshot", head, blocks.length, "blocks", transfers.length, "transfers");
+} catch (e) { console.log("city snapshot skipped:", e.message); }
