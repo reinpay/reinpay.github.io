@@ -28,6 +28,10 @@
   @keyframes in { from { opacity: 0; transform: translateX(16px); } }
   .btn { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: 22px; z-index: 2; background: rgba(4,7,10,.88); border: 1px solid rgba(255,138,61,.6); color: #ffd1a6; font: 600 13px "IBM Plex Mono"; padding: 10px 16px; cursor: pointer; }
   .btn:hover { background: rgba(255,138,61,.15); }
+  .status { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 3; font: 600 11.5px "IBM Plex Mono"; letter-spacing: .08em; color: #8aa597; background: rgba(4,7,10,.8); border: 1px solid rgba(95,240,168,.25); padding: 6px 12px; max-width: min(92vw, 640px); text-align: center; pointer-events: none; }
+  .status.ok { color: #5ff0a8; } .status.bad { color: #ffb36b; border-color: rgba(255,138,61,.5); }
+  @media (max-width: 1100px) { .status { top: auto; bottom: 86px; } }
+  .embed .status { top: 10px; bottom: auto; font-size: 10.5px; }
   .back { display: inline-block; margin-top: 14px; font: 600 12px "IBM Plex Mono"; color: #5ff0a8; text-decoration: none; pointer-events: auto; border: 1px solid rgba(95,240,168,.4); padding: 7px 12px; background: rgba(4,7,10,.7); }
   .back:hover { background: rgba(95,240,168,.12); }
   @media (max-width: 760px) { .feed { display: none; } .stats { grid-template-columns: repeat(2, auto); } }
@@ -41,6 +45,7 @@
 <body>
 <canvas id="c" aria-label="Reinpay City: Robinhood Chain mainnet drawn live as an isometric neon city. Each tower is a real block, joined by glowing paths; REINPAY transfers travel the paths and burns become fire at the centre."></canvas>
 <div class="hud"><div class="k">REINPAY CITY · ROBINHOOD CHAIN MAINNET</div><h1>The chain, <em>alive.</em></h1><p class="sub">Every tower is a real block · every light on the paths a real REINPAY transfer · read live, nothing signed</p><a class="back" href="/">← reinpay.app</a></div>
+<div class="status" id="status">connecting to Robinhood Chain mainnet…</div>
 <div class="feed" id="feed"><div class="t">LIVE FEED</div></div>
 <div class="stats"><div><small>LATEST BLOCK</small><b id="s-block">…</b></div><div><small>BLOCK TIME</small><b id="s-bt">…</b></div><div><small>REINPAY MOVES SEEN</small><b class="g" id="s-moves">0</b></div><div><small>REINPAY BURNED</small><b class="f" id="s-burned">…</b></div></div>
 <button class="btn" id="replay" type="button">🔥 Replay the last burn</button>
@@ -179,10 +184,20 @@ function makeTypist() {
   const P = (x, y, z = 0) => [OX + (x - y) * .866 * U, OY + (x + y) * .5 * U - z * U];
   const $ = (id) => document.getElementById(id), fmt = (n) => Math.round(n).toLocaleString("en-US");
   let rid = 0;
+  // one attempt per call; the polling loop below backs off when the RPC refuses. Replies are matched by id,
+  // and any error the RPC sends (HTTP status, an error object instead of a batch, or per-call errors) is kept for the status line.
+  let rpcErr = "";
   async function rpc(calls) {
     if (calls.length > 40) { const out = []; for (let i = 0; i < calls.length; i += 40) out.push(...(await rpc(calls.slice(i, i + 40)))); return out; }
-    for (let k = 1; k <= 6; k++) { try { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(calls.map(([m, p]) => ({ jsonrpc: "2.0", id: ++rid, method: m, params: p }))) }); if (r.ok) { const j = await r.json(); return calls.map((_, i) => j[i]?.result ?? null); } } catch {} await new Promise((r) => setTimeout(r, 700 * k)); }
-    return calls.map(() => null);
+    const ids = calls.map(() => ++rid), none = calls.map(() => null);
+    try {
+      const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(calls.map(([m, p], i) => ({ jsonrpc: "2.0", id: ids[i], method: m, params: p }))) });
+      if (!r.ok) { rpcErr = "HTTP " + r.status; return none; }
+      const j = await r.json();
+      if (!Array.isArray(j)) { rpcErr = j?.error?.message || "unexpected reply"; return none; }
+      const by = new Map(j.map((x) => [x.id, x])), bad = j.find((x) => x.error); if (bad) rpcErr = bad.error.message || "error";
+      return ids.map((id) => by.get(id)?.result ?? null);
+    } catch (e) { rpcErr = e?.message || "network error"; return none; }
   }
 
   // ---------- layout: lots on a grid around a central plaza, avenues between them ----------
@@ -345,15 +360,17 @@ function makeTypist() {
   const queue = []; setInterval(() => { const q = queue.shift(); if (q) q(); }, 450);
   let span0 = null, last = 0, moves = 0, lastLog = 0, lastBurn = null;
   async function blocks() {
-    const [h] = await rpc([["eth_blockNumber", []]]); if (!h) return; const n = parseInt(h, 16); if (n <= last) return;
-    const want = last ? Math.min(6, n - last) : LOTS.length, nums = Array.from({ length: want }, (_, i) => n - want + 1 + i);
+    const [h] = await rpc([["eth_blockNumber", []]]); if (!h) return false; const n = parseInt(h, 16); if (n <= last) return true;
+    // a light first load (the inner lots first), then each poll adds the newest blocks until every lot has a tower
+    const want = last ? Math.min(towers.size < LOTS.length ? 24 : 8, n - last) : 24, nums = Array.from({ length: want }, (_, i) => n - want + 1 + i);
     const bs = await rpc(nums.map((b) => ["eth_getBlockByNumber", ["0x" + b.toString(16), false]]));
+    if (!bs.some(Boolean)) return false;
     const t0 = performance.now(); bs.forEach((b, i) => { if (!b) return; placeTower(parseInt(b.number, 16), b.transactions.length, parseInt(b.gasUsed, 16) / parseInt(b.gasLimit, 16)); const nt = [...towers.values()].at(-1); if (!last) nt.born = t0 - 9000 + i * 20; else setTimeout(() => launch(performance.now(), nt, "#5ff0a8"), 500); });
     const ok = bs.filter(Boolean);
     // block time over the whole span seen since the page opened (timestamps are whole seconds, so short spans are noisy)
     if (ok.length) { const bn = parseInt(ok.at(-1).number, 16), bt = parseInt(ok.at(-1).timestamp, 16); if (!span0) span0 = [parseInt(ok[0].number, 16), parseInt(ok[0].timestamp, 16)]; if (bn - span0[0] >= 40 && bt > span0[1]) $("s-bt").textContent = ((bt - span0[1]) / (bn - span0[0])).toFixed(2) + " s"; }
     $("s-block").textContent = fmt(n);
-    const from = last ? last + 1 : n - 30000; last = n;
+    const from = last ? last + 1 : n - 6000; last = n;
     const [L] = await rpc([["eth_getLogs", [{ address: CA, fromBlock: "0x" + from.toString(16), toBlock: "0x" + n.toString(16), topics: [T] }]]]);
     if (Array.isArray(L)) for (const l of L) queue.push(() => {
       const fr = "0x" + l.topics[1].slice(26), to = "0x" + l.topics[2].slice(26), v = Number(BigInt(l.data) / 10n ** 16n) / 100; moves++; $("s-moves").textContent = fmt(moves);
@@ -363,6 +380,14 @@ function makeTypist() {
       else if (performance.now() - lastLog > 600) { log(`REINPAY · ${v < 1 ? v.toFixed(2) : fmt(v)} · ${fr.slice(0, 6)}… → ${to.slice(0, 6)}…`, "rp"); lastLog = performance.now(); }
     });
     if (Math.random() < .3) log(`block #${fmt(n)} · ${ok.at(-1)?.transactions.length ?? "?"} txs`);
+    return true;
+  }
+  // burned total and the last burn come from the site's own stats file (read from mainnet every hour by the public job)
+  async function loadStats() {
+    try { const d = await (await fetch("../assets/chain/stats.json?t=" + Date.now())).json(); const dec = 10n ** BigInt(d.decimals);
+      $("s-burned").textContent = (Number(BigInt(d.burned) * 100n / dec) / 1e8).toFixed(2) + "M";
+      const b = [...d.burns].sort((x, y) => y.block - x.block)[0]; if (b) lastBurn = { amount: Number(BigInt(b.amount) * 100n / dec) / 100, tx: b.tx };
+      return true; } catch { return false; }
   }
   async function loadBurned() { const [d] = await rpc([["eth_call", [{ to: CA, data: "0x70a08231" + "0".repeat(24) + DEAD.slice(2) }, "latest"]]]); if (d) $("s-burned").textContent = (Number(BigInt(d) / 10n ** 16n) / 1e8).toFixed(2) + "M"; }
   async function findLastBurn() {
@@ -371,7 +396,16 @@ function makeTypist() {
       if (L.length) { const l = L[L.length - 1]; lastBurn = { amount: Number(BigInt(l.data) / 10n ** 16n) / 100, tx: l.transactionHash }; } }
   }
   $("replay").onclick = async () => { if (!lastBurn) await findLastBurn(); if (!lastBurn) return; const arr = [...towers.values()], A = arr[Math.floor(Math.random() * arr.length)]; log(`🔥 REPLAY · last burn · ${fmt(lastBurn.amount)} REINPAY`, "burn"); if (A) { A.flash = performance.now(); lights.push({ r: A.route, t: performance.now(), dur: 1600, col: "#ff8a3d", done: () => fires.push({ t: performance.now(), replay: true, ...lastBurn }) }); } else fires.push({ t: performance.now(), replay: true, ...lastBurn }); };
-  loadBurned(); blocks(); setInterval(blocks, 2400); findLastBurn();
+  const status = (t, cls) => { const e = $("status"); e.textContent = t; e.className = "status " + cls; };
+  let delay = 2400;
+  async function tick() {
+    if (document.hidden) { setTimeout(tick, 1500); return; }
+    let ok = false; try { ok = await blocks(); } catch (e) { rpcErr = e?.message || "error"; }
+    if (ok) { delay = 2400; status("● LIVE · ROBINHOOD CHAIN MAINNET", "ok"); }
+    else { delay = Math.min(30000, delay * 2); status(`Robinhood Chain RPC did not answer (${rpcErr || "no reply"}) · retrying in ${Math.round(delay / 1000)} s`, "bad"); }
+    setTimeout(tick, delay);
+  }
+  loadStats().then((ok) => { if (!ok) { loadBurned(); findLastBurn(); } }); tick();
 })();
 </script>
 </body>
