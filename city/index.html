@@ -32,6 +32,16 @@
   .status.ok { color: #5ff0a8; } .status.bad { color: #ffb36b; border-color: rgba(255,138,61,.5); }
   @media (max-width: 1100px) { .status { top: auto; bottom: 86px; } }
   .embed .status { top: 10px; bottom: auto; font-size: 10.5px; }
+  .bn { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 4; width: min(92vw, 470px); background: rgba(10,6,4,.94); border: 1px solid rgba(255,138,61,.7); box-shadow: 0 0 40px rgba(255,120,50,.25); padding: 14px 16px 12px; font-family: "IBM Plex Mono"; }
+  .bn.big { animation: bnin .6s cubic-bezier(.2,.7,.2,1); }
+  @keyframes bnin { from { opacity: 0; transform: translate(-50%, 24px) scale(.96); } }
+  .bn-k { font: 600 11.5px "IBM Plex Mono"; letter-spacing: .16em; color: #ffb36b; }
+  .bn-n { font: 700 30px "Familjen Grotesk"; color: #ffd1a6; margin-top: 6px; }
+  .bn-s { font: 500 12px "IBM Plex Mono"; color: #c9b5a2; margin-top: 4px; line-height: 1.5; }
+  .bn-b { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+  .bn-b button, .bn-b a { font: 600 12px "IBM Plex Mono"; color: #ffd1a6; background: rgba(255,138,61,.12); border: 1px solid rgba(255,138,61,.55); padding: 7px 10px; cursor: pointer; text-decoration: none; }
+  .bn-b #bn-x { margin-left: auto; background: none; border: 0; font-size: 18px; padding: 2px 6px; color: #c9b5a2; }
+  .embed .bn { bottom: 60px; } .embed .bn-n { font-size: 22px; }
   .back { display: inline-block; margin-top: 14px; font: 600 12px "IBM Plex Mono"; color: #5ff0a8; text-decoration: none; pointer-events: auto; border: 1px solid rgba(95,240,168,.4); padding: 7px 12px; background: rgba(4,7,10,.7); }
   .back:hover { background: rgba(95,240,168,.12); }
   @media (max-width: 760px) { .feed { display: none; } .stats { grid-template-columns: repeat(2, auto); } }
@@ -48,6 +58,12 @@
 <div class="status" id="status">connecting to Robinhood Chain mainnet…</div>
 <div class="feed" id="feed"><div class="t">LIVE FEED</div></div>
 <div class="stats"><div><small>LATEST BLOCK</small><b id="s-block">…</b></div><div><small>BLOCK TIME</small><b id="s-bt">…</b></div><div><small>REINPAY MOVES SEEN</small><b class="g" id="s-moves">0</b></div><div><small>REINPAY BURNED</small><b class="f" id="s-burned">…</b></div></div>
+<div class="bn" id="bn" hidden role="status" aria-live="polite">
+ <div class="bn-k" id="bn-k">🔥 NEW BURN · LIVE</div>
+ <div class="bn-n" id="bn-n"></div>
+ <div class="bn-s" id="bn-s"></div>
+ <div class="bn-b"><button type="button" id="bn-dl">Download burn card</button><a id="bn-tx" target="_blank" rel="noopener">View tx ↗</a><button type="button" id="bn-x" aria-label="Close">×</button></div>
+</div>
 <button class="btn" id="replay" type="button">🔥 Replay the last burn</button>
 <script>
 // Reinpay Intelligence at work: the computer-head figure seated at a desk, typing. Dot-drawn like the rest of the site.
@@ -358,7 +374,7 @@ function makeTypist() {
   const feed = $("feed"), log = (html, cls = "") => { const d = document.createElement("div"); d.className = "e " + cls; d.innerHTML = html; feed.insertBefore(d, feed.children[1] || null); while (feed.children.length > 9) feed.lastChild.remove(); };
   const towerFor = (addr) => { const arr = [...towers.values()]; if (!arr.length) return null; let h = 0; for (let i = 2; i < 12; i++) h = (h * 31 + parseInt(addr[i], 16)) >>> 0; return arr[h % arr.length]; };
   const queue = []; setInterval(() => { const q = queue.shift(); if (q) q(); }, 450);
-  let span0 = null, last = 0, moves = 0, lastLog = 0, lastBurn = null;
+  let firstHead = 0, span0 = null, last = 0, moves = 0, lastLog = 0, lastBurn = null;
   function showTransfer(fr, to, v, tx, replay) {
     moves++; $("s-moves").textContent = fmt(moves);
     const burn = to === DEAD, A = towerFor(fr), B = burn ? null : towerFor(to), tag = replay ? "REPLAY · " : "";
@@ -377,20 +393,71 @@ function makeTypist() {
     // block time over the whole span seen since the page opened (timestamps are whole seconds, so short spans are noisy)
     if (ok.length) { const bn = parseInt(ok.at(-1).number, 16), bt = parseInt(ok.at(-1).timestamp, 16); if (!span0) span0 = [parseInt(ok[0].number, 16), parseInt(ok[0].timestamp, 16)]; if (bn - span0[0] >= 40 && bt > span0[1]) $("s-bt").textContent = ((bt - span0[1]) / (bn - span0[0])).toFixed(2) + " s"; }
     $("s-block").textContent = fmt(n);
-    const from = last ? last + 1 : n - 6000; last = n;
+    const from = last ? last + 1 : n - 6000; if (!firstHead) firstHead = n; last = n;
     const [L] = await rpc([["eth_getLogs", [{ address: CA, fromBlock: "0x" + from.toString(16), toBlock: "0x" + n.toString(16), topics: [T] }]]]);
-    if (Array.isArray(L)) for (const l of L) queue.push(() => showTransfer("0x" + l.topics[1].slice(26), "0x" + l.topics[2].slice(26), Number(BigInt(l.data) / 10n ** 16n) / 100, l.transactionHash, false));
+    if (Array.isArray(L)) for (const l of L) queue.push(() => { const to = "0x" + l.topics[2].slice(26); showTransfer("0x" + l.topics[1].slice(26), to, Number(BigInt(l.data) / 10n ** 16n) / 100, l.transactionHash, false); if (to === DEAD && B.ready) liveBurn(l.transactionHash, BigInt(l.data), parseInt(l.blockNumber, 16), parseInt(l.blockNumber, 16) > firstHead, l.blockTimestamp ? parseInt(l.blockTimestamp, 16) * 1000 : Date.now()); });
     if (Math.random() < .3) log(`block #${fmt(n)} · ${ok.at(-1)?.transactions.length ?? "?"} txs`);
     return true;
   }
-  // burned total and the last burn come from the site's own stats file (read from mainnet every hour by the public job)
-  async function loadStats() {
-    try { const d = await (await fetch("../assets/chain/stats.json?t=" + Date.now())).json(); const dec = 10n ** BigInt(d.decimals);
-      $("s-burned").textContent = (Number(BigInt(d.burned) * 100n / dec) / 1e8).toFixed(2) + "M";
-      const b = [...d.burns].sort((x, y) => y.block - x.block)[0]; if (b) lastBurn = { amount: Number(BigInt(b.amount) * 100n / dec) / 100, tx: b.tx };
+  // burned total and every burn come from the site's own stats file (read from mainnet by the public job every 15 minutes);
+  // a live burn seen in the logs is added on top until the job catches up.
+  const B = { list: [], burned: 0n, dec: 10n ** 18n, ready: false }, EX = "https://robinhoodchain.blockscout.com/tx/";
+  const tok = (raw, dp = 2) => (Number(raw * 10n ** BigInt(dp + 3) / B.dec) / 10 ** (dp + 3)).toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  const pct = () => (Number(B.burned * 1000000n / (10n ** 9n * B.dec)) / 10000).toFixed(2);
+  const showBurned = () => { $("s-burned").textContent = (Number(B.burned * 100n / B.dec) / 1e8).toFixed(2) + "M"; };
+  async function loadStats(first) {
+    try { const d = await (await fetch("../assets/chain/stats.json?t=" + Date.now())).json(); B.dec = 10n ** BigInt(d.decimals);
+      const known = new Set(B.list.map((b) => b.tx.toLowerCase())), fresh = [];
+      const list = [...d.burns].sort((x, y) => x.block - y.block).map((b, i) => ({ n: b.n || i + 1, block: b.block, tx: b.tx, raw: BigInt(b.amount), time: Date.parse(b.time) }));
+      for (const b of list) if (!known.has(b.tx.toLowerCase())) fresh.push(b);
+      const live = B.list.filter((b) => b.live && !list.some((x) => x.tx.toLowerCase() === b.tx.toLowerCase()));
+      B.list = [...list, ...live]; if (BigInt(d.burned) >= B.burned || !live.length) B.burned = BigInt(d.burned); showBurned();
+      const top = B.list.at(-1); if (top) lastBurn = { amount: Number(top.raw * 100n / B.dec) / 100, tx: top.tx };
+      if (first) { B.ready = true; if (top && Date.now() - top.time < 24 * 3600e3) notify(top, "latest"); }
+      else for (const b of fresh) { notify(b, "job"); fires.push({ t: performance.now(), amount: Number(b.raw * 100n / B.dec) / 100, tx: b.tx, label: "NEW BURN · " }); }
       return true; } catch { return false; }
   }
-  async function loadBurned() { const [d] = await rpc([["eth_call", [{ to: CA, data: "0x70a08231" + "0".repeat(24) + DEAD.slice(2) }, "latest"]]]); if (d) $("s-burned").textContent = (Number(BigInt(d) / 10n ** 16n) / 1e8).toFixed(2) + "M"; }
+  // a burn in the logs that the stats file does not have yet; "live" only when it landed after the page opened
+  function liveBurn(tx, raw, block, fresh, time) {
+    if (B.list.some((b) => b.tx.toLowerCase() === tx.toLowerCase())) return;
+    const b = { n: B.list.length + 1, block, tx, raw, time, live: true }; B.list.push(b); B.burned += raw; showBurned();
+    lastBurn = { amount: Number(raw * 100n / B.dec) / 100, tx }; notify(b, fresh ? "live" : "latest");
+  }
+  const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? m + " min ago" : Math.round(m / 60) + " h ago"; };
+  let shown = null, titleT = null;
+  function notify(b, kind) {
+    shown = b; const el = $("bn");
+    $("bn-k").textContent = kind === "latest" ? `🔥 LATEST BURN · ${ago(b.time).toUpperCase()}` : kind === "live" ? "🔥 NEW BURN · LIVE" : "🔥 NEW BURN · READ BY THE ON-CHAIN JOB";
+    $("bn-n").textContent = tok(b.raw) + " REINPAY";
+    $("bn-s").textContent = `burn #${b.n} · total burned ${tok(B.burned, 0)} (${pct()}%) · block ${fmt(b.block)}`;
+    $("bn-tx").href = EX + b.tx; el.hidden = false; el.classList.remove("big"); void el.offsetWidth; if (kind !== "latest") el.classList.add("big");
+    if (kind !== "latest") { const t0 = document.title; clearInterval(titleT); let k = 0; titleT = setInterval(() => { document.title = k++ % 2 ? t0 : "🔥 New burn · Reinpay City"; if (k > 12) { clearInterval(titleT); document.title = t0; } }, 1000); }
+  }
+  $("bn-x").onclick = () => ($("bn").hidden = true);
+  // the burn card, drawn in the browser from the numbers above and saved as a PNG; nothing is sent anywhere
+  const FLAME = new Path2D("M200 92 C 236 140, 290 168, 282 236 C 276 290, 240 316, 200 316 C 160 316, 124 290, 118 236 C 112 186, 150 168, 162 124 C 176 150, 178 168, 192 176 C 196 150, 190 120, 200 92 Z"), FLAME2 = new Path2D("M200 168 C 222 196, 250 214, 246 252 C 243 284, 222 300, 200 300 C 178 300, 157 284, 154 252 C 151 222, 176 210, 184 186 C 192 202, 196 206, 200 168 Z");
+  async function burnCard(b) {
+    await document.fonts.ready; const W = 1600, H = 900, c = document.createElement("canvas"); c.width = W * 2; c.height = H * 2; const x = c.getContext("2d"); x.scale(2, 2);
+    x.fillStyle = "#0e1512"; x.fillRect(0, 0, W, H); let gr = x.createRadialGradient(380, 450, 0, 380, 450, 520); gr.addColorStop(0, "rgba(255,138,61,.32)"); gr.addColorStop(1, "rgba(255,138,61,0)"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+    x.strokeStyle = "#2a3832"; x.lineWidth = 3; x.beginPath(); x.arc(380, 450, 290, 0, 6.283); x.stroke(); x.setLineDash([5, 11]); x.strokeStyle = "rgba(226,176,87,.4)"; x.beginPath(); x.arc(380, 450, 200, 0, 6.283); x.stroke(); x.setLineDash([]);
+    x.save(); x.translate(380 - 200 * 1.45, 450 - 205 * 1.45); x.scale(1.45, 1.45);
+    gr = x.createLinearGradient(0, 316, 0, 92); gr.addColorStop(0, "#e2b057"); gr.addColorStop(.55, "#f08a3e"); gr.addColorStop(1, "#f0503a"); x.fillStyle = gr; x.fill(FLAME);
+    gr = x.createLinearGradient(0, 300, 0, 168); gr.addColorStop(0, "#ffe2a0"); gr.addColorStop(1, "#f6b04a"); x.fillStyle = gr; x.globalAlpha = .9; x.fill(FLAME2); x.globalAlpha = 1;
+    x.translate(160, 214); x.scale(2, 2); x.fillStyle = "#1f4a3a"; x.strokeStyle = "#0e1512"; x.lineWidth = 2; x.beginPath(); x.roundRect(1, 1, 38, 38, 9); x.fill(); x.stroke();
+    x.strokeStyle = "#f2f6f1"; x.lineWidth = 3; x.lineCap = x.lineJoin = "round"; x.stroke(new Path2D("M12 29V11h8.5a5.5 5.5 0 0 1 0 11H12m8 0l7.5 7")); x.strokeStyle = "#e2b057"; x.lineWidth = 2.2; x.beginPath(); x.roundRect(25, 7.5, 7, 7, 1.6); x.stroke(); x.restore();
+    const L = 780; x.fillStyle = "#e2b057"; x.font = '600 24px "IBM Plex Mono"'; x.fillText(`$REINPAY BURN #${b.n}`, L, 190);
+    x.fillStyle = "#e3ebe5"; x.font = '700 80px "Familjen Grotesk"'; x.fillText("Gone for good. 🔥", L, 285);
+    x.fillStyle = "#f6b04a"; x.font = '700 112px "Familjen Grotesk"'; x.fillText(tok(b.raw), L, 410);
+    x.fillStyle = "#b9c6bf"; x.font = '500 25px "IBM Plex Mono"'; x.fillText(`REINPAY burned in burn #${b.n} · ${new Date(b.time).toLocaleString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}, ${new Date(b.time).toISOString().slice(11, 16)} UTC`, L, 460);
+    x.fillStyle = "#24302b"; x.beginPath(); x.roundRect(L, 500, 740, 12, 6); x.fill(); x.fillStyle = "#f08a3e"; x.beginPath(); x.roundRect(L, 500, Math.max(12, 740 * Number(pct()) / 100), 12, 6); x.fill();
+    x.fillStyle = "#8aa597"; x.font = '500 19px "IBM Plex Mono"'; x.fillText(`total burned ${tok(B.burned, 0)} · ${pct()}%`, L, 545); x.textAlign = "right"; x.fillText("1,000,000,000 total", L + 740, 545); x.textAlign = "left";
+    const facts = [["Held by ", "0x000…dEaD", ", an address nobody controls"], ["Burn tx ", b.tx.slice(0, 10) + "…" + b.tx.slice(-6), ` at block ${fmt(b.block)}`], [`${B.list.length} burns so far · read from Robinhood Chain mainnet`, "", ""], ["Contract ", "0x17c4…64b3", ""]];
+    facts.forEach(([a1, a2, a3], i) => { let xx = L; const y = 610 + i * 34; x.font = '500 20px "IBM Plex Mono"'; x.fillStyle = "#8aa597"; x.fillText(a1, xx, y); xx += x.measureText(a1).width; x.fillStyle = "#e3ebe5"; x.font = '600 20px "IBM Plex Mono"'; x.fillText(a2, xx, y); xx += x.measureText(a2).width; x.fillStyle = "#8aa597"; x.font = '500 20px "IBM Plex Mono"'; x.fillText(a3, xx, y); });
+    x.fillStyle = "#e2b057"; x.font = '600 24px "IBM Plex Mono"'; x.fillText("reinpay.app/city · @Reinpayapp", L, 830);
+    return c;
+  }
+  $("bn-dl").onclick = async () => { if (!shown) return; const c = await burnCard(shown); const a = document.createElement("a"); a.download = `reinpay-burn-${shown.n}.png`; a.href = c.toDataURL("image/png"); a.click(); };
+  async function loadBurned() { const [d] = await rpc([["eth_call", [{ to: CA, data: "0x70a08231" + "0".repeat(24) + DEAD.slice(2) }, "latest"]]]); if (d) { B.burned = BigInt(d); showBurned(); if (shown && !$("bn").hidden) $("bn-s").textContent = `burn #${shown.n} · total burned ${tok(B.burned, 0)} (${pct()}%) · block ${fmt(shown.block)}`; } }
   async function findLastBurn() {
     const [h] = await rpc([["eth_blockNumber", []]]); if (!h) return; const n = parseInt(h, 16), pad = "0x" + "0".repeat(24) + DEAD.slice(2);
     for (let to = n; to > n - 3_000_000 && !lastBurn; to -= 1_000_000) { let L = null; for (let k = 0; k < 4 && !Array.isArray(L); k++) { if (k) await new Promise((r) => setTimeout(r, 1500 * k)); [L] = await rpc([["eth_getLogs", [{ address: CA, fromBlock: "0x" + Math.max(0, to - 999_999).toString(16), toBlock: "0x" + to.toString(16), topics: [T, null, pad] }]]]); } if (!Array.isArray(L)) return; // a window that cannot be read is never skipped: an older burn must not pose as the last one
@@ -425,7 +492,8 @@ function makeTypist() {
     }
     setTimeout(tick, delay);
   }
-  loadStats().then((ok) => { if (!ok) { loadBurned(); findLastBurn(); } }); tick();
+  loadStats(true).then((ok) => { if (!ok) { loadBurned(); findLastBurn(); } }); tick();
+  setInterval(() => { if (!document.hidden) loadStats(false); }, 120000);
 })();
 </script>
 </body>
