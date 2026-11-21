@@ -39,6 +39,18 @@
   .ctl button { font: 600 12.5px "IBM Plex Mono"; color: #cfe9dc; background: rgba(2,4,6,.88); border: 1px solid rgba(95,240,168,.45); padding: 10px 14px; cursor: pointer; }
   .tip { position: fixed; z-index: 4; pointer-events: none; font: 500 12px "IBM Plex Mono"; background: rgba(2,4,6,.92); border: 1px solid rgba(95,240,168,.45); padding: 8px 10px; line-height: 1.55; transform: translate(14px, -50%); white-space: nowrap; }
   .tip[hidden] { display: none; } .tip b { color: #5ff0a8; }
+  .find { position: fixed; left: max(24px, env(safe-area-inset-left)); top: 210px; z-index: 3; width: 330px; }
+  .find small { display: block; font: 600 10.5px "IBM Plex Mono"; letter-spacing: .16em; color: #e2b057; margin-bottom: 6px; }
+  .find form { display: flex; gap: 6px; } .find input { flex: 1; min-width: 0; font: 500 12px "IBM Plex Mono"; color: #e3ebe5; background: rgba(2,4,6,.85); border: 1px solid rgba(95,240,168,.4); padding: 9px 10px; outline: none; } .find input:focus { border-color: #5ff0a8; }
+  .find button { font: 700 13px "Familjen Grotesk"; color: #04130b; background: #5ff0a8; border: 0; padding: 0 14px; cursor: pointer; }
+  .find .err { margin-top: 6px; font: 500 11.5px "IBM Plex Mono"; color: #ffb36b; min-height: 1em; }
+  .pp { position: fixed; right: max(24px, env(safe-area-inset-right)); top: 150px; z-index: 3; width: 340px; background: rgba(2,6,5,.93); border: 1px solid rgba(95,240,168,.55); box-shadow: 0 0 40px rgba(95,240,168,.15); padding: 16px 18px 14px; animation: ppin .5s cubic-bezier(.2,.7,.2,1); }
+  .pp[hidden] { display: none; } @keyframes ppin { from { opacity: 0; transform: translateY(16px); } }
+  .pp .k2 { font: 600 10.5px "IBM Plex Mono"; letter-spacing: .16em; color: #e2b057; } .pp .ad { font: 600 13px "IBM Plex Mono"; color: #8aa597; margin-top: 6px; }
+  .pp .big { font: 700 34px/1.05 "Familjen Grotesk"; margin-top: 8px; } .pp .big em { font-style: normal; color: #5ff0a8; }
+  .pp dl { margin: 12px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font: 500 12.5px "IBM Plex Mono"; } .pp dt { color: #6f8a7d; } .pp dd { margin: 0; text-align: right; color: #e3ebe5; }
+  .pp .bb { display: flex; gap: 8px; margin-top: 14px; } .pp .bb button { font: 600 12px "IBM Plex Mono"; color: #cfe9dc; background: rgba(95,240,168,.1); border: 1px solid rgba(95,240,168,.5); padding: 8px 10px; cursor: pointer; } .pp .bb .x { margin-left: auto; background: none; border: 0; font-size: 18px; color: #8aa597; }
+  @media (max-width: 760px) { .find { top: 214px; left: 16px; right: 16px; width: auto; } .clock .mode { display: none; } .pp { left: 12px; right: 12px; width: auto; top: auto; bottom: 12px; padding: 12px 14px; } .pp dl { gap: 4px 10px; font-size: 11.5px; } .pp .big { font-size: 26px; } }
   @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, auto); left: 12px; bottom: 12px; } .stats div { padding: 8px 12px; } .stats b { font-size: 18px; } .sub { display: none; } h1 { font-size: 26px; } .k { font-size: 10px; letter-spacing: .14em; } .hud { left: 16px; top: 14px; } .clock { left: 16px; right: auto; top: 128px; text-align: left; } .clock b { font-size: 18px; } .clock .mode { font-size: 10px; } .back { margin-top: 10px; padding: 6px 10px; } .cap { bottom: 150px; font-size: 15px; } .ctl { right: 12px; bottom: auto; top: 128px; } .ctl button { padding: 8px 10px; font-size: 11px; } }
 </style>
 </head>
@@ -51,6 +63,8 @@
 <div class="start" id="start" hidden><div class="box"><div class="k">REINPAY INTELLIGENCE</div><h1 style="margin-top:12px">Let me tell you <em>the story.</em></h1><p>From the first block to today, read from Robinhood Chain mainnet. About two minutes, with voice.</p><button class="play" id="play" type="button">▶ Play the story</button><button class="quiet" id="quiet" type="button">Play without sound (subtitles only)</button></div></div>
 <div class="ctl"><button type="button" id="snd" hidden>🔊 Voice on</button><button type="button" id="again" hidden>↺ Play again</button></div>
 <div class="tip" id="tip" hidden></div>
+<div class="find"><small>HOLDER PASSPORT · FIND YOUR STAR</small><form id="ff"><input id="fa" placeholder="0x… your wallet address" spellcheck="false" autocomplete="off" aria-label="Wallet address"><button type="submit">Find</button></form><div class="err" id="fe"></div></div>
+<div class="pp" id="pp" hidden role="dialog" aria-label="Holder passport"><div class="k2" id="pk">REINPAY HOLDER PASSPORT</div><div class="ad" id="pa"></div><div class="big" id="pb"></div><dl id="pd"></dl><div class="bb"><button type="button" id="pdl">Download passport</button><button type="button" id="pcp">Copy link</button><button type="button" class="x" id="px" aria-label="Close">×</button></div></div>
 <script>
 // Reinpay Galaxy. Data: assets/chain/galaxy.json, written from every REINPAY Transfer log on Robinhood Chain mainnet by the
 // public on-chain job (holders, when each first received REINPAY, burns, holder count over time). Nothing is signed.
@@ -69,9 +83,9 @@
   const ARMS = 3, COLS = ["95,240,168", "122,167,255", "226,176,87"];
   const DUST = Array.from({ length: 2600 }, () => { const arm = Math.floor(rnd() * ARMS), r = Math.pow(rnd(), .7) * 15 + .6, a = arm * 2.094 + r * .42 + (rnd() - .5) * (.9 - r / 30), y = (rnd() - .5) * (1.1 - r / 18) * .9; return [Math.cos(a) * r, y, Math.sin(a) * r, arm, rnd()]; });
   const HOLE = [10.5, 0, 6.5];
-  let D = null, stars = [], rotY = .6, tilt = .52, drag = null, spin = RM ? 0 : .045;
+  let D = null, stars = [], rotY = .6, tilt = .52, drag = null, spin = RM ? 0 : .045, zoom = 1, panX = 0, panY = 0, focus = null, focusRot = null;
   function place(a, first, t0, t1) { const q = Math.min(1, Math.max(0, (first - t0) / Math.max(1, t1 - t0))), h = hash(a), arm = Math.floor(h * ARMS), r = 1.6 + Math.sqrt(q) * 11.5 + (hash(a + "r") - .5) * 1.4, ang = arm * 2.094 + r * .42 + (hash(a + "a") - .5) * .55; return [Math.cos(ang) * r, (hash(a + "y") - .5) * .7, Math.sin(ang) * r]; }
-  const proj = (x, y, z) => { const c = Math.cos(rotY), s = Math.sin(rotY), x1 = x * c - z * s, z1 = x * s + z * c, ct = Math.cos(tilt), st = Math.sin(tilt), y2 = y * ct - z1 * st, z2 = y * st + z1 * ct, k = F / (z2 + 34); return [W / 2 + x1 * k, H * .52 + y2 * k, k, z2]; };
+  const proj = (x, y, z) => { const c = Math.cos(rotY), s = Math.sin(rotY), x1 = x * c - z * s, z1 = x * s + z * c, ct = Math.cos(tilt), st = Math.sin(tilt), y2 = y * ct - z1 * st, z2 = y * st + z1 * ct, k = F * zoom / (z2 + 34); return [W / 2 + x1 * k + panX, H * .52 + y2 * k + panY, k, z2]; };
 
   // ---------- story state ----------
   let T = 0, story = null, live = false, burnsShown = 0, comets = [], flashes = [], speaking = false, mouth = 0;
@@ -84,7 +98,10 @@
   }
 
   function frame(now) {
-    const s = now / 1000; if (!drag) rotY += spin / 60;
+    const s = now / 1000;
+    if (focus && !drag) { if (focusRot !== null) { let d = ((focusRot - rotY + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; rotY += d * .06; if (Math.abs(d) < .002) focusRot = null; }
+      zoom += ((W < H ? 2.1 : 2.4) - zoom) * .05; const [fx, fy] = proj(...focus.p), tx = W < H ? W / 2 : W * .42, ty = W < H ? H * .3 : H * .5; panX += (tx - fx) * .08; panY += (ty - fy) * .08; }
+    else { zoom += (1 - zoom) * .05; panX *= .92; panY *= .92; if (!drag) rotY += spin / 60; }
     g.globalCompositeOperation = "source-over"; g.fillStyle = "#020406"; g.fillRect(0, 0, W, H);
     const neb = g.createRadialGradient(W / 2, H * .52, 0, W / 2, H * .52, Math.max(W, H) * .6); neb.addColorStop(0, "rgba(40,90,70,.28)"); neb.addColorStop(.5, "rgba(20,30,60,.12)"); neb.addColorStop(1, "rgba(2,4,6,0)"); g.fillStyle = neb; g.fillRect(0, 0, W, H);
     g.globalCompositeOperation = "lighter";
@@ -104,6 +121,10 @@
       if (!gone && age < 600 && !live) { g.strokeStyle = `rgba(${col},${1 - age / 600})`; g.lineWidth = 1.2; g.beginPath(); g.arc(px, py, r * 2 + age / 600 * 18, 0, 6.283); g.stroke(); }
       st.scr = [px, py, Math.max(6, r * 2)];
     }
+    if (focus && focus.scr) { const [fx, fy, fr] = focus.scr, pul = (s * 1.2) % 1; g.globalCompositeOperation = "source-over";
+      for (let k = 0; k < 2; k++) { const q = (pul + k * .5) % 1; g.strokeStyle = `rgba(255,236,170,${1 - q})`; g.lineWidth = 2; g.beginPath(); g.arc(fx, fy, fr + 6 + q * 46, 0, 6.283); g.stroke(); }
+      g.strokeStyle = "#ffe9a8"; g.lineWidth = 1.5; g.beginPath(); g.moveTo(fx + fr + 8, fy - fr - 8); g.lineTo(fx + 60, fy - 54); g.lineTo(fx + 120, fy - 54); g.stroke();
+      g.fillStyle = "#ffe9a8"; g.font = '700 15px "Familjen Grotesk"'; g.fillText("YOU · " + focus.a.slice(0, 6) + "…" + focus.a.slice(-4), fx + 64, fy - 60); g.globalCompositeOperation = "lighter"; }
     // the black hole: the dead address, growing with the total burned
     if (D) { const burned = D.burns.filter((b) => b.time <= t).reduce((a, b) => a + M(b.amount), 0), [hx, hy, hk] = proj(...HOLE), R = hk * (.35 + Math.sqrt(burned / 2e7) * .9);
       g.globalCompositeOperation = "source-over"; for (let i = 0; i < 3; i++) { g.strokeStyle = `rgba(255,${150 - i * 30},70,${.5 - i * .13})`; g.lineWidth = 2 - i * .5; g.beginPath(); g.ellipse(hx, hy, R * (1.9 + i * .5), R * (.55 + i * .16), Math.sin(s * .3) * .1, 0, 6.283); g.stroke(); }
@@ -132,7 +153,7 @@
   }
 
   // ---------- drag to turn, hover a star ----------
-  cv.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY, rotY, tilt]; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointerdown", (e) => { focusRot = null; drag = [e.clientX, e.clientY, rotY, tilt]; cv.setPointerCapture(e.pointerId); });
   cv.addEventListener("pointermove", (e) => {
     if (drag) { rotY = drag[2] + (e.clientX - drag[0]) * .006; tilt = Math.max(.12, Math.min(1.25, drag[3] + (e.clientY - drag[1]) * .004)); return; }
     let best = null, bd = 1e9; for (const st of stars) { if (!st.scr || st.first > (live ? D.now : T)) continue; const d = Math.hypot(st.scr[0] - e.clientX, st.scr[1] - e.clientY); if (d < Math.max(10, st.scr[2]) && d < bd) { bd = d; best = st; } }
@@ -196,12 +217,50 @@
   $("snd").onclick = () => { voiceOn = !voiceOn; if (!voiceOn && "speechSynthesis" in window) speechSynthesis.cancel(); $("snd").textContent = voiceOn ? "🔊 Voice on" : "🔇 Voice off"; };
 
   // ---------- data ----------
+  // ---------- Holder Passport: find a wallet's star, fly to it, and make a card from the same data ----------
+  let ranked = [], ever = [];
+  const day = (t) => new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) + ", " + utc(t) + " UTC";
+  function passport(addr) {
+    const a = addr.trim().toLowerCase(); $("fe").textContent = "";
+    if (!/^0x[0-9a-f]{40}$/.test(a)) { $("fe").textContent = "Paste a full 0x… address (42 characters)."; return; }
+    if (!D) { $("fe").textContent = "Still loading the galaxy, try again in a second."; return; }
+    const st = stars.find((x) => x.a === a);
+    if (!st) { $("fe").textContent = `This address had not held REINPAY as of ${utc(D.now, true)} UTC.`; return; }
+    if (story) { story = null; if ("speechSynthesis" in window) speechSynthesis.cancel(); $("again").hidden = false; } goLive();
+    focus = st; const ang = Math.atan2(st.p[2], st.p[0]); focusRot = -Math.PI / 2 - ang;
+    const holder = !st.left, rank = ranked.indexOf(st) + 1, nth = ever.indexOf(st) + 1;
+    $("pk").textContent = holder ? "REINPAY HOLDER PASSPORT" : "REINPAY PASSPORT · FORMER HOLDER";
+    $("pa").textContent = a.slice(0, 6) + "…" + a.slice(-4) + (st.left ? "" : st.contract ? " · contract" : " · wallet");
+    $("pb").innerHTML = holder ? `Holder <em>#${rank}</em> of ${ranked.length}` : `Star <em>#${nth}</em> of ${ever.length}`;
+    const rows = holder ? [["First held", day(st.first)], ["Wallet number", `#${nth} of ${ever.length} ever`], ["Share of supply", st.pct.toFixed(st.pct < .01 ? 4 : 2) + "%"], ["Data as of", day(D.now)]]
+      : [["Held REINPAY", day(st.first)], ["Moved on", day(st.left)], ["Wallet number", `#${nth} of ${ever.length} ever`], ["Data as of", day(D.now)]];
+    $("pd").innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(""); $("pp").hidden = false; $("pp").dataset.a = a;
+    try { history.replaceState(null, "", "?a=" + a); } catch {}
+  }
+  $("ff").onsubmit = (e) => { e.preventDefault(); passport($("fa").value); };
+  $("px").onclick = () => { $("pp").hidden = true; focus = null; focusRot = null; try { history.replaceState(null, "", location.pathname); } catch {} };
+  $("pcp").onclick = async () => { const u = location.origin + location.pathname + "?a=" + $("pp").dataset.a; try { await navigator.clipboard.writeText(u); $("pcp").textContent = "Copied"; } catch { $("pcp").textContent = "Copy failed"; } setTimeout(() => ($("pcp").textContent = "Copy link"), 1500); };
+  $("pdl").onclick = async () => {
+    await document.fonts.ready; const c = document.createElement("canvas"); c.width = 3200; c.height = 1800; const x = c.getContext("2d"); x.scale(2, 2);
+    x.fillStyle = "#020406"; x.fillRect(0, 0, 1600, 900); const sc = Math.max(1600 / W, 900 / H); x.drawImage(cv, (1600 - W * sc) / 2 + 260, (900 - H * sc) / 2, W * sc, H * sc);
+    let gr = x.createLinearGradient(0, 0, 900, 0); gr.addColorStop(0, "rgba(2,4,6,.99)"); gr.addColorStop(.7, "rgba(2,4,6,.93)"); gr.addColorStop(1, "rgba(2,4,6,0)"); x.fillStyle = gr; x.fillRect(0, 0, 1000, 900);
+    x.fillStyle = "#e2b057"; x.font = '600 22px "IBM Plex Mono"'; x.fillText($("pk").textContent, 80, 130);
+    x.fillStyle = "#8aa597"; x.font = '600 26px "IBM Plex Mono"'; x.fillText($("pa").textContent, 80, 180);
+    const big = $("pb").textContent, m = big.match(/#\d+/)[0], [b0, b1] = big.split(m); x.font = '700 92px "Familjen Grotesk"'; let xx = 80; x.fillStyle = "#e3ebe5"; x.fillText(b0, xx, 300); xx += x.measureText(b0).width; x.fillStyle = "#5ff0a8"; x.fillText(m, xx, 300); xx += x.measureText(m).width; x.fillStyle = "#e3ebe5"; x.fillText(b1, xx, 300);
+    [...$("pd").querySelectorAll("dt")].forEach((dt, i) => { const y = 400 + i * 62; x.fillStyle = "#6f8a7d"; x.font = '500 24px "IBM Plex Mono"'; x.fillText(dt.textContent, 80, y); x.fillStyle = "#e3ebe5"; x.font = '600 28px "IBM Plex Mono"'; x.fillText(dt.nextElementSibling.textContent, 380, y); x.strokeStyle = "rgba(95,240,168,.15)"; x.beginPath(); x.moveTo(80, y + 22); x.lineTo(820, y + 22); x.stroke(); });
+    x.fillStyle = "#6f8a7d"; x.font = '500 18px "IBM Plex Mono"'; x.fillText("Read from every REINPAY Transfer on Robinhood Chain mainnet · nothing signed", 80, 720);
+    x.fillStyle = "#5ff0a8"; x.font = '700 30px "Familjen Grotesk"'; x.fillText("reinpay.app/galaxy", 80, 820); x.fillStyle = "#e2b057"; x.font = '600 22px "IBM Plex Mono"'; x.fillText("Find your star", 380, 818);
+    const l = document.createElement("a"); l.download = `reinpay-passport-${$("pp").dataset.a.slice(2, 8)}.png`; l.href = c.toDataURL("image/png"); l.click();
+  };
+
   fetch("../assets/chain/galaxy.json?t=" + Date.now()).then((r) => r.json()).then((d) => {
     D = d; D.now = Math.max(d.series.at(-1)[0], Math.floor(Date.parse(d.at) / 1000)); const t0 = d.deploy.time;
     const sup = 1e9, top = d.holders[0]?.a;
     stars = d.holders.map((h) => { const pct = M(h.bal) / sup * 100; return { a: h.a, first: h.first, contract: h.contract, pct, size: .05 + Math.sqrt(pct) * .11, col: h.a === top ? "226,176,87" : h.contract ? "122,167,255" : "95,240,168", ph: hash(h.a) * 6.28, p: place(h.a, h.first, t0, D.now) }; })
       .concat(d.former.map((f) => ({ a: f.a, first: f.first, left: f.left, contract: false, pct: 0, size: .05, col: "95,240,168", ph: hash(f.a) * 6.28, p: place(f.a, f.first, t0, D.now) })));
-    T = d.deploy.time - 60; goLive(); $("start").hidden = false;
+    ranked = stars.filter((x) => !x.left).sort((p, q) => q.pct - p.pct); ever = [...stars].sort((p, q) => p.first - q.first || (p.a < q.a ? -1 : 1));
+    T = d.deploy.time - 60; goLive();
+    const qa = new URLSearchParams(location.search).get("a"); if (qa) { $("fa").value = qa; passport(qa); } else $("start").hidden = false;
   }).catch(() => { $("mode").textContent = "COULD NOT LOAD THE GALAXY DATA"; });
   requestAnimationFrame(frame);
 })();
