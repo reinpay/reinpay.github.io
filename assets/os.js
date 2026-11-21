@@ -2,6 +2,7 @@
 // (the same files as the wallet, copied unchanged into assets/check), and an illustrative mission control.
 import { decide, findPayee, parseAmount } from "./check/rules.js";
 import { ROWS, WEATHER, GPU, USDG } from "./check/labcore.js";
+import { makeTypist } from "./typist.js";
 if (document.getElementById("net")) {
 const $ = (i) => document.getElementById(i), sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -16,6 +17,7 @@ const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const BOX = { head: [196, 68, 404, 210], neck: [276, 206, 324, 238], torso: [210, 226, 390, 438], armL: [156, 242, 236, 458], armR: [364, 242, 444, 458] };
   const t = document.createElement("canvas").getContext("2d"); let s = 9; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647; const dots = [];
   for (const [k, d] of Object.entries(SH)) { const p = new Path2D(d), [x0, y0, x1, y1] = BOX[k]; let m = 0, c = 0; while (m < (k === "head" ? 900 : 700) && c < 60000) { c++; const x = x0 + rnd() * (x1 - x0), y = y0 + rnd() * (y1 - y0); if (!t.isPointInPath(p, x, y)) continue; if (k === "head" && x > 214 && x < 386 && y > 84 && y < 194) continue; let e = 0; for (const [a, b] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) if (!t.isPointInPath(p, x + a, y + b)) e++; if (!e && rnd() > .45) continue; dots.push({ x, y, e: e > 0, ph: rnd() * 6.28 }); m++; } }
+  const typist = makeTypist();
   const pulses = Array.from({ length: 14 }, () => ({ n: Math.floor(Math.random() * N.length), t: Math.random(), sp: .004 + Math.random() * .006 }));
   const COL = { a: "#7aa7ff", r: "#5ff0a8", s: "#5ff0a8", o: "#e2b057", c: "#e2b057" };
   const LINES = ["> 4663 mainnet", "> rules sealed ok", "> waits for your yes", "> simulate first"];
@@ -29,15 +31,29 @@ const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
     for (const p of pulses) { if (!RM) p.t += p.sp; if (p.t > 1) { p.t = 0; p.n = Math.floor(Math.random() * N.length); } const [x, y] = pos[p.n], q = p.t, mx = (cx + x) / 2 + (y - cy) * .15, my = (cy + y) / 2 - (x - cx) * .15; const px = (1 - q) * (1 - q) * x + 2 * (1 - q) * q * mx + q * q * cx, py = (1 - q) * (1 - q) * y + 2 * (1 - q) * q * my + q * q * cy; g.fillStyle = COL[N[p.n][3]]; g.shadowColor = g.fillStyle; g.shadowBlur = 10; g.beginPath(); g.arc(px, py, 2.4, 0, 6.283); g.fill(); g.shadowBlur = 0; }
     g.font = '500 11px "IBM Plex Mono", monospace';
     N.forEach(([name, , , k], i) => { const [x, y] = pos[i], c = COL[k]; g.strokeStyle = c; g.lineWidth = 1.5; g.fillStyle = "#070b09"; if (k === "a") { g.beginPath(); g.moveTo(x, y - 7); g.lineTo(x + 7, y); g.lineTo(x, y + 7); g.lineTo(x - 7, y); g.closePath(); g.fill(); g.stroke(); } else if (k === "r" || k === "s") { g.fillRect(x - 6, y - 6, 12, 12); g.strokeRect(x - 6, y - 6, 12, 12); } else { g.beginPath(); g.arc(x, y, 6, 0, 6.283); g.fill(); g.stroke(); } g.fillStyle = "rgba(200,220,210,.75)"; g.fillText(name, x + 12, y + 4); });
-    const S = Math.min(W * (wide ? .55 : 1), H) / 900, ox = cx - 300 * S, oy = cy - 260 * S, br = Math.sin(sec * 1.6) * 1.5;
-    g.fillStyle = "rgba(7,11,9,.85)"; g.beginPath(); g.arc(cx, cy - 40 * S, 190 * S, 0, 6.283); g.fill();
-    for (const d of dots) { const r = (d.e ? 1.1 : .8) * Math.max(.8, S * 1.2); g.fillStyle = d.e ? "rgba(200,240,220,.9)" : "rgba(170,210,190,.55)"; g.fillRect(ox + d.x * S + Math.sin(sec * 1.2 + d.ph) * .6 - r, oy + (d.y + br) * S - r, r * 2, r * 2); }
-    const X = (x) => ox + x * S, Y = (y) => oy + (y + br) * S;
-    g.fillStyle = "rgba(5,20,12,.95)"; g.fillRect(X(214), Y(84), 172 * S, 110 * S);
-    const blink = (sec % 4) < .12, eh = (blink ? 2 : 18) * S; g.fillStyle = "#5ff0a8"; g.shadowColor = "#5ff0a8"; g.shadowBlur = 14; g.fillRect(X(262), Y(118) - eh / 2, 18 * S, eh); g.fillRect(X(320), Y(118) - eh / 2, 18 * S, eh); g.shadowBlur = 0;
-    if (S > .55) { g.font = `500 ${Math.max(7, 9 * S)}px "IBM Plex Mono", monospace`; g.fillStyle = "rgba(95,240,168,.8)"; const b = Math.floor(sec / 2) % LINES.length; g.fillText(LINES[b], X(224), Y(165)); g.fillText(LINES[(b + 1) % LINES.length], X(224), Y(180)); }
-    g.strokeStyle = "#5ff0a8"; g.lineWidth = 1.5; g.strokeRect(X(214), Y(84), 172 * S, 110 * S);
-    g.fillStyle = "#cfe9dc"; g.font = '600 11px "IBM Plex Mono", monospace'; g.textAlign = "center"; g.fillText("REINPAY INTELLIGENCE", cx, Y(470)); g.textAlign = "left";
+    const cx0 = cx;
+    {
+    // Reinpay Intelligence at work: seated at its desk, typing
+    const size = Math.min(W * (wide ? .56 : 1.02), H * 1.3), cx = cx0 + (wide ? W * .035 : 0);
+    const tsec = RM ? 2 : sec;
+    let glow = g.createRadialGradient(cx, cy, 0, cx, cy, size * .55); glow.addColorStop(0, "rgba(7,11,9,.9)"); glow.addColorStop(.7, "rgba(7,11,9,.7)"); glow.addColorStop(1, "rgba(7,11,9,0)"); g.fillStyle = glow; g.fillRect(cx - size * .6, cy - size * .6, size * 1.2, size * 1.2);
+    // orbits around Reinpay Intelligence: back halves behind the scene, front halves over it, with moving lights
+    const ORB = [[.46, .15, -.14, .35, "95,240,168", .95], [.5, .19, .1, -.22, "122,167,255", .8], [.42, .11, -.36, .5, "226,176,87", .75]];
+    const orbit = (front) => ORB.forEach(([rx, ry, tilt, sp, col, a], i) => {
+      g.save(); g.translate(cx, cy + size * .02); g.rotate(tilt + Math.sin(tsec * .2 + i) * .04);
+      const arc = () => { g.beginPath(); g.ellipse(0, 0, size * rx, size * ry, 0, front ? 0 : Math.PI, front ? Math.PI : Math.PI * 2); };
+      // soft halo, then the bright core line
+      g.strokeStyle = `rgba(${col},${front ? .22 : .1})`; g.lineWidth = front ? 9 : 6; arc(); g.stroke();
+      g.strokeStyle = `rgba(${col},${front ? a : a * .5})`; g.lineWidth = front ? 2.4 : 1.4; g.shadowColor = `rgb(${col})`; g.shadowBlur = front ? 24 : 10; arc(); g.stroke(); g.shadowBlur = 0;
+      for (let k = 0; k < 2; k++) { const t = tsec * sp + k * Math.PI + i, inFront = Math.sin(t) > 0; if (inFront !== front) continue;
+        const ox2 = Math.cos(t) * size * rx, oy2 = Math.sin(t) * size * ry; g.fillStyle = `rgba(${col},.25)`; g.beginPath(); g.arc(ox2, oy2, front ? 11 : 6, 0, 6.283); g.fill(); g.fillStyle = "#fff"; g.shadowColor = `rgb(${col})`; g.shadowBlur = 26; g.beginPath(); g.arc(ox2, oy2, front ? 4.5 : 2.8, 0, 6.283); g.fill(); g.shadowBlur = 0; }
+      g.restore();
+    });
+    orbit(false);
+    typist(g, cx, cy, size, tsec);
+    orbit(true);
+    g.fillStyle = "#cfe9dc"; g.font = '600 11px "IBM Plex Mono", monospace'; g.textAlign = "center"; g.fillText("REINPAY INTELLIGENCE · AT WORK", cx, cy + size * .34); g.textAlign = "left";
+    }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
