@@ -148,7 +148,7 @@ async function quote(m) {
 
 // ---------- the engine (unchanged rules from the Trading Desk) ----------
 const side = (m) => (m.cost / 2) / 100 + REINPAY_FEE;
-function equity() { let v = B.usd; for (const p of Object.values(B.pos)) { const m = M.find((x) => x.s === p.s); v += p.qty * (m?.live ?? p.entry) * (1 - (m ? side(m) : .005)); } return v; }
+function equity() { let v = B.usd; for (const p of Object.values(B.pos)) { const m = M.find((x) => x.s === p.s); v += p.val != null ? p.val : p.qty * (m?.live ?? p.entry) * (1 - (m ? side(m) : .005)); } return v; }
 async function decide(m, c, prev) { // runs once per market per hourly close, exactly like step() on the Trading Desk
   const r = RULES, d = dayRec(), eq = equity(); RT.stage = "signal";
   const dd = (eq - d.startEq) / d.startEq;
@@ -179,8 +179,13 @@ async function decide(m, c, prev) { // runs once per market per hourly close, ex
 function block(m, why) { m.state = "BLOCK"; B.blocked++; say("risk", `${m.s} blocked · ${why}`, "warn"); log("risk", "BLOCKED", `${m.s} · ${why}`); }
 async function keep() { // take profit / stop loss on every live quote
   RT.stage = "keep"; const list = Object.values(B.pos); if (!list.length) { say("keep", "no open positions"); return; }
-  for (const p of list) { const m = M.find((x) => x.s === p.s); if (!m) continue; const ch = (m.live - p.entry) / p.entry; p.now = m.live;
-    if (ch >= RULES.tp / 100) await sell(p, m, `take profit +${(ch * 100).toFixed(2)}%`); else if (ch <= -RULES.sl / 100) await sell(p, m, `stop loss ${(ch * 100).toFixed(2)}%`); }
+  // a position is worth what selling exactly it would return right now (a real KyberSwap quote for its size), so take
+  // profit and stop loss always match the money that would come back, costs included
+  for (const p of list) { const m = M.find((x) => x.s === p.s); if (!m) continue;
+    if (!p.qAt || now() - p.qAt > 15000) { try { const raw = p.raw ? BigInt(p.raw) : BigInt(Math.floor(p.qty * 10 ** Math.min(m.dec, 15))) * 10n ** BigInt(Math.max(0, m.dec - 15));
+        const q = await (await fetch(`${K}/routes?tokenIn=${m.a}&tokenOut=${USDG}&amountIn=${raw}`, { headers: { "x-client-id": CID } })).json(); if (q.code === 0) { p.val = Number(BigInt(q.data.routeSummary.amountOut)) / 1e6; p.qAt = now(); } } catch {} }
+    if (p.val == null) continue; const ch = p.val / p.cost - 1; p.now = m.live; p.ch = ch;
+    if (ch >= RULES.tp / 100) await sell(p, m, `take profit: selling returns ${usd(p.val)} for ${usd(p.cost)} (+${(ch * 100).toFixed(2)}%)`); else if (ch <= -RULES.sl / 100) await sell(p, m, `stop loss: selling returns ${usd(p.val)} for ${usd(p.cost)} (${(ch * 100).toFixed(2)}%)`); }
   say("keep", `${Object.keys(B.pos).length} open · sells at +${RULES.tp}% or −${RULES.sl}%`); saveBook();
 }
 
@@ -303,11 +308,11 @@ function ui() {
   if (fm) { $("focus").innerHTML = `<b style="color:#e3ebe5">${esc(fm.s)}</b> · ${fmtP(fm.live)} · ${fp ? "open position" : fm.state === "SIGNAL" ? "signal" : "watching"}`; line($("spark"), fm.trail.slice(-120), fp ? "#5ff0a8" : "#7aa7ff"); $("fnote").textContent = fm.sigText || "waits for the hourly close"; }
   $("mM").textContent = M.length; $("mB").textContent = B.blocked; $("mL").textContent = B.log.length; const pnlToday = eq - d.startEq; $("mD").textContent = (pnlToday >= 0 ? "+" : "") + usd(pnlToday); $("mD").className = pnlToday >= 0 ? "w" : "l";
   const c = B.closed[0];
-  if (fp) { const g = fm ? (fm.live / fp.entry - 1) * 100 : 0; $("trSt").innerHTML = '<span class="w">OPEN</span>'; $("trade").innerHTML = `<div class="sym">${esc(fp.s)} <span class="${g >= 0 ? "w" : "l"}" style="font-size:15px">${g >= 0 ? "+" : ""}${g.toFixed(2)}% live</span></div><table><tr><td>entry</td><td>${fmtP(fp.entry)}</td></tr><tr><td>now</td><td>${fmtP(fm?.live)}</td></tr><tr><td>size</td><td>${usd(fp.cost)}</td></tr><tr><td>exits</td><td>+${RULES.tp}% / −${RULES.sl}%</td></tr><tr><td>tx</td><td>${fp.tx === "paper" ? "paper" : `<a target="_blank" href="${EXP}/tx/${fp.tx}">explorer</a>`}</td></tr></table>`; }
+  if (fp) { const g = fp.ch != null ? fp.ch * 100 : 0; $("trSt").innerHTML = '<span class="w">OPEN</span>'; $("trade").innerHTML = `<div class="sym">${esc(fp.s)} <span class="${g >= 0 ? "w" : "l"}" style="font-size:15px">${g >= 0 ? "+" : ""}${g.toFixed(2)}% live</span></div><table><tr><td>entry</td><td>${fmtP(fp.entry)}</td></tr><tr><td>now</td><td>${fmtP(fm?.live)}</td></tr><tr><td>size</td><td>${usd(fp.cost)}</td></tr><tr><td>exits</td><td>+${RULES.tp}% / −${RULES.sl}%</td></tr><tr><td>tx</td><td>${fp.tx === "paper" ? "paper" : `<a target="_blank" href="${EXP}/tx/${fp.tx}">explorer</a>`}</td></tr></table>`; }
   else if (c) { $("trSt").innerHTML = `<span class="${c.pnl >= 0 ? "w" : "l"}">CLOSED</span>`; $("trade").innerHTML = `<div class="sym">${esc(c.s)} <span class="${c.pnl >= 0 ? "w" : "l"}" style="font-size:15px">${c.pnl >= 0 ? "+" : ""}${usd(c.pnl)}</span></div><table><tr><td>size</td><td>${usd(c.cost)}</td></tr><tr><td>back</td><td>${usd(c.got)}</td></tr><tr><td>reason</td><td>${esc(c.why)}</td></tr><tr><td>mode</td><td>${c.mode}</td></tr></table>`; }
   $("tail").innerHTML = B.log.slice(0, 11).map((l) => `<div>${new Date(l.t).toTimeString().slice(0, 5)} ${l.kind.padEnd(7, " ")} ${esc(l.text)}</div>`).join("") || '<div class="muted">waiting for the first decision…</div>'; $("nl").textContent = B.log.length + " lines";
   line($("eqc"), B.eq.slice(-300), "#b48cff"); const e0 = B.eq[0]?.[1], e1 = B.eq.at(-1)?.[1]; $("r0").textContent = usd(e0); $("r1").textContent = usd(e1); $("r2").innerHTML = e0 ? `<b class="${e1 >= e0 ? "w" : "l"}">${e1 >= e0 ? "+" : ""}${((e1 / e0 - 1) * 100).toFixed(2)}%</b>` : ""; $("resMode").textContent = live ? "real money" : "paper";
-  $("pos").innerHTML = Object.values(B.pos).map((p) => { const m = M.find((x) => x.s === p.s), g = m ? (m.live / p.entry - 1) * 100 : 0; return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #12201a"><b>${esc(p.s)}</b><span>${usd(p.cost)}</span><span class="${g >= 0 ? "w" : "l"}">${g >= 0 ? "+" : ""}${g.toFixed(2)}%</span></div>`; }).join("") || '<span class="muted">none</span>';
+  $("pos").innerHTML = Object.values(B.pos).map((p) => { const g = p.ch != null ? p.ch * 100 : 0; return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #12201a"><b>${esc(p.s)}</b><span>${usd(p.cost)}</span><span class="${g >= 0 ? "w" : "l"}">${g >= 0 ? "+" : ""}${g.toFixed(2)}%</span></div>`; }).join("") || '<span class="muted">none</span>';
   $("log").innerHTML = B.log.map((l) => `<div><span class="muted">${new Date(l.t).toTimeString().slice(0, 8)}</span><span class="tag ${l.kind}">${l.kind}</span><span>${esc(l.text)}</span></div>`).join("");
 }
 const hourMove = (m) => { const c = m.candles.at(-1); return c ? (m.live - c.o) / c.o : 0; };
