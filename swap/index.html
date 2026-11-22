@@ -49,6 +49,10 @@
   .plan { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 4px; }
   .plan div { border: 1px solid rgba(226,176,87,.4); padding: 12px; font-size: 12.5px; line-height: 1.5; color: var(--dim); }
   .plan b { display: block; color: var(--gold); font-size: 11px; letter-spacing: .14em; margin-bottom: 4px; }
+  .conn { flex: none; font: 700 14px "Familjen Grotesk"; color: var(--g); background: transparent; border: 1px solid var(--g); padding: 0 14px; cursor: pointer; }
+  .swap.on { color: #04130b; background: var(--gold); border: 0; cursor: pointer; }
+  .yes { font: 700 16px "Familjen Grotesk"; color: #04130b; background: var(--g); border: 0; padding: 12px 18px; cursor: pointer; margin-right: 8px; } .no2 { font: 600 13px "IBM Plex Mono"; color: var(--dim); background: none; border: 1px solid var(--line); padding: 11px 14px; cursor: pointer; }
+  .steps { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; font-size: 13px; } .steps li { padding: 10px 12px; border: 1px solid rgba(226,176,87,.35); }
   .err { color: var(--bad); font-size: 13px; margin-top: 10px; min-height: 1em; }
   a { color: var(--g); }
   @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .plan { grid-template-columns: 1fr 1fr; } .rules { grid-template-columns: 1fr 1fr 1fr; } }
@@ -60,7 +64,7 @@
     <div><div class="k">REINPAY SWAP · ROBINHOOD CHAIN MAINNET</div><h1>Swap inside <em>your rules.</em></h1>
       <p class="lede">A real quote, Reinpay's rules and a mainnet simulation of the exact transaction, before anything is signed. $REINPAY swaps route through the existing pool.</p>
       <a class="back" href="/">← reinpay.app</a></div>
-    <div class="tag">PREVIEW · NOTHING IS SIGNED</div>
+    <div class="tag" id="tag">NOTHING IS SIGNED WITHOUT YOUR YES</div>
   </div>
 
   <div class="grid">
@@ -77,11 +81,11 @@
         <div><input id="slip" inputmode="decimal" value="1" aria-label="Slippage cap percent"><div class="hint">slippage cap %</div></div>
         <div><input id="impact" inputmode="decimal" value="5" aria-label="Max price impact percent"><div class="hint">max price impact %</div></div>
       </div>
-      <label for="addr">YOUR ADDRESS (OPTIONAL, FOR THE SIMULATION)</label>
-      <input id="addr" placeholder="0x… leave empty to use a test address" spellcheck="false">
-      <div class="hint">Read only. Your address is only used to simulate; nothing is sent to your wallet and nothing is signed.</div>
+      <label for="addr">YOUR WALLET</label>
+      <div class="row"><input id="addr" placeholder="0x… or connect your wallet" spellcheck="false"><button class="conn" type="button" id="conn">Connect</button></div>
+      <div class="hint" id="whint">Without a wallet this is read only: an address is only used to simulate, with a public test address if left empty.</div>
       <button class="go" id="go" type="submit">Get quote and simulate</button>
-      <button class="swap" type="button" disabled>Swap · in development</button>
+      <button class="swap" type="button" id="swap" disabled>Swap · connect a wallet and simulate first</button>
       <div class="err" id="err"></div>
     </form>
 
@@ -89,91 +93,162 @@
       <div class="card" id="qcard"><h2>QUOTE</h2><p class="muted">Enter an amount and press <b>Get quote and simulate</b>. The quote comes from the KyberSwap aggregator on Robinhood Chain mainnet.</p></div>
       <div class="card"><h2>REINPAY CHECKS</h2><ul class="checks" id="checks"><li><b class="wait">·</b><b>Waiting for a quote</b><span></span></li></ul></div>
       <div class="card" id="scard"><h2>MAINNET SIMULATION · ETH_SIMULATEV1</h2><p class="muted">The exact transaction is run against the latest Robinhood Chain mainnet block. If it fails here, it would never be signed.</p></div>
-      <div class="card"><h2>PLANNED · SWAP FEE → BUYBACK → BURN</h2>
-        <p class="muted" style="margin-bottom:12px">Not live. Fee size and launch date are not set yet. When it ships, every buyback and burn will be on chain and tracked here.</p>
+      <div class="card" id="review" hidden></div>
+      <div class="card"><h2 id="planh">SWAP FEE → BUYBACK → BURN</h2>
+        <p class="muted" style="margin-bottom:12px" id="plann"></p>
         <div class="plan"><div><b>01 SWAP</b>you swap inside your rules</div><div><b>02 FEE</b>a small fee to a public wallet</div><div><b>03 BUYBACK</b>buy $REINPAY through the existing pool</div><div><b>04 BURN</b>send it to 0x…dEaD</div></div>
       </div>
     </div>
   </div>
 </div>
 <script>
-// Reinpay Swap preview. Quote and calldata: KyberSwap aggregator (Robinhood Chain). Simulation: eth_simulateV1 on the public
-// Robinhood Chain mainnet RPC. Nothing here asks a wallet for anything and nothing is signed.
+// Reinpay Swap. Quote and calldata: KyberSwap aggregator (Robinhood Chain), always routed by the aggregator, which sends
+// REINPAY swaps through the existing pool. Every swap is simulated with eth_simulateV1 on Robinhood Chain mainnet from the
+// real wallet first; the wallet is only asked to sign after the owner presses "Yes". Approvals are exact, never unlimited.
 (() => {
-  const K = "https://aggregator-api.kyberswap.com/robinhood/api/v1", RPC = "https://rpc.mainnet.chain.robinhood.com", CID = "reinpay";
+  const K = "https://aggregator-api.kyberswap.com/robinhood/api/v1", RPC = "https://rpc.mainnet.chain.robinhood.com", CID = "reinpay", EXP = "https://robinhoodchain.blockscout.com";
+  const CHAIN = { hex: "0x1237", name: "Robinhood Chain", rpc: RPC, explorer: EXP };
+  // Reinpay fee: 0.2%, always taken in ETH when ETH is on either side, sent to a public wallet used only for buyback and burn.
+  // Until FEE_WALLET is set, quotes carry no fee and real swaps stay closed.
+  const FEE_BPS = 20, FEE_WALLET = "0xc651fc557130be361a8b45a7ed19405dd06d9317";
   const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", TEST = "0x1111111111111111111111111111111111111111";
   const T = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", PONS = "0x5b0e4f5072b356ae8edba9b3677e75c8bada86d9";
   const TOK = { ETH: { a: ETH, d: 18, budget: "0.05", amt: "0.01" }, REINPAY: { a: "0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3", d: 18, budget: "1000000", amt: "100000" }, USDG: { a: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", d: 6, budget: "100", amt: "10" } };
-  const $ = (id) => document.getElementById(id);
+  const $ = (id) => document.getElementById(id), LIVE = !!FEE_WALLET;
+  $("plann").textContent = LIVE ? `${FEE_BPS / 100}% of every swap goes to the public fee wallet ${FEE_WALLET.slice(0, 6)}…${FEE_WALLET.slice(-4)}, used only to buy back REINPAY through the existing pool and burn it. Every buyback and burn is on chain.` : "Not live yet: the public fee wallet is not set. When it is, every buyback and burn will be on chain and tracked here.";
   for (const s of ["tin", "tout"]) for (const k of Object.keys(TOK)) $(s).add(new Option(k, k));
   $("tin").value = "ETH"; $("tout").value = "REINPAY";
-  const setIn = () => { const t = TOK[$("tin").value]; $("budget").value = t.budget; $("amt").value = t.amt; $("est").value = "…"; };
+  const reset = () => { $("est").value = "…"; plan = null; swapBtn(); $("review").hidden = true; };
+  const setIn = () => { const t = TOK[$("tin").value]; $("budget").value = t.budget; $("amt").value = t.amt; reset(); };
   $("tin").onchange = () => { if ($("tin").value === $("tout").value) $("tout").value = $("tin").value === "REINPAY" ? "ETH" : "REINPAY"; setIn(); };
-  $("tout").onchange = () => { $("est").value = "…"; };
+  $("tout").onchange = reset; for (const id of ["amt", "budget", "slip", "impact", "addr"]) $(id).addEventListener("input", reset);
   $("flip").onclick = () => { const a = $("tin").value; $("tin").value = $("tout").value; $("tout").value = a; setIn(); };
   const units = (s, d) => { s = String(s).trim(); if (!/^\d*\.?\d*$/.test(s) || s === "" || s === ".") return null; const [i, f = ""] = s.split("."); return BigInt(i || "0") * 10n ** BigInt(d) + BigInt((f + "0".repeat(d)).slice(0, d) || "0"); };
   const show = (raw, d, dp = 4) => { const v = Number(BigInt(raw) * 10n ** 6n / 10n ** BigInt(d)) / 1e6; return v.toLocaleString("en-US", { maximumFractionDigits: v >= 1000 ? 2 : v < 1 ? 6 : dp }); };
-  const pad = (a) => a.slice(2).toLowerCase().padStart(64, "0");
+  const pad = (a) => a.slice(2).toLowerCase().padStart(64, "0"), short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
   async function rpc(method, params) { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) }); const j = await r.json(); if (j.error) throw new Error(j.error.message || "RPC error"); return j.result; }
-  const quote = async (tin, tout, amt) => { const r = await fetch(`${K}/routes?tokenIn=${tin}&tokenOut=${tout}&amountIn=${amt}`, { headers: { "x-client-id": CID } }); const j = await r.json(); if (j.code !== 0 || !j.data) throw new Error(j.message || "no route"); return j.data; };
+  const feeQ = (A, B) => !LIVE ? "" : `&feeAmount=${FEE_BPS}&isInBps=true&feeReceiver=${FEE_WALLET}&chargeFeeBy=${A.a === ETH ? "currency_in" : B.a === ETH ? "currency_out" : "currency_in"}`;
+  const quote = async (A, B, amt, fee = true) => { const r = await fetch(`${K}/routes?tokenIn=${A.a}&tokenOut=${B.a}&amountIn=${amt}${fee ? feeQ(A, B) : ""}`, { headers: { "x-client-id": CID } }); const j = await r.json(); if (j.code !== 0 || !j.data) throw new Error(j.message || "no route"); return j.data; };
+  const build = async (rs, me, slip) => { const r = await fetch(`${K}/route/build`, { method: "POST", headers: { "content-type": "application/json", "x-client-id": CID }, body: JSON.stringify({ routeSummary: rs, sender: me, recipient: me, slippageTolerance: Math.round(slip * 100) }) }); const j = await r.json(); if (j.code !== 0 || !j.data) throw new Error(j.message || "could not build the swap"); return j.data; };
   const li = (st, title, note) => `<li><b class="${st}">${st === "ok" ? "✓" : st === "no" ? "✗" : "·"}</b><b>${title}</b><span>${note || ""}</span></li>`;
 
-  $("f").onsubmit = async (e) => {
-    e.preventDefault(); $("err").textContent = "";
-    const A = TOK[$("tin").value], B = TOK[$("tout").value];
-    if (A === B) { $("err").textContent = "Pick two different tokens."; return; }
-    const amt = units($("amt").value, A.d), budget = units($("budget").value, A.d), slip = Number($("slip").value), maxImp = Number($("impact").value);
-    if (!amt || amt <= 0n) { $("err").textContent = "Enter an amount to pay."; return; }
-    if (!(slip > 0 && slip <= 50) || !(maxImp > 0 && maxImp <= 100) || budget === null) { $("err").textContent = "Check your rules: budget, slippage cap and price impact."; return; }
-    let me = $("addr").value.trim(); const test = !me; if (test) me = TEST;
-    if (!/^0x[0-9a-fA-F]{40}$/.test(me)) { $("err").textContent = "That address is not a full 0x… address."; return; }
-    $("go").disabled = true; $("go").textContent = "Reading the chain…";
-    try {
-      const q = await quote(A.a, B.a, amt.toString()), rs = q.routeSummary, out = BigInt(rs.amountOut);
-      // price impact: compare against a quote for 1/100 of the amount (same route source, same block)
-      let impact = null; try { const small = amt / 100n; if (small > 0n) { const q2 = await quote(A.a, B.a, small.toString()); const r1 = Number(out) / Number(amt), r2 = Number(BigInt(q2.routeSummary.amountOut)) / Number(small); impact = Math.max(0, (1 - r1 / r2) * 100); } } catch {}
-      const pools = [...new Set(rs.route.flat().map((h) => h.pool.toLowerCase()))], viaPons = pools.includes(PONS);
-      const minOut = out * BigInt(Math.round((100 - slip) * 100)) / 10000n;
-      $("est").value = show(out, B.d);
-      $("qcard").innerHTML = `<h2>QUOTE</h2><div class="out">${show(out, B.d)} ${$("tout").value}<small>for ${show(amt, A.d, 6)} ${$("tin").value} · minimum ${show(minOut, B.d)} with a ${slip}% slippage cap</small></div>
-        <dl><dt>Route</dt><dd>${pools.map((p) => p === PONS ? "REINPAY pool 0x5b0e…86d9 ✓" : p.slice(0, 6) + "…" + p.slice(-4)).join(" → ")}</dd>
-        <dt>Price impact</dt><dd>${impact === null ? "not available" : impact.toFixed(2) + "%"}</dd><dt>Router</dt><dd>${q.routerAddress}</dd>
-        <dt>Est. gas</dt><dd>${rs.gas} gas</dd><dt>Quote source</dt><dd>KyberSwap aggregator · Robinhood Chain</dd></dl>`;
-      const isTok = A.a !== ETH, isReinpay = A === TOK.REINPAY || B === TOK.REINPAY;
-      const checks = [
-        li(amt <= budget ? "ok" : "no", "Within your budget per swap", `${show(amt, A.d, 6)} of ${show(budget, A.d, 6)} ${$("tin").value}`),
-        li(impact === null ? "wait" : impact <= maxImp ? "ok" : "no", "Price impact under your cap", impact === null ? "could not measure" : `${impact.toFixed(2)}% of ${maxImp}% max`),
-        li("ok", "Minimum received is enforced", `${show(minOut, B.d)} ${$("tout").value} or the swap reverts`),
-        li("ok", isTok ? "Exact approval only" : "No approval needed", isTok ? `approve exactly ${show(amt, A.d, 6)} ${$("tin").value} to the router, never unlimited` : "paying in ETH"),
-        isReinpay ? li(viaPons ? "ok" : "no", "Routes through the REINPAY pool", viaPons ? "the existing pool, 0x5b0e…86d9" : "this route skips the existing pool") : "",
-      ];
-      $("checks").innerHTML = checks.join("") + li("wait", "Mainnet simulation", "see below");
-      // build the exact transaction, then simulate it on the latest mainnet block
-      $("go").textContent = "Simulating on mainnet…";
-      const br = await fetch(`${K}/route/build`, { method: "POST", headers: { "content-type": "application/json", "x-client-id": CID }, body: JSON.stringify({ routeSummary: rs, sender: me, recipient: me, slippageTolerance: Math.round(slip * 100) }) });
-      const bj = await br.json(); if (bj.code !== 0 || !bj.data) throw new Error(bj.message || "could not build the swap");
-      const tx = bj.data, calls = [], override = {}; let note = "";
-      if (isTok) {
-        const bal = BigInt(await rpc("eth_call", [{ to: A.a, data: "0x70a08231" + pad(me) }, "latest"]));
-        if (bal < amt) { $("scard").innerHTML = `<h2>MAINNET SIMULATION · ETH_SIMULATEV1</h2><div class="sim no">Not simulated</div><p class="muted">${test ? "The test address holds no " + $("tin").value + "." : "This address holds " + show(bal, A.d, 6) + " " + $("tin").value + ", less than the amount."} Enter an address that holds at least ${show(amt, A.d, 6)} ${$("tin").value} to simulate the exact approval and the swap.</p>`;
-          $("checks").innerHTML = checks.join("") + li("wait", "Mainnet simulation", "needs an address holding the amount"); return; }
-        calls.push({ from: me, to: A.a, data: "0x095ea7b3" + pad(tx.routerAddress) + amt.toString(16).padStart(64, "0") });
-      } else {
-        const bal = BigInt(await rpc("eth_getBalance", [me, "latest"]));
-        if (bal < amt + 10n ** 15n) { override[me] = { balance: "0x" + (amt + 10n ** 17n).toString(16) }; note = test ? "Simulated from a public test address with an ETH balance override." : "This address holds less ETH than the amount, so the simulation adds an ETH balance override."; }
-      }
-      calls.push({ from: me, to: tx.routerAddress, data: tx.data, value: "0x" + BigInt(tx.transactionValue || "0").toString(16), gas: "0x" + (3_000_000).toString(16) });
-      const res = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: override, calls }], traceTransfers: true, validation: false }, "latest"]);
-      const cs = res[0].calls, last = cs[cs.length - 1], ok = cs.every((c) => c.status === "0x1");
-      let got = 0n; if (ok) { if (B.a === ETH) { for (const l of last.logs || []) if (l.address.toLowerCase() === ETH.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(me))) got += BigInt(l.data); } else for (const l of last.logs || []) if (l.address.toLowerCase() === B.a.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(me))) got += BigInt(l.data); }
-      const gotTxt = got > 0n ? `${show(got, B.d)} ${$("tout").value}` : (B.a === ETH ? "ETH received (native transfer)" : "—");
-      $("scard").innerHTML = `<h2>MAINNET SIMULATION · ETH_SIMULATEV1</h2><div class="sim ${ok ? "ok" : "no"}">${ok ? "✓ The swap succeeds on mainnet" : "✗ The swap fails on mainnet, so it would never be signed"}</div>
-        <dl><dt>Block</dt><dd>${parseInt(res[0].number, 16).toLocaleString("en-US")}</dd>${isTok ? `<dt>Exact approval</dt><dd>${cs[0].status === "0x1" ? "✓" : "✗"} ${show(amt, A.d, 6)} ${$("tin").value} to ${tx.routerAddress.slice(0, 6)}…${tx.routerAddress.slice(-4)}</dd>` : ""}
-        <dt>Received in simulation</dt><dd>${ok ? gotTxt : "—"}</dd><dt>Gas used</dt><dd>${parseInt(last.gasUsed, 16).toLocaleString("en-US")}</dd>${last.error ? `<dt>Error</dt><dd>${last.error.message}</dd>` : ""}<dt>From</dt><dd>${me.slice(0, 6)}…${me.slice(-4)}${test ? " (public test address)" : ""}</dd></dl>${note ? `<p class="muted" style="margin-top:12px">${note}</p>` : ""}`;
-      $("checks").innerHTML = checks.join("") + li(ok ? "ok" : "no", "Mainnet simulation", ok ? "the exact transaction succeeds" : "the transaction reverts");
-    } catch (x) { $("err").textContent = "Could not complete: " + (x.message || x) + ". Nothing was signed."; }
-    finally { $("go").disabled = false; $("go").textContent = "Get quote and simulate"; }
+  // ---------- wallet ----------
+  let eth = null, account = null, plan = null;
+  const req = (method, params = []) => eth.request({ method, params });
+  async function ensureChain() {
+    if ((await req("eth_chainId")).toLowerCase() === CHAIN.hex) return;
+    try { await req("wallet_switchEthereumChain", [{ chainId: CHAIN.hex }]); }
+    catch (e) { if (e && (e.code === 4902 || /unrecognized|not added|unknown chain/i.test(e.message || ""))) await req("wallet_addEthereumChain", [{ chainId: CHAIN.hex, chainName: CHAIN.name, nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: [CHAIN.rpc], blockExplorerUrls: [CHAIN.explorer] }]); else throw e; }
+    if ((await req("eth_chainId")).toLowerCase() !== CHAIN.hex) throw new Error(`Your wallet is not on ${CHAIN.name}. Switch to it and try again.`);
+  }
+  $("conn").onclick = async () => {
+    $("err").textContent = ""; eth = window.ethereum; if (!eth) { $("err").textContent = "No browser wallet found. Install one, or paste an address to simulate read only."; return; }
+    try { const a = await req("eth_requestAccounts"); account = a[0]; await ensureChain(); $("addr").value = account; $("addr").readOnly = true; $("conn").textContent = short(account);
+      $("whint").textContent = LIVE ? "Connected. Get a quote: it is simulated from this wallet, and your wallet only asks you to sign after you press Yes." : "Connected, read only: swapping opens once the public fee wallet is set.";
+      eth.on?.("accountsChanged", () => location.reload()); eth.on?.("chainChanged", () => location.reload()); reset(); }
+    catch (e) { $("err").textContent = "Wallet: " + (e.message || e); }
   };
+  function swapBtn(why) {
+    const b = $("swap"), ok = LIVE && account && plan && plan.ok;
+    b.disabled = !ok; b.classList.toggle("on", !!ok);
+    b.textContent = ok ? `Review swap · ${show(plan.amt, plan.A.d, 6)} ${plan.An} → ${plan.Bn}` : !LIVE ? "Swap · opens once the public fee wallet is set" : !account ? "Swap · connect a wallet first" : why || "Swap · get a quote and simulate first";
+  }
+
+  // ---------- quote, checks, simulation ----------
+  async function prepare(fromClick) {
+    const An = $("tin").value, Bn = $("tout").value, A = TOK[An], B = TOK[Bn];
+    if (A === B) throw new Error("Pick two different tokens.");
+    const amt = units($("amt").value, A.d), budget = units($("budget").value, A.d), slip = Number($("slip").value), maxImp = Number($("impact").value);
+    if (!amt || amt <= 0n) throw new Error("Enter an amount to pay.");
+    if (!(slip > 0 && slip <= 50) || !(maxImp > 0 && maxImp <= 100) || budget === null) throw new Error("Check your rules: budget, slippage cap and price impact.");
+    let me = account || $("addr").value.trim(); const test = !me; if (test) me = TEST;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(me)) throw new Error("That address is not a full 0x… address.");
+    const q = await quote(A, B, amt.toString()), rs = q.routeSummary, out = BigInt(rs.amountOut);
+    let impact = null; try { const small = amt / 100n; if (small > 0n) { const q2 = await quote(A, B, small.toString(), false), q1 = await quote(A, B, amt.toString(), false); impact = Math.max(0, (1 - (Number(BigInt(q1.routeSummary.amountOut)) / Number(amt)) / (Number(BigInt(q2.routeSummary.amountOut)) / Number(small))) * 100); } } catch {}
+    const pools = [...new Set(rs.route.flat().map((h) => h.pool.toLowerCase()))], viaPons = pools.includes(PONS), isTok = A.a !== ETH, isReinpay = A === TOK.REINPAY || B === TOK.REINPAY;
+    const minOut = out * BigInt(Math.round((100 - slip) * 100)) / 10000n, feeIn = LIVE && rs.extraFee?.chargeFeeBy === "currency_in", feeRaw = LIVE ? (feeIn ? amt * BigInt(FEE_BPS) / 10000n : null) : null;
+    $("est").value = show(out, B.d);
+    $("qcard").innerHTML = `<h2>QUOTE</h2><div class="out">${show(out, B.d)} ${Bn}<small>for ${show(amt, A.d, 6)} ${An} · minimum ${show(minOut, B.d)} with a ${slip}% slippage cap${LIVE ? " · after the Reinpay fee" : ""}</small></div>
+      <dl><dt>Route</dt><dd>${pools.map((p) => p === PONS ? "REINPAY pool 0x5b0e…86d9 ✓" : short(p)).join(" → ")}</dd><dt>Price impact</dt><dd>${impact === null ? "not available" : impact.toFixed(2) + "%"}</dd>
+      ${LIVE ? `<dt>Reinpay fee</dt><dd>${FEE_BPS / 100}% ${feeIn ? "· " + show(feeRaw, A.d, 8) + " " + An : "of what you receive"} → buyback and burn wallet ${short(FEE_WALLET)}</dd>` : ""}
+      <dt>Router</dt><dd>${q.routerAddress}</dd><dt>Quote source</dt><dd>KyberSwap aggregator · Robinhood Chain</dd></dl>`;
+    const checks = [
+      { ok: amt <= budget, h: li(amt <= budget ? "ok" : "no", "Within your budget per swap", `${show(amt, A.d, 6)} of ${show(budget, A.d, 6)} ${An}`) },
+      { ok: impact !== null && impact <= maxImp, h: li(impact === null ? "wait" : impact <= maxImp ? "ok" : "no", "Price impact under your cap", impact === null ? "could not measure" : `${impact.toFixed(2)}% of ${maxImp}% max`) },
+      { ok: true, h: li("ok", "Minimum received is enforced", `${show(minOut, B.d)} ${Bn} or the swap reverts`) },
+      { ok: true, h: li("ok", isTok ? "Exact approval only" : "No approval needed", isTok ? `approve exactly ${show(amt, A.d, 6)} ${An} to the router, never unlimited` : "paying in ETH") },
+      ...(isReinpay ? [{ ok: viaPons, h: li(viaPons ? "ok" : "no", "Routes through the REINPAY pool", viaPons ? "the existing pool, 0x5b0e…86d9" : "this route skips the existing pool") }] : []),
+    ];
+    $("checks").innerHTML = checks.map((c) => c.h).join("") + li("wait", "Mainnet simulation", "running…");
+    const tx = await build(rs, me, slip), calls = [], override = {}; let note = "", allowance = 0n, simulated = true;
+    if (isTok) {
+      const bal = BigInt(await rpc("eth_call", [{ to: A.a, data: "0x70a08231" + pad(me) }, "latest"]));
+      if (bal < amt) simulated = false, note = test ? `The test address holds no ${An}. Connect or paste a wallet holding at least ${show(amt, A.d, 6)} ${An}.` : `This wallet holds ${show(bal, A.d, 6)} ${An}, less than the amount.`;
+      allowance = BigInt(await rpc("eth_call", [{ to: A.a, data: "0xdd62ed3e" + pad(me) + pad(tx.routerAddress) }, "latest"]));
+      if (allowance < amt) calls.push({ from: me, to: A.a, data: "0x095ea7b3" + pad(tx.routerAddress) + amt.toString(16).padStart(64, "0") });
+    } else {
+      const bal = BigInt(await rpc("eth_getBalance", [me, "latest"]));
+      if (bal < amt + 10n ** 14n) { if (account) { simulated = false; note = `This wallet holds ${show(bal, 18, 6)} ETH, not enough for ${show(amt, 18, 6)} ETH plus gas.`; } else { override[me] = { balance: "0x" + (amt + 10n ** 17n).toString(16) }; note = test ? "Simulated from a public test address with an ETH balance override." : "This address holds less ETH than the amount, so the simulation adds an ETH balance override (read only)."; } }
+    }
+    const swapCall = { from: me, to: tx.routerAddress, data: tx.data, value: "0x" + BigInt(tx.transactionValue || "0").toString(16) };
+    let ok = false, res = null, last = null, got = 0n;
+    if (simulated) {
+      calls.push({ ...swapCall, gas: "0x" + (3_000_000).toString(16) });
+      res = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: override, calls }], traceTransfers: true, validation: false }, "latest"]);
+      const cs = res[0].calls; last = cs[cs.length - 1]; ok = cs.every((c) => c.status === "0x1");
+      if (ok) for (const l of last.logs || []) if (l.address.toLowerCase() === B.a.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(me))) got += BigInt(l.data);
+    }
+    $("scard").innerHTML = `<h2>MAINNET SIMULATION · ETH_SIMULATEV1</h2>` + (!simulated ? `<div class="sim no">Not simulated</div><p class="muted">${note}</p>` :
+      `<div class="sim ${ok ? "ok" : "no"}">${ok ? "✓ The swap succeeds on mainnet" : "✗ The swap fails on mainnet, so it is never signed"}</div>
+      <dl><dt>Block</dt><dd>${parseInt(res[0].number, 16).toLocaleString("en-US")}</dd>${isTok ? `<dt>Approval</dt><dd>${allowance >= amt ? "already approved for this amount" : "exact: " + show(amt, A.d, 6) + " " + An + " to " + short(tx.routerAddress)}</dd>` : ""}
+      <dt>Received in simulation</dt><dd>${ok ? (got > 0n ? show(got, B.d) + " " + Bn : "—") : "—"}</dd><dt>Gas used</dt><dd>${parseInt(last.gasUsed, 16).toLocaleString("en-US")}</dd>${last.error ? `<dt>Error</dt><dd>${last.error.message}</dd>` : ""}
+      <dt>From</dt><dd>${short(me)}${test ? " (public test address)" : account ? " (your wallet)" : ""}</dd></dl>${note ? `<p class="muted" style="margin-top:12px">${note}</p>` : ""}`);
+    const simOk = simulated && ok && Object.keys(override).length === 0;
+    $("checks").innerHTML = checks.map((c) => c.h).join("") + li(!simulated ? "wait" : ok ? "ok" : "no", "Mainnet simulation", !simulated ? "not simulated" : ok ? "the exact transaction succeeds" : "the transaction reverts");
+    const allOk = checks.every((c) => c.ok) && simOk;
+    plan = { ok: allOk && !!account, A, B, An, Bn, amt, minOut, got, tx, swapCall, needApprove: isTok && allowance < amt, gas: last ? BigInt(last.gasUsed) : 0n, at: Date.now(), slip };
+    swapBtn(allOk ? null : "Swap · every check must pass first");
+  }
+  $("f").onsubmit = async (e) => { e.preventDefault(); $("err").textContent = ""; $("review").hidden = true; $("go").disabled = true; $("go").textContent = "Reading the chain…";
+    try { await prepare(); } catch (x) { plan = null; swapBtn(); $("err").textContent = "Could not complete: " + (x.message || x) + ". Nothing was signed."; }
+    finally { $("go").disabled = false; $("go").textContent = "Get quote and simulate"; } };
+
+  // ---------- review, then sign only after Yes ----------
+  $("swap").onclick = () => {
+    if (!plan || !plan.ok) return; const p = plan, rv = $("review");
+    rv.innerHTML = `<h2>REVIEW · YOUR WALLET WILL ASK YOU TO SIGN</h2><ul class="steps">${p.needApprove ? `<li><b>1 · Approve exactly ${show(p.amt, p.A.d, 6)} ${p.An}</b><br>to the router ${short(p.tx.routerAddress)}, nothing more</li>` : ""}
+      <li><b>${p.needApprove ? "2" : "1"} · Swap ${show(p.amt, p.A.d, 6)} ${p.An} → at least ${show(p.minOut, p.B.d)} ${p.Bn}</b><br>simulated to receive ${show(p.got, p.B.d)} ${p.Bn} · ${FEE_BPS / 100}% Reinpay fee to the buyback and burn wallet</li></ul>
+      <p class="muted">Right before your wallet opens, the swap is quoted and simulated again on the latest block. If anything fails, nothing is sent.</p>
+      <p style="margin-top:14px"><button class="yes" id="yes" type="button">Yes, sign in my wallet</button><button class="no2" id="no2" type="button">Cancel</button></p><div class="err" id="rerr"></div>`;
+    rv.hidden = false; rv.scrollIntoView({ behavior: "smooth", block: "center" });
+    $("no2").onclick = () => { rv.hidden = true; };
+    $("yes").onclick = () => execute();
+  };
+  async function waitTx(hash) { for (let i = 0; i < 120; i++) { const r = await rpc("eth_getTransactionReceipt", [hash]); if (r) return r; await new Promise((s) => setTimeout(s, 1500)); } throw new Error("no receipt yet: check the transaction on the explorer"); }
+  async function execute() {
+    const rv = $("review"), say = (h) => { rv.querySelector(".muted").innerHTML = h; };
+    $("yes").disabled = true; $("rerr").textContent = "";
+    try {
+      await ensureChain(); const who = (await req("eth_accounts"))[0]; if (!who || who.toLowerCase() !== account.toLowerCase()) throw new Error("the connected account changed");
+      say("Quoting and simulating again on the latest block…"); await prepare(); if (!plan || !plan.ok) throw new Error("a check failed on the fresh quote, so nothing was sent");
+      const p = plan, gasHex = (g) => "0x" + (g * 13n / 10n + 30000n).toString(16);
+      if (p.needApprove) {
+        say(`Your wallet asks you to approve exactly ${show(p.amt, p.A.d, 6)} ${p.An}…`);
+        const ah = await req("eth_sendTransaction", [{ from: account, to: p.A.a, data: "0x095ea7b3" + pad(p.tx.routerAddress) + p.amt.toString(16).padStart(64, "0") }]);
+        say(`Approval sent: <a href="${EXP}/tx/${ah}" target="_blank" rel="noopener">${short(ah)}</a>. Waiting for it to land…`);
+        const ar = await waitTx(ah); if (ar.status !== "0x1") throw new Error("the approval failed on chain");
+        await prepare(); if (!plan || !plan.ok) throw new Error("the swap no longer passes a check after the approval, so it was not sent");
+      }
+      const q = plan; say(`Your wallet asks you to sign the swap: ${show(q.amt, q.A.d, 6)} ${q.An} → at least ${show(q.minOut, q.B.d)} ${q.Bn}…`);
+      const h = await req("eth_sendTransaction", [{ from: account, to: q.swapCall.to, data: q.swapCall.data, value: q.swapCall.value, gas: gasHex(q.gas) }]);
+      say(`Swap sent: <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)}</a>. Waiting for it to land…`);
+      const r = await waitTx(h); let got = 0n; for (const l of r.logs || []) if (l.address.toLowerCase() === q.B.a.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(account))) got += BigInt(l.data);
+      rv.innerHTML = `<h2>RECEIPT</h2><div class="sim ${r.status === "0x1" ? "ok" : "no"}">${r.status === "0x1" ? "✓ Swapped on Robinhood Chain mainnet" : "✗ The swap failed on chain"}</div>
+        <dl><dt>Transaction</dt><dd><a href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)} ↗</a></dd><dt>Block</dt><dd>${parseInt(r.blockNumber, 16).toLocaleString("en-US")}</dd>${got > 0n ? `<dt>Received</dt><dd>${show(got, q.B.d)} ${q.Bn}</dd>` : ""}<dt>Reinpay fee</dt><dd>${FEE_BPS / 100}% to ${short(FEE_WALLET)} for buyback and burn</dd></dl>`;
+      plan = null; swapBtn();
+    } catch (x) { $("rerr").textContent = (x && x.code === 4001 ? "You declined in your wallet. Nothing was sent." : "Stopped: " + (x.message || x) + "."); $("yes").disabled = false; }
+  }
+  swapBtn();
 })();
 </script>
 </body>
