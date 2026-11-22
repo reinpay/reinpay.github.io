@@ -31,7 +31,7 @@
   .fills { margin-top: 8px; max-height: 210px; overflow: auto; font-size: 12px; }
   .fill { display: grid; grid-template-columns: 72px 86px 1fr auto; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(95,240,168,.1); align-items: center; }
   .fill i { font-style: normal; font: 600 10.5px "IBM Plex Mono"; letter-spacing: .1em; padding: 3px 6px; text-align: center; }
-  .B { background: var(--g); color: #04130b; } .S { background: var(--blue); color: #04130b; } .X { background: #c4553f; color: #fff; } .W { background: var(--gold); color: #04130b; } .P { background: #6b2a22; color: #ffd1c4; }
+  .B { background: var(--g); color: #04130b; } .S { background: var(--blue); color: #04130b; } .X { background: #c4553f; color: #fff; } .W { background: var(--gold); color: #04130b; } .P { background: #6b2a22; color: #ffd1c4; } .C { background: none; color: var(--dim); border: 1px solid rgba(138,165,151,.4); }
   .fill .t { color: var(--dim); } .pos { color: var(--g); } .neg { color: var(--bad); }
   .ctl { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 10px; }
   .ctl label { font: 600 10.5px "IBM Plex Mono"; letter-spacing: .1em; color: var(--dim); display: grid; gap: 5px; }
@@ -44,6 +44,11 @@
   .prop { margin-top: 12px; border: 1px solid rgba(226,176,87,.5); padding: 12px 14px; background: rgba(226,176,87,.05); font-size: 12.5px; line-height: 1.6; }
   .prop b { color: var(--ink); } .prop .ok { color: var(--g); } .prop .no { color: var(--bad); }
   .prop button { font: 700 14px "Familjen Grotesk"; border: 0; padding: 9px 14px; cursor: pointer; margin: 8px 8px 0 0; } .prop .yes { background: var(--g); color: #04130b; } .prop .cx { background: none; color: var(--dim); border: 1px solid var(--line); }
+  .status { position: sticky; top: 0; z-index: 6; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-top: 14px; padding: 10px 14px; border: 1px solid rgba(95,240,168,.45); background: rgba(4,10,8,.97); font-size: 12px; color: var(--dim); }
+  .status b { color: var(--g); font: 600 12px "IBM Plex Mono"; letter-spacing: .1em; } .status.off { border-color: rgba(240,131,110,.6); } .status.off b { color: var(--bad); }
+  .status span b { color: var(--ink); letter-spacing: 0; } .status .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--g); box-shadow: 0 0 10px var(--g); transition: transform .2s; }
+  .status.off .dot { background: var(--bad); box-shadow: 0 0 10px var(--bad); } .status .dot.blink { transform: scale(1.8); }
+  .status button { margin-left: auto; font: 600 12px "IBM Plex Mono"; color: #04130b; background: var(--gold); border: 0; padding: 7px 11px; cursor: pointer; } .status button.on { background: none; color: var(--g); border: 1px solid rgba(95,240,168,.5); }
   .back { color: var(--g); font-size: 12px; text-decoration: none; }
   @media (max-width: 900px) { .row2 { grid-template-columns: 1fr; } .ctl { grid-template-columns: repeat(2, 1fr); } #hub { height: 380px; } }
 </style>
@@ -56,6 +61,7 @@
     <div class="bal"><small>PAPER EQUITY</small><b id="bal">$10,000.00</b><span id="ret">±0.00% from $10,000</span></div>
   </div>
 
+  <div class="status" id="bstat"><span class="dot" id="bdot"></span><b id="bmain">STARTING…</b><span id="bcheck">–</span><span id="bnext">–</span><span id="bsig">–</span><span id="breal">–</span><button type="button" id="balert">🔔 Turn on alerts</button></div>
   <div class="card"><h2><span>11 AGENTS · ONE REINPAY INTELLIGENCE · ITS VEINS CARRY EVERY DECISION</span><b id="mode">LOADING</b></h2><canvas id="hub"></canvas></div>
 
   <div class="card"><div class="tabs" id="tabs"></div><h2 style="margin-top:12px"><span id="mkt">loading markets…</span><b id="pos">FLAT</b></h2><canvas id="chart"></canvas></div>
@@ -209,12 +215,13 @@ async function step(c, prev, isLive) {
     if (ch >= p.tp || ch <= -p.sl) { const why = ch >= p.tp ? `take profit +${(p.tp * 100).toFixed(1)}%` : `stop loss −${(p.sl * 100).toFixed(1)}%`;
       if (!(await sim("sell", acct.cost, isLive))) log(c.t, "BLOCKED", "X", "sell failed its mainnet simulation, nothing counted", "", isLive);
       else { const got = acct.qty * px * (1 - side()), pnl = got - acct.cost; acct.usd += got; log(c.t, "SELL", "S", `${why} · ${fmtP(px)}`, (pnl >= 0 ? "+" : "") + usd(pnl).replace("$", "$"), isLive); acct.qty = 0; AGS[2] = "flat"; await pulse(9, "b", isLive); await pulse(10, "g", isLive); } }
+    else if (isLive) log(c.t, "CHECK", "C", `hourly check · holding ${mk.s} ${ch >= 0 ? "+" : ""}${(ch * 100).toFixed(2)}% · sells at +${(p.tp * 100).toFixed(1)}% or −${(p.sl * 100).toFixed(1)}% · keep holding`, "", true);
     eqs.push([c.t, equity(px)]); return; }
   AGS[2] = "flat";
   const i = candles.indexOf(c), win = candles.slice(Math.max(0, i - 24), i + 1), hi = Math.max(...win.map((x) => x.h)), prevC = prev ? prev.c : px;
   const move = (px - prevC) / prevC, off = (hi - px) / hi, sigOk = p.st === "mom" ? move >= p.sig : off >= p.sig;
   AGS[1] = p.st === "mom" ? `${(move * 100).toFixed(2)}% in 1h vs +${(p.sig * 100).toFixed(1)}%` : `${(off * 100).toFixed(2)}% under 24h high vs ${(p.sig * 100).toFixed(1)}%`;
-  if (!sigOk) { eqs.push([c.t, eq]); if (isLive) await pulse(1, "g", true); return; }
+  if (!sigOk) { eqs.push([c.t, eq]); if (isLive) { log(c.t, "CHECK", "C", `hourly check · ${AGS[1]} · no signal, no trade`, "", true); await pulse(1, "g", true); } return; }
   await pulse(1, "g", isLive);
   const size = Math.min(p.mpt, acct.usd), spent = acct.spentDay[day] || 0; AGS[3] = `${usd(spent)} of ${usd(p.day)} today`;
   if (spent + size > p.day + 1e-9) { log(c.t, "BLOCKED", "X", `budget guard · ${usd(spent)} + ${usd(size)} is over today's ${usd(p.day)}`, "", isLive); await pulse(3, "x", isLive); eqs.push([c.t, eq]); return; }
@@ -248,8 +255,9 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 async function pulse(i, col, isLive) { active = i; activeCol = col; flash.set(i, col); await wait(isLive ? 260 : 30); active = -1; }
 function log(t, kind, cls, txt, pnl, isLive) {
   fills.unshift({ t, kind, cls, txt, pnl, isLive });
+  if (isLive && kind !== "CHECK") alertMe(`${kind} ${mk.s}`, txt + (pnl ? " · " + pnl : ""), kind === "BUY" || kind === "SELL" ? "buy" : "stop");
   if (isLive && (kind === "BUY" || kind === "SELL") && $("rauto").value === "ask" && account) setTimeout(() => propose(kind === "BUY" ? "buy" : "sell", "the agent signalled " + kind.toLowerCase()), 300); AGS[10] = kind.toLowerCase() + " · logged";
-  if (isLive && voiceOn && "speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(kind === "BUY" ? `Buying ${mk.n}.` : kind === "SELL" ? `Selling ${mk.n}. ` + txt.split("·")[0] : kind === "BLOCKED" ? "Blocked by the rules." : kind === "PAUSED" ? "Loss limit reached. I stop for today." : "Waiting for the owner."); speechSynthesis.speak(u); }
+  if (isLive && kind !== "CHECK" && voiceOn && "speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(kind === "BUY" ? `Buying ${mk.n}.` : kind === "SELL" ? `Selling ${mk.n}. ` + txt.split("·")[0] : kind === "BLOCKED" ? "Blocked by the rules." : kind === "PAUSED" ? "Loss limit reached. I stop for today." : "Waiting for the owner."); speechSynthesis.speak(u); }
 }
 
 // ---------- drawing ----------
@@ -286,13 +294,14 @@ async function replay() {
   if (my !== runId) return; live = true; $("mode").textContent = "LIVE · PAPER"; ui();
 }
 // live: a KyberSwap quote every 15 seconds builds the current hourly candle; when the hour closes, the agent decides on it
+let lastOk = 0, lastFail = 0, nextTick = 0;
 async function tick() {
-  if (mk && await quoteLive()) { const now = Math.floor(Date.now() / 1000), k = Math.floor(now / 3600) * 3600; let c = candles.at(-1);
+  if (mk && await quoteLive()) { lastOk = Date.now(); const d = $("bdot"); d.classList.add("blink"); setTimeout(() => d.classList.remove("blink"), 300); const now = Math.floor(Date.now() / 1000), k = Math.floor(now / 3600) * 3600; let c = candles.at(-1);
     if (c.t < k) { const closed = c; c = { t: k, o: closed.c, h: livePx, l: livePx, c: livePx, v: 0 }; candles.push(c); if (live) await step(closed, candles.at(-3), true); }
     else { c.c = livePx; c.h = Math.max(c.h, livePx); c.l = Math.min(c.l, livePx); }
     AGS[0] = `${mk.s} ${fmtP(livePx)} · live`; await pulse(0, "g", true); }
-  else if (mk) AGS[0] = "quote unreachable";
-  if (acct) ui(); setTimeout(tick, 15000);
+  else if (mk) { AGS[0] = "quote unreachable"; lastFail = Date.now(); }
+  if (acct) ui(); nextTick = Date.now() + 15000; setTimeout(tick, 15000);
 }
 // ---------- mainnet mode: real trades from the visitor's own wallet, only after "Yes" ----------
 const FEE_WALLET = "0xc651fc557130be361a8b45a7ed19405dd06d9317", FEE_BPS = 20, ETHN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", EXP = "https://robinhoodchain.blockscout.com", CHAIN = "0x1237";
@@ -347,6 +356,7 @@ async function propose(kind, why) {
       ${needApprove ? `Step 1: approve exactly ${f(amt, decIn)} ${kind === "buy" ? "USDG" : mk.s} to ${short(tx.routerAddress)} · Step 2: the swap<br>` : ""}0.2% Reinpay fee to the buyback and burn wallet ${short(FEE_WALLET)}<br>
       Mainnet simulation: <span class="${simOk ? "ok" : "no"}">${simTxt}</span><br>
       ${simOk ? `<button class="yes" type="button" id="ryes">Yes, sign in my wallet</button>` : ""}<button class="cx" type="button" id="rno">Cancel</button><div class="note" id="rrr"></div></div>`;
+    if (simOk) alertMe(`Approve needed: ${kind.toUpperCase()} ${mk.s}`, `${f(amt, decIn)} ${kind === "buy" ? "USDG" : mk.s} · simulated ✓ · open the tab to sign`, "real");
     $("rno").onclick = () => { plan = null; $("rprop").innerHTML = ""; };
     if (simOk) $("ryes").onclick = () => execute();
   } catch (e) { $("rprop").innerHTML = `<div class="prop"><b class="no">✗ Not proposed</b> · ${e.message || e}. Nothing was sent.</div>`; }
@@ -359,9 +369,11 @@ async function execute() {
     if (p.needApprove) { say("Your wallet asks you to approve the exact amount…"); const ah = await req("eth_sendTransaction", [{ from: account, to: p.tin, data: "0x095ea7b3" + padA(p.tx.routerAddress) + p.amt.toString(16).padStart(64, "0") }]);
       say(`Approval sent <a class="back" href="${EXP}/tx/${ah}" target="_blank" rel="noopener">${short(ah)}</a>, waiting…`); const ar = await waitTx(ah); if (ar.status !== "0x1") throw new Error("the approval failed on chain");
       try { const r = await read("eth_simulateV1", [{ blockStateCalls: [{ calls: [{ ...p.swapCall, gas: "0x2dc6c0" }] }], validation: false }, "latest"]); if (r[0].calls[0].status !== "0x1") throw new Error("the swap fails its simulation after the approval, so it was not sent"); } catch (e) { if (/fails its simulation/.test(e.message)) throw e; await read("eth_call", [p.swapCall, "latest"]); } }
+    const before = isNative(p.tout) ? BigInt(await read("eth_getBalance", [account, "latest"])) : 0n;
     say("Your wallet asks you to sign the trade…"); const h = await req("eth_sendTransaction", [{ ...p.swapCall, from: account }]);
     say(`Trade sent <a class="back" href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)}</a>, waiting…`); const r = await waitTx(h);
-    let got = 0n; if (isNative(p.tout)) got = p.out; else for (const l of r.logs || []) if (l.address.toLowerCase() === p.tout.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(padA(account))) got += BigInt(l.data);
+    // native ETH arrives without a token log: what you received is the balance change plus the gas you paid
+    let got = 0n; if (isNative(p.tout)) { const after = BigInt(await read("eth_getBalance", [account, r.blockNumber])), gas = BigInt(r.gasUsed) * BigInt(r.effectiveGasPrice || "0x0"); got = after - before + gas; if (got < 0n) got = 0n; } else for (const l of r.logs || []) if (l.address.toLowerCase() === p.tout.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(padA(account))) got += BigInt(l.data);
     const store = realLoad(), d = new Date().toISOString().slice(0, 10);
     if (r.status === "0x1") { if (p.kind === "buy") { store[mk.s] = { qty: got.toString(), cost: Number(p.amt) / 1e6, tx: h }; store._spent = (store._day === d ? store._spent || 0 : 0) + Number(p.amt) / 1e6; store._day = d; } else delete store[mk.s]; realSave(store); }
     $("rprop").innerHTML = `<div class="prop"><b class="${r.status === "0x1" ? "ok" : "no"}">${r.status === "0x1" ? "✓ Traded on Robinhood Chain mainnet" : "✗ The trade failed on chain"}</b><br>Transaction <a class="back" href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)} ↗</a> · block ${parseInt(r.blockNumber, 16).toLocaleString("en-US")}${got > 0n ? ` · received ${(Number(got) / 10 ** p.decOut).toLocaleString("en-US", { maximumFractionDigits: 6 })} ${p.kind === "buy" ? mk.s : "USDG"}` : ""}</div>`;
@@ -370,6 +382,35 @@ async function execute() {
 }
 $("rbuy").onclick = () => propose("buy", "you asked for a real buy");
 $("rsell").onclick = () => propose("sell", "you asked to sell your real position");
+
+// ---------- bot status (always visible) and alerts ----------
+let alertsOn = false, audio = null;
+function beep(kind) { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); const tones = kind === "real" ? [880, 660, 880] : kind === "stop" ? [330, 260] : [660, 880];
+  tones.forEach((f, i) => { const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = f; o.connect(g); g.connect(audio.destination); const t = audio.currentTime + i * .18; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.2, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + .16); o.start(t); o.stop(t + .17); }); } catch {} }
+let titleT = null; const baseTitle = document.title;
+function alertMe(title, body, kind) {
+  if (!alertsOn) return; beep(kind);
+  try { if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body, tag: "reinpay-" + Date.now() }); } catch {}
+  clearInterval(titleT); let k = 0; titleT = setInterval(() => { document.title = k++ % 2 ? baseTitle : "🔔 " + title; if (k > 16) { clearInterval(titleT); document.title = baseTitle; } }, 900);
+}
+$("balert").onclick = async () => { if (alertsOn) { alertsOn = false; $("balert").textContent = "🔔 Turn on alerts"; $("balert").classList.remove("on"); return; }
+  try { if ("Notification" in window && Notification.permission !== "granted") await Notification.requestPermission(); } catch {}
+  alertsOn = true; beep("buy"); $("balert").textContent = "🔔 Alerts on" + ("Notification" in window && Notification.permission === "granted" ? "" : " (sound only)"); $("balert").classList.add("on"); };
+function status() {
+  const box = $("bstat"), now = Date.now(); if (!mk || !acct) { requestAnimationFrame(() => setTimeout(status, 1000)); return; }
+  const ok = live && lastOk && now - lastOk < 60000, p = P();
+  box.classList.toggle("off", !ok);
+  $("bmain").textContent = !live ? "REPLAYING · NOT LIVE YET" : ok ? `● BOT RUNNING · WATCHING ${mk.s}` : lastFail ? "BOT PAUSED · PRICE CHECK FAILED, RETRYING" : "STARTING";
+  $("bcheck").innerHTML = lastOk ? `last price <b>${fmtP(livePx)}</b> ${Math.round((now - lastOk) / 1000)}s ago · next in ${Math.max(0, Math.round((nextTick - now) / 1000))}s` : "waiting for the first price";
+  const hk = (Math.floor(now / 3600000) + 1) * 3600000, left = hk - now; $("bnext").innerHTML = `next decision <b>${new Date(hk).toISOString().slice(11, 16)} UTC</b> (in ${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, "0")})`;
+  const c = candles.at(-1), prev = candles.at(-2);
+  if (acct.qty > 0) { const ch = (livePx - acct.entry) / acct.entry; $("bsig").innerHTML = `holding ${mk.s} <b>${ch >= 0 ? "+" : ""}${(ch * 100).toFixed(2)}%</b> · sells at +${(p.tp * 100).toFixed(1)}% or −${(p.sl * 100).toFixed(1)}%`; }
+  else if (p.st === "mom" && prev) { const mv = (livePx - prev.c) / prev.c; $("bsig").innerHTML = `${mk.s} <b>${mv >= 0 ? "+" : ""}${(mv * 100).toFixed(2)}%</b> this hour · buys at +${(p.sig * 100).toFixed(1)}%`; }
+  else if (prev) { const win = candles.slice(-25), hi = Math.max(...win.map((x) => x.h)), off = (hi - livePx) / hi; $("bsig").innerHTML = `${mk.s} <b>${(off * 100).toFixed(2)}%</b> under the 24h high · buys at ${(p.sig * 100).toFixed(1)}%`; }
+  $("breal").innerHTML = !account ? "real money: <b>off</b> (wallet not connected)" : $("rauto").value !== "ask" ? "real money: <b>off</b> (paper only)" : `real money: <b>on</b> · ${usd(Math.max(0, +$("rday").value - spentToday()))} left today`;
+  setTimeout(status, 1000);
+}
+setTimeout(status, 1000);
 
 $("replay").onclick = () => replay();
 $("snd").onclick = () => { voiceOn = !voiceOn; $("snd").textContent = voiceOn ? "🔊 Voice on" : "🔈 Voice off"; };
