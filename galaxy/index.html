@@ -165,7 +165,8 @@
   // ---------- the story, written from the data ----------
   function script() {
     const L = [], b = D.burns, t0 = D.deploy.time, day = (t) => new Date(t * 1000).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
-    const allDev = b.length && b.every((x) => x.from.toLowerCase() === DEV);
+    const bbTx = new Set((D.buybacks || []).map((x) => x.tx.toLowerCase())), nBB = b.filter((x) => bbTx.has(x.tx.toLowerCase())).length, nDev = b.filter((x) => x.from.toLowerCase() === DEV).length;
+    const allDev = b.length && nDev === b.length, srcTxt = allDev ? ", all sent from the dev wallet" : nDev + nBB === b.length && nBB ? `: ${nDev} from the dev wallet and ${nBB} bought back by the Reinpay Swap fee wallet` : "";
     const reach = (n) => D.series.find((p) => p[1] >= n)?.[0];
     L.push({ t: t0, say: `This is REINPAY. It was born on Robinhood Chain mainnet on ${day(t0)}, at ${utc(t0)} UTC, with one billion tokens.` });
     L.push({ t: t0 + 30, say: "I am Reinpay Intelligence. I read the chain, and every star you are about to see is a real wallet." });
@@ -175,13 +176,14 @@
     events.sort((a, c) => a.t - c.t);
     for (const e of events) {
       if (e.burn) { const x = e.burn, m = M(x.amount);
+        if (bbTx.has(x.tx.toLowerCase())) { L.push({ t: x.time, burn: x, say: `${x.n === b.length ? "And the newest burn is different. " : ""}Burn number ${x.n} is a buyback: the public Reinpay Swap fee wallet bought ${words(m)} REINPAY from the pool and sent it straight into the dead address.` }); continue; }
         const mins = (x.time - t0) / 60, lead = x.n === 1 ? (mins < 2 ? "Less than two minutes after launch, the first burn." : `${Math.round(mins)} minutes after launch, the first burn.`) : `Burn number ${x.n}.`;
         L.push({ t: x.time, burn: x, say: `${lead} ${words(m)} REINPAY, sent into the dead address. Gone for good.` });
         if (x.n === 5) L.push({ t: x.time + 60, say: `Stars come and go. ${stars.length} wallets have held REINPAY so far. The grey ones have moved on.` });
       } else L.push(e);
     }
     const tot = b.reduce((a, x) => a + M(x.amount), 0), pct = (tot / 1e9 * 100).toFixed(2);
-    L.push({ t: D.now, say: `Today, ${D.holders.length} wallets hold REINPAY. ${words(tot)} REINPAY has been burned, ${pct} percent of the supply, in ${b.length} burns${allDev ? ", all sent from the dev wallet" : ""}.` });
+    L.push({ t: D.now, say: `Today, ${D.holders.length} wallets hold REINPAY. ${words(tot)} REINPAY has been burned, ${pct} percent of the supply, in ${b.length} burns${srcTxt}.` });
     const dv = D.dev; if (dv && BigInt(dv.received) > 0n && dv.elsewhere === "0" && dv.balance === "0" && dv.toDead === dv.received) L.push({ t: D.now, say: "And one more thing. Every REINPAY the dev wallet ever received, it burned. Nothing went anywhere else. Today the dev wallet holds zero." });
     L.push({ t: D.now, say: "That is the story so far. I am still watching the chain, and the next star could be you." });
     return L;
@@ -253,8 +255,8 @@
     const l = document.createElement("a"); l.download = `reinpay-passport-${$("pp").dataset.a.slice(2, 8)}.png`; l.href = c.toDataURL("image/png"); l.click();
   };
 
-  fetch("../assets/chain/galaxy.json?t=" + Date.now()).then((r) => r.json()).then((d) => {
-    D = d; D.now = Math.max(d.series.at(-1)[0], Math.floor(Date.parse(d.at) / 1000)); const t0 = d.deploy.time;
+  Promise.all([fetch("../assets/chain/galaxy.json?t=" + Date.now()).then((r) => r.json()), fetch("../assets/chain/buyback.json?t=" + Date.now()).then((r) => r.json()).catch(() => null)]).then(([d, bb]) => {
+    D = d; D.buybacks = bb ? bb.buybacks : []; D.now = Math.max(d.series.at(-1)[0], Math.floor(Date.parse(d.at) / 1000)); const t0 = d.deploy.time;
     const sup = 1e9, top = d.holders[0]?.a;
     stars = d.holders.map((h) => { const pct = M(h.bal) / sup * 100; return { a: h.a, first: h.first, contract: h.contract, pct, size: .05 + Math.sqrt(pct) * .11, col: h.a === top ? "226,176,87" : h.contract ? "122,167,255" : "95,240,168", ph: hash(h.a) * 6.28, p: place(h.a, h.first, t0, D.now) }; })
       .concat(d.former.map((f) => ({ a: f.a, first: f.first, left: f.left, contract: false, pct: 0, size: .05, col: "95,240,168", ph: hash(f.a) * 6.28, p: place(f.a, f.first, t0, D.now) })));
