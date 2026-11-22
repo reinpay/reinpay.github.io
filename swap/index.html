@@ -126,7 +126,20 @@
   const units = (s, d) => { s = String(s).trim(); if (!/^\d*\.?\d*$/.test(s) || s === "" || s === ".") return null; const [i, f = ""] = s.split("."); return BigInt(i || "0") * 10n ** BigInt(d) + BigInt((f + "0".repeat(d)).slice(0, d) || "0"); };
   const show = (raw, d, dp = 4) => { const v = Number(BigInt(raw) * 10n ** 6n / 10n ** BigInt(d)) / 1e6; return v.toLocaleString("en-US", { maximumFractionDigits: v >= 1000 ? 2 : v < 1 ? 6 : dp }); };
   const pad = (a) => a.slice(2).toLowerCase().padStart(64, "0"), short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
-  async function rpc(method, params) { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) }); const j = await r.json(); if (j.error) throw new Error(j.error.message || "RPC error"); return j.result; }
+  // Reads go to the public RPC; if the visitor's network cannot reach it, they go through the connected wallet's own RPC instead.
+  let viaWallet = false;
+  async function rpc(method, params) {
+    if (!viaWallet) { try { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) }); const j = await r.json(); if (j.error) throw Object.assign(new Error(j.error.message || "RPC error"), { rpc: true }); return j.result; }
+      catch (e) { if (e.rpc || !eth || !account) throw e; viaWallet = true; } }
+    return await eth.request({ method, params });
+  }
+  // eth_simulateV1 when the RPC has it; otherwise step by step with eth_call on the latest block (same chain, same state)
+  async function simulate(calls, override) {
+    if (!viaWallet) { try { const res = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: override, calls }], traceTransfers: true, validation: false }, "latest"]); if (!viaWallet) return { kind: "eth_simulateV1", block: parseInt(res[0].number, 16), calls: res[0].calls }; } catch (e) { if (!viaWallet) throw e; } }
+    const block = parseInt(await rpc("eth_blockNumber", []), 16), out = [];
+    for (const c of calls) { const { gas, ...call } = c; try { const ret = await rpc("eth_call", [call, "latest"]); let g = "0x0"; try { g = await rpc("eth_estimateGas", [call]); } catch {} out.push({ status: "0x1", ret, gasUsed: g, logs: [] }); } catch (e) { out.push({ status: "0x0", gasUsed: "0x0", error: { message: (e.message || "reverted").slice(0, 160) } }); break; } }
+    return { kind: "eth_call", block, calls: out };
+  }
   const feeQ = (A, B) => !LIVE ? "" : `&feeAmount=${FEE_BPS}&isInBps=true&feeReceiver=${FEE_WALLET}&chargeFeeBy=${A.a === ETH ? "currency_in" : B.a === ETH ? "currency_out" : "currency_in"}`;
   const quote = async (A, B, amt, fee = true) => { const r = await fetch(`${K}/routes?tokenIn=${A.a}&tokenOut=${B.a}&amountIn=${amt}${fee ? feeQ(A, B) : ""}`, { headers: { "x-client-id": CID } }); const j = await r.json(); if (j.code !== 0 || !j.data) throw new Error(j.message || "no route"); return j.data; };
   const build = async (rs, me, slip) => { const r = await fetch(`${K}/route/build`, { method: "POST", headers: { "content-type": "application/json", "x-client-id": CID }, body: JSON.stringify({ routeSummary: rs, sender: me, recipient: me, slippageTolerance: Math.round(slip * 100) }) }); const j = await r.json(); if (j.code !== 0 || !j.data) throw new Error(j.message || "could not build the swap"); return j.data; };
@@ -191,22 +204,26 @@
       if (bal < amt + 10n ** 14n) { if (account) { simulated = false; note = `This wallet holds ${show(bal, 18, 6)} ETH, not enough for ${show(amt, 18, 6)} ETH plus gas.`; } else { override[me] = { balance: "0x" + (amt + 10n ** 17n).toString(16) }; note = test ? "Simulated from a public test address with an ETH balance override." : "This address holds less ETH than the amount, so the simulation adds an ETH balance override (read only)."; } }
     }
     const swapCall = { from: me, to: tx.routerAddress, data: tx.data, value: "0x" + BigInt(tx.transactionValue || "0").toString(16) };
-    let ok = false, res = null, last = null, got = 0n;
+    let ok = false, res = null, last = null, got = 0n, apOk = false;
     if (simulated) {
       calls.push({ ...swapCall, gas: "0x" + (3_000_000).toString(16) });
-      res = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: override, calls }], traceTransfers: true, validation: false }, "latest"]);
-      const cs = res[0].calls; last = cs[cs.length - 1]; ok = cs.every((c) => c.status === "0x1");
-      if (ok) for (const l of last.logs || []) if (l.address.toLowerCase() === B.a.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(me))) got += BigInt(l.data);
+      if (viaWallet && calls.length > 1) { simulated = false; note = `Your network cannot reach the public RPC, so the simulation runs through your wallet's RPC with eth_call. The exact approval is simulated now; the swap itself is simulated again right after the approval lands, before your wallet asks you to sign it.`;
+        const ap = await simulate([calls[0]], {}); apOk = ap.calls[0].status === "0x1"; }
+      else { res = await simulate(calls, override);
+        const cs = res.calls; last = cs[cs.length - 1]; ok = cs.length === calls.length && cs.every((c) => c.status === "0x1");
+        if (ok && res.kind === "eth_simulateV1") { for (const l of last.logs || []) if (l.address.toLowerCase() === B.a.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(me))) got += BigInt(l.data); }
+        else if (ok && last.ret && last.ret.length >= 66) got = BigInt("0x" + last.ret.slice(2, 66)); }
     }
-    $("scard").innerHTML = `<h2>MAINNET SIMULATION · ETH_SIMULATEV1</h2>` + (!simulated ? `<div class="sim no">Not simulated</div><p class="muted">${note}</p>` :
+    const head = `<h2>MAINNET SIMULATION · ${viaWallet ? "ETH_CALL VIA YOUR WALLET'S RPC" : "ETH_SIMULATEV1"}</h2>`;
+    $("scard").innerHTML = head + (!simulated ? (apOk ? `<div class="sim ok">✓ The exact approval succeeds on mainnet</div><p class="muted">${note}</p>` : `<div class="sim no">Not simulated</div><p class="muted">${note}</p>`) :
       `<div class="sim ${ok ? "ok" : "no"}">${ok ? "✓ The swap succeeds on mainnet" : "✗ The swap fails on mainnet, so it is never signed"}</div>
-      <dl><dt>Block</dt><dd>${parseInt(res[0].number, 16).toLocaleString("en-US")}</dd>${isTok ? `<dt>Approval</dt><dd>${allowance >= amt ? "already approved for this amount" : "exact: " + show(amt, A.d, 6) + " " + An + " to " + short(tx.routerAddress)}</dd>` : ""}
+      <dl><dt>Block</dt><dd>${res.block.toLocaleString("en-US")}</dd>${isTok ? `<dt>Approval</dt><dd>${allowance >= amt ? "already approved for this amount" : "exact: " + show(amt, A.d, 6) + " " + An + " to " + short(tx.routerAddress)}</dd>` : ""}
       <dt>Received in simulation</dt><dd>${ok ? (got > 0n ? show(got, B.d) + " " + Bn : "—") : "—"}</dd><dt>Gas used</dt><dd>${parseInt(last.gasUsed, 16).toLocaleString("en-US")}</dd>${last.error ? `<dt>Error</dt><dd>${last.error.message}</dd>` : ""}
       <dt>From</dt><dd>${short(me)}${test ? " (public test address)" : account ? " (your wallet)" : ""}</dd></dl>${note ? `<p class="muted" style="margin-top:12px">${note}</p>` : ""}`);
-    const simOk = simulated && ok && Object.keys(override).length === 0;
-    $("checks").innerHTML = checks.map((c) => c.h).join("") + li(!simulated ? "wait" : ok ? "ok" : "no", "Mainnet simulation", !simulated ? "not simulated" : ok ? "the exact transaction succeeds" : "the transaction reverts");
+    const approveFirst = !simulated && apOk, simOk = (simulated && ok && Object.keys(override).length === 0) || approveFirst;
+    $("checks").innerHTML = checks.map((c) => c.h).join("") + li(approveFirst ? "ok" : !simulated ? "wait" : ok ? "ok" : "no", "Mainnet simulation", approveFirst ? "approval succeeds; the swap is simulated after it lands" : !simulated ? "not simulated" : ok ? "the exact transaction succeeds" : "the transaction reverts");
     const allOk = checks.every((c) => c.ok) && simOk;
-    plan = { ok: allOk && !!account, A, B, An, Bn, amt, minOut, got, tx, swapCall, needApprove: isTok && allowance < amt, gas: last ? BigInt(last.gasUsed) : 0n, at: Date.now(), slip };
+    plan = { approveFirst, ok: allOk && !!account, A, B, An, Bn, amt, minOut, got, tx, swapCall, needApprove: isTok && allowance < amt, gas: last ? BigInt(last.gasUsed) : 0n, at: Date.now(), slip };
     swapBtn(allOk ? null : "Swap · every check must pass first");
   }
   $("f").onsubmit = async (e) => { e.preventDefault(); $("err").textContent = ""; $("review").hidden = true; $("go").disabled = true; $("go").textContent = "Reading the chain…";
@@ -217,7 +234,7 @@
   $("swap").onclick = () => {
     if (!plan || !plan.ok) return; const p = plan, rv = $("review");
     rv.innerHTML = `<h2>REVIEW · YOUR WALLET WILL ASK YOU TO SIGN</h2><ul class="steps">${p.needApprove ? `<li><b>1 · Approve exactly ${show(p.amt, p.A.d, 6)} ${p.An}</b><br>to the router ${short(p.tx.routerAddress)}, nothing more</li>` : ""}
-      <li><b>${p.needApprove ? "2" : "1"} · Swap ${show(p.amt, p.A.d, 6)} ${p.An} → at least ${show(p.minOut, p.B.d)} ${p.Bn}</b><br>simulated to receive ${show(p.got, p.B.d)} ${p.Bn} · ${FEE_BPS / 100}% Reinpay fee to the buyback and burn wallet</li></ul>
+      <li><b>${p.needApprove ? "2" : "1"} · Swap ${show(p.amt, p.A.d, 6)} ${p.An} → at least ${show(p.minOut, p.B.d)} ${p.Bn}</b><br>${p.got > 0n ? "simulated to receive " + show(p.got, p.B.d) + " " + p.Bn : "simulated again right before you sign"} · ${FEE_BPS / 100}% Reinpay fee to the buyback and burn wallet</li></ul>
       <p class="muted">Right before your wallet opens, the swap is quoted and simulated again on the latest block. If anything fails, nothing is sent.</p>
       <p style="margin-top:14px"><button class="yes" id="yes" type="button">Yes, sign in my wallet</button><button class="no2" id="no2" type="button">Cancel</button></p><div class="err" id="rerr"></div>`;
     rv.hidden = false; rv.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -230,14 +247,14 @@
     $("yes").disabled = true; $("rerr").textContent = "";
     try {
       await ensureChain(); const who = (await req("eth_accounts"))[0]; if (!who || who.toLowerCase() !== account.toLowerCase()) throw new Error("the connected account changed");
-      say("Quoting and simulating again on the latest block…"); await prepare(); if (!plan || !plan.ok) throw new Error("a check failed on the fresh quote, so nothing was sent");
+      say("Quoting and simulating again on the latest block…"); await prepare(); if (!plan || !plan.ok) throw new Error("a check failed on the fresh quote, so nothing was sent"); if (!plan.needApprove && plan.approveFirst) throw new Error("the swap was not simulated, so nothing was sent");
       const p = plan, gasHex = (g) => "0x" + (g * 13n / 10n + 30000n).toString(16);
       if (p.needApprove) {
         say(`Your wallet asks you to approve exactly ${show(p.amt, p.A.d, 6)} ${p.An}…`);
         const ah = await req("eth_sendTransaction", [{ from: account, to: p.A.a, data: "0x095ea7b3" + pad(p.tx.routerAddress) + p.amt.toString(16).padStart(64, "0") }]);
         say(`Approval sent: <a href="${EXP}/tx/${ah}" target="_blank" rel="noopener">${short(ah)}</a>. Waiting for it to land…`);
         const ar = await waitTx(ah); if (ar.status !== "0x1") throw new Error("the approval failed on chain");
-        await prepare(); if (!plan || !plan.ok) throw new Error("the swap no longer passes a check after the approval, so it was not sent");
+        await prepare(); if (!plan || !plan.ok || plan.approveFirst || plan.needApprove) throw new Error("the swap did not pass its simulation after the approval, so it was not sent");
       }
       const q = plan; say(`Your wallet asks you to sign the swap: ${show(q.amt, q.A.d, 6)} ${q.An} → at least ${show(q.minOut, q.B.d)} ${q.Bn}…`);
       const h = await req("eth_sendTransaction", [{ from: account, to: q.swapCall.to, data: q.swapCall.data, value: q.swapCall.value, gas: gasHex(q.gas) }]);
