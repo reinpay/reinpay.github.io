@@ -129,13 +129,17 @@
   // Reads go to the public RPC; if the visitor's network cannot reach it, they go through the connected wallet's own RPC instead.
   let viaWallet = false;
   async function rpc(method, params) {
-    if (!viaWallet) { try { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) }); const j = await r.json(); if (j.error) throw Object.assign(new Error(j.error.message || "RPC error"), { rpc: true }); return j.result; }
+    if (!viaWallet) { try { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 6000); let r; try { r = await fetch(RPC, { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) }); } finally { clearTimeout(tm); } const j = await r.json(); if (j.error) throw Object.assign(new Error(j.error.message || "RPC error"), { rpc: true }); return j.result; }
       catch (e) { if (e.rpc || !eth || !account) throw e; viaWallet = true; } }
-    return await eth.request({ method, params });
+    return await wreq(method, params);
   }
+  const wreq = (method, params, ms = 30000) => Promise.race([eth.request({ method, params }), new Promise((_, no) => setTimeout(() => no(new Error(`your wallet did not answer ${method} in time`)), ms))]);
   // eth_simulateV1 when the RPC has it; otherwise step by step with eth_call on the latest block (same chain, same state)
   async function simulate(calls, override) {
     if (!viaWallet) { try { const res = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: override, calls }], traceTransfers: true, validation: false }, "latest"]); if (!viaWallet) return { kind: "eth_simulateV1", block: parseInt(res[0].number, 16), calls: res[0].calls }; } catch (e) { if (!viaWallet) throw e; } }
+    // reading through the wallet: make sure it reads Robinhood Chain, where the router really is
+    const cid = String(await wreq("eth_chainId", [])).toLowerCase(); if (cid !== CHAIN.hex) throw new Error(`your wallet reads chain ${parseInt(cid, 16)}, not Robinhood Chain (4663). Switch the network in your wallet for this site and try again`);
+    const code = await rpc("eth_getCode", [calls[calls.length - 1].to, "latest"]); if (!code || code === "0x") throw new Error("your wallet's RPC does not see the swap contract, so it cannot simulate here");
     const block = parseInt(await rpc("eth_blockNumber", []), 16), out = [];
     for (const c of calls) { const { gas, ...call } = c; try { const ret = await rpc("eth_call", [call, "latest"]); let g = "0x0"; try { g = await rpc("eth_estimateGas", [call]); } catch {} out.push({ status: "0x1", ret, gasUsed: g, logs: [] }); } catch (e) { out.push({ status: "0x0", gasUsed: "0x0", error: { message: (e.message || "reverted").slice(0, 160) } }); break; } }
     return { kind: "eth_call", block, calls: out };
@@ -208,11 +212,11 @@
     if (simulated) {
       calls.push({ ...swapCall, gas: "0x" + (3_000_000).toString(16) });
       if (viaWallet && calls.length > 1) { simulated = false; note = `Your network cannot reach the public RPC, so the simulation runs through your wallet's RPC with eth_call. The exact approval is simulated now; the swap itself is simulated again right after the approval lands, before your wallet asks you to sign it.`;
-        const ap = await simulate([calls[0]], {}); apOk = ap.calls[0].status === "0x1"; }
+        const ap = await simulate([calls[0]], {}); apOk = ap.calls[0].status === "0x1" && /1$/.test(ap.calls[0].ret || ""); }
       else { res = await simulate(calls, override);
         const cs = res.calls; last = cs[cs.length - 1]; ok = cs.length === calls.length && cs.every((c) => c.status === "0x1");
         if (ok && res.kind === "eth_simulateV1") { for (const l of last.logs || []) if (l.address.toLowerCase() === B.a.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(me))) got += BigInt(l.data); }
-        else if (ok && last.ret && last.ret.length >= 66) got = BigInt("0x" + last.ret.slice(2, 66)); }
+        else if (ok) { got = last.ret && last.ret.length >= 66 ? BigInt("0x" + last.ret.slice(2, 66)) : 0n; if (got < minOut) { ok = false; last.error = { message: `the simulated swap returns ${show(got, B.d)} ${Bn}, below the minimum ${show(minOut, B.d)}` }; } } }
     }
     const head = `<h2>MAINNET SIMULATION · ${viaWallet ? "ETH_CALL VIA YOUR WALLET'S RPC" : "ETH_SIMULATEV1"}</h2>`;
     $("scard").innerHTML = head + (!simulated ? (apOk ? `<div class="sim ok">✓ The exact approval succeeds on mainnet</div><p class="muted">${note}</p>` : `<div class="sim no">Not simulated</div><p class="muted">${note}</p>`) :
