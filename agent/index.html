@@ -32,6 +32,7 @@ a{color:var(--g)}.app{max-width:1360px;margin:0 auto;padding:18px 16px 50px}
 .tokens{position:absolute;left:12px;right:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap}
 .tk{border:1px dashed #2c4a3d;border-radius:8px;padding:5px 9px;font-size:11px;background:#06100c}.tk b{font-weight:600}.tk span{display:block;font-size:10px;color:var(--dim)}
 .tk.SIGNAL{border-color:var(--gold);color:var(--gold)}.tk.HOLD{border-color:var(--g);color:var(--g)}.tk.BLOCK{border-color:var(--bad);color:var(--bad)}
+.copy{display:grid;grid-template-columns:1fr 1.4fr;gap:12px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--ln)}.copy label{font-size:10px;color:var(--dim)}textarea{background:#030605;border:1px solid var(--ln);color:var(--ink);font:11px "IBM Plex Mono";padding:8px 9px;border-radius:8px;width:100%;resize:vertical}
 .focusbox{position:absolute;right:12px;bottom:10px;width:250px;background:rgba(5,8,10,.88);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;font-size:11px}#spark{width:100%;height:54px;display:block;margin:4px 0}
 .mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.mini div{border:1px dashed var(--ln);border-radius:9px;padding:8px 10px;background:var(--pn2)}.mini small{display:block;font-size:9px;letter-spacing:.12em;color:var(--dim)}.mini b{font:700 18px "Familjen Grotesk"}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
@@ -91,6 +92,10 @@ input,select{background:#030605;border:1px solid var(--ln);color:var(--ink);font
       </div>
       <div class="pn" style="margin-top:14px"><h3><span>LOG · EVERY DECISION HAS A REASON</span></h3><div class="log" id="log"></div></div>
       <div class="pn" style="margin-top:14px"><h3><span>BOT RULES · SAME ENGINE AS REINPAY TRADING</span><button class="o" id="save">Save</button></h3><div class="set" id="set"></div>
+        <div class="copy"><div><label class="consent" style="margin-top:0"><input type="checkbox" id="copyOn">Copy wallets: when a wallet I list buys one of these markets, my bot buys it too</label>
+          <label class="consent"><input type="checkbox" id="copySell">Sell when the wallet I copy sells</label>
+          <div class="muted" style="font-size:11px;margin-top:6px">Copied buys go through the same risk agent: open positions, day budget, impact, cash and the round trip check, then the Keeper's take profit and stop loss. Only trades after you save are copied. Native ETH trades are not visible as token transfers, so ETH is not copied.</div></div>
+          <label>Wallets to copy (Robinhood Chain addresses you choose, one per line, max 10)<textarea id="watch" rows="5" spellcheck="false" placeholder="0x…"></textarea></label></div>
         <div class="muted" style="margin-top:8px">Decisions run on each market's hourly close, exactly like the Trading Desk: momentum buys when the last hour closed up by the signal, buy the dip buys when price is that far under the 24 hour high. The Keeper checks take profit and stop loss on every live quote, every few seconds. 0.2% of each real trade goes to the public buyback and burn wallet. Trading can lose money; paper results are not a promise of anything.</div></div>
     </div>
   </div>
@@ -160,7 +165,12 @@ async function decide(m, c, prev) { // runs once per market per hourly close, ex
   m.sigText = r.st === "mom" ? `${(move * 100).toFixed(2)}% in 1h vs +${r.sig}%` : `${(off * 100).toFixed(2)}% under 24h high vs ${r.sig}%`;
   say("signal", `${m.s} hourly close · ${m.sigText}${ok ? " · SIGNAL" : ""}`);
   if (!ok) { m.state = "WATCH"; log("signal", "CHECK", `${m.s} hourly close · ${m.sigText} · no signal, no trade`); return; }
-  m.state = "SIGNAL"; RT.stage = "risk";
+  m.state = "SIGNAL"; await tryBuy(m, `${r.st === "mom" ? "momentum" : "dip"} · ${m.sigText}`);
+}
+// the shared risk path for every buy (hourly signal or a copied wallet): open positions, day budget, impact, cash,
+// and a round trip quote at the real size
+async function tryBuy(m, why, copy = null) {
+  const r = RULES, d = dayRec(); RT.stage = "risk"; if (d.paused) return block(m, "daily loss limit reached today"); if (B.pos[m.s]) return;
   const size = Math.min(r.per, B.usd), open = Object.keys(B.pos).length;
   if (open >= r.maxOpen) return block(m, `max ${r.maxOpen} open positions`);
   if (d.spent + size > r.day + 1e-9) return block(m, `budget guard · ${usd(d.spent)} + ${usd(size)} is over today's ${usd(r.day)}`);
@@ -175,7 +185,7 @@ async function decide(m, c, prev) { // runs once per market per hourly close, ex
   catch { return block(m, "could not quote a round trip"); }
   say("risk", `${m.s} passed · budget ${usd(d.spent)} of ${usd(r.day)} · round trip ${(m.rt * 100).toFixed(2)}%`);
   RT.stage = "size"; say("size", `${usd(size)} → ${m.s} at ${fmtP(m.live)}`);
-  await buy(m, size, `${r.st === "mom" ? "momentum" : "dip"} · ${m.sigText}`);
+  await buy(m, size, why, copy);
 }
 function block(m, why) { m.state = "BLOCK"; B.blocked++; say("risk", `${m.s} blocked · ${why}`, "warn"); log("risk", "BLOCKED", `${m.s} · ${why}`); }
 async function keep() { // take profit / stop loss on every live quote
@@ -210,7 +220,7 @@ async function send(tx) { // sign locally with the bot key, broadcast, wait for 
   for (let i = 0; i < 60; i++) { await sleep(1500); const rc = await rpc("eth_getTransactionReceipt", [h]); if (rc) { if (rc.status !== "0x1") throw new Error("reverted on chain " + h); return h; } }
   throw new Error("no receipt after 90s " + h);
 }
-async function buy(m, size, why) {
+async function buy(m, size, why, copy = null) {
   RT.stage = "exec"; const d = dayRec();
   if (mode === "paper") { const qty = size * (1 - side(m)) / m.live; B.usd -= size; B.pos[m.s] = { s: m.s, qty, entry: m.live, cost: size, t: now(), tx: "paper" }; }
   else {
@@ -223,6 +233,7 @@ async function buy(m, size, why) {
     const got = native ? BigInt(rs.amountOut) : (await balOf(m.a, bot.address)) - before, qty = Number(got) / 10 ** m.dec; if (got <= 0n) throw new Error("no tokens arrived " + h);
     B.usd = Number(await balOf(USDG, bot.address)) / 1e6; B.pos[m.s] = { s: m.s, qty, raw: got.toString(), entry: size / qty, cost: size, t: now(), tx: h };
   }
+  if (B.pos[m.s]) B.pos[m.s].copy = copy;
   d.spent += size; B.trades++; m.state = "HOLD"; saveBook(); say("exec", `BUY ${m.s} · ${usd(size)}`);
   log("exec", "BUY", `${mode === "paper" ? "[paper] " : ""}${m.s} · ${usd(size)} at ${fmtP(B.pos[m.s].entry)} · ${why}${B.pos[m.s].tx !== "paper" ? " · tx " + B.pos[m.s].tx : ""}`); RT.stage = "scribe";
 }
@@ -242,6 +253,25 @@ async function sell(p, m, why) {
   log("keep", pnl >= 0 ? "SELL+" : "SELL-", `${mode === "paper" ? "[paper] " : ""}${p.s} · got ${usd(got)} · ${pnl >= 0 ? "+" : ""}${usd(pnl)} · ${why}${h !== "paper" ? " · tx " + h : ""}`);
 }
 
+// ---------- copy wallets: watch chosen Robinhood Chain wallets; when one buys a market this bot trades, buy too ----------
+const COPY = { on: false, sell: true, wallets: [], ...store.get("reinpay-agent-copy", {}) }; let copyBlock = 0, copyAt = 0;
+const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", shortA = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+async function watchCopy() {
+  if (!COPY.on || !COPY.wallets.length || now() - copyAt < 15000) return; copyAt = now();
+  const bn = parseInt(await rpc("eth_blockNumber", []), 16); if (!copyBlock) { copyBlock = bn; say("scout", `watching ${COPY.wallets.length} wallet(s) from block ${bn.toLocaleString("en-US")}`); return; }
+  if (bn <= copyBlock) return; const from = "0x" + (copyBlock + 1).toString(16), to = "0x" + bn.toString(16), ws = COPY.wallets.map((w) => "0x" + pad(w)); copyBlock = bn;
+  const [ins, outs] = await Promise.all([rpc("eth_getLogs", [{ fromBlock: from, toBlock: to, topics: [TRANSFER, null, ws] }]), rpc("eth_getLogs", [{ fromBlock: from, toBlock: to, topics: [TRANSFER, ws] }])]);
+  // net token flow per (transaction, market, wallet): one swap can move a token in and out of the same wallet
+  const byAddr = (a) => M.find((m) => m.a.toLowerCase() === a.toLowerCase()), net = new Map();
+  for (const [sign, list, ti] of [[1n, ins, 2], [-1n, outs, 1]]) for (const l of list) { const m = byAddr(l.address); if (!m) continue; const w = "0x" + l.topics[ti].slice(26), k = l.transactionHash + "|" + m.s + "|" + w;
+    net.set(k, (net.get(k) || 0n) + sign * BigInt(l.data === "0x" ? 0 : l.data)); }
+  for (const [k, v] of net) { if (v === 0n) continue; const [hash, sym, w] = k.split("|"), m = M.find((x) => x.s === sym);
+    const tx = await rpc("eth_getTransactionByHash", [hash]).catch(() => null); if (!tx || tx.from.toLowerCase() !== w.toLowerCase()) continue; // the wallet itself made this trade
+    if (v > 0n) { log("signal", "COPY", `${shortA(w)} bought ${m.s} · tx ${hash}`); if (!B.pos[m.s]) await tryBuy(m, `copied ${shortA(w)}`, w).catch((e) => log("exec", "ERROR", `${m.s}: ${e.message}`)); }
+    else if (COPY.sell && B.pos[m.s]?.copy?.toLowerCase() === w.toLowerCase()) { log("signal", "COPY", `${shortA(w)} sold ${m.s} · tx ${hash}`); await sell(B.pos[m.s], m, `copied wallet ${shortA(w)} sold`).catch((e) => log("keep", "ERROR", e.message)); } }
+  say("scout", `watching ${COPY.wallets.length} wallet(s) · ${ins.length + outs.length} transfer(s) in the last ${bn - parseInt(from, 16) + 1} blocks`);
+}
+
 // ---------- the loop: a quote for a few markets every 5 seconds, hourly closes trigger decisions ----------
 let qi = 0, busy = false;
 async function loop() {
@@ -254,6 +284,7 @@ async function loop() {
     for (const m of batch) { const k = Math.floor(now() / 3600000) * 3600; let c = m.candles.at(-1);
       if (c.t < k) { const closed = c; m.candles.push({ t: k, o: closed.c, h: m.live, l: m.live, c: m.live }); await decide(m, closed, m.candles.at(-3)).catch((e) => { log("exec", "ERROR", `${m.s}: ${e.message}`); say("exec", e.message.slice(0, 80), "bad"); }); }
       else { c.c = m.live; c.h = Math.max(c.h, m.live); c.l = Math.min(c.l, m.live); } }
+    await watchCopy().catch((e) => say("scout", "copy watch: " + e.message.slice(0, 70), "warn"));
     await keep().catch((e) => log("keep", "ERROR", e.message));
     if (mode === "live" && bot && now() - (RT.balAt || 0) > 30000) { RT.balAt = now(); B.usd = Number(await balOf(USDG, bot.address)) / 1e6; RT.gas = Number(await balOf(ETHN, bot.address)) / 1e18; }
     B.eq.push([now(), equity()]); if (B.eq.length > 600) B.eq.shift(); RT.stage = "scribe"; say("scribe", `${B.log.length} lines · every decision has a reason`); saveBook();
@@ -288,7 +319,10 @@ $("bk").onclick = () => { if (!bot) return msg("Connect your wallet first."); if
 $("pause").onclick = () => { paused = !paused; log("system", paused ? "PAUSE" : "RESUME", paused ? "paused by you" : "resumed"); };
 $("set").innerHTML = SETS.map(([k, l]) => k === "st" ? `<label>${l}<select id="z-st"><option value="mom">Momentum</option><option value="dip">Buy the dip</option></select></label>` : `<label>${l}<input id="z-${k}" inputmode="decimal"></label>`).join("");
 for (const [k] of SETS) $("z-" + k).value = RULES[k];
-$("save").onclick = () => { for (const [k] of SETS) RULES[k] = k === "st" ? $("z-st").value : +$("z-" + k).value; store.set("reinpay-agent-rules", RULES); log("system", "RULES", "rules changed"); $("save").textContent = "Saved ✓"; setTimeout(() => ($("save").textContent = "Save"), 1500); };
+$("copyOn").checked = COPY.on; $("copySell").checked = COPY.sell; $("watch").value = COPY.wallets.join("\n");
+$("save").onclick = () => { const ws = [...new Set($("watch").value.split(/[\s,]+/).filter((a) => /^0x[0-9a-fA-F]{40}$/.test(a)).map((a) => a.toLowerCase()))].slice(0, 10);
+  Object.assign(COPY, { on: $("copyOn").checked, sell: $("copySell").checked, wallets: ws }); store.set("reinpay-agent-copy", COPY); copyBlock = 0; $("watch").value = ws.join("\n");
+  if (COPY.on) log("system", "RULES", `copy wallets on · ${ws.length} wallet(s): ${ws.map(shortA).join(", ") || "none yet"}`); for (const [k] of SETS) RULES[k] = k === "st" ? $("z-st").value : +$("z-" + k).value; store.set("reinpay-agent-rules", RULES); log("system", "RULES", "rules changed"); $("save").textContent = "Saved ✓"; setTimeout(() => ($("save").textContent = "Save"), 1500); };
 
 // ---------- drawing ----------
 $("agents").innerHTML = AG.map(([id, n, ic, c, r]) => `<div class="ag" id="a-${id}"><i style="background:${c}22;color:${c}">${ic}</i><div><div class="n">${n}</div><div class="r">${r}</div></div><span class="s" id="s-${id}">READY</span><div class="t" id="t-${id}">waiting…</div></div>`).join("");
