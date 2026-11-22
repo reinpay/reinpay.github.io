@@ -39,6 +39,11 @@
   .btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; } .btns button { font: 700 14px "Familjen Grotesk"; color: #04130b; background: var(--g); border: 0; padding: 9px 16px; cursor: pointer; } .btns .o { background: none; color: var(--ink); border: 1px solid var(--line); }
   .note { font-size: 11.5px; color: #5d7568; margin-top: 10px; line-height: 1.6; }
   .tabs { display: flex; gap: 6px; flex-wrap: wrap; } .tabs button { font: 600 12px "IBM Plex Mono"; color: var(--dim); background: rgba(95,240,168,.04); border: 1px solid rgba(95,240,168,.22); padding: 7px 11px; cursor: pointer; } .tabs button.on { color: #04130b; background: var(--g); border-color: var(--g); }
+  .rbtn { font: 700 13px "Familjen Grotesk"; color: #04130b; background: var(--g); border: 0; padding: 9px; cursor: pointer; }
+  #real { border-color: rgba(226,176,87,.45); }
+  .prop { margin-top: 12px; border: 1px solid rgba(226,176,87,.5); padding: 12px 14px; background: rgba(226,176,87,.05); font-size: 12.5px; line-height: 1.6; }
+  .prop b { color: var(--ink); } .prop .ok { color: var(--g); } .prop .no { color: var(--bad); }
+  .prop button { font: 700 14px "Familjen Grotesk"; border: 0; padding: 9px 14px; cursor: pointer; margin: 8px 8px 0 0; } .prop .yes { background: var(--g); color: #04130b; } .prop .cx { background: none; color: var(--dim); border: 1px solid var(--line); }
   .back { color: var(--g); font-size: 12px; text-decoration: none; }
   @media (max-width: 900px) { .row2 { grid-template-columns: 1fr; } .ctl { grid-template-columns: repeat(2, 1fr); } #hub { height: 380px; } }
 </style>
@@ -74,6 +79,17 @@
     </div>
     <div class="btns"><button type="button" id="replay">Replay with these rules</button><button type="button" class="o" id="snd">🔈 Voice off</button></div>
     <p class="note" id="note">Candles are hourly prices of each market's deepest Robinhood Chain pool (GeckoTerminal, from on-chain swaps); the live price is a KyberSwap quote in your browser every 15 seconds. Each paper trade pays half the measured round trip cost of a 1,000 USDG swap on each side, plus Reinpay's 0.2%. Price impact is estimated from a 10,000 USDG quote. Live trades are simulated with eth_simulateV1 on mainnet before they count. A replay is not a promise of anything.</p>
+  </div>
+  <div class="card" id="real"><h2><span>MAINNET MODE · REAL TRADES · YOUR WALLET SIGNS</span><b id="rstat">NOT CONNECTED</b></h2>
+    <div class="ctl" style="grid-template-columns:repeat(4,1fr)">
+      <label>YOUR WALLET<button type="button" class="rbtn" id="rconn">Connect wallet</button></label>
+      <label>REAL MONEY PER TRADE (USDG)<input id="rcap" value="10"></label>
+      <label>REAL MONEY PER DAY (USDG)<input id="rday" value="30"></label>
+      <label>WHEN THE AGENT SIGNALS<select id="rauto"><option value="ask">propose a real trade to me</option><option value="off">paper only</option></select></label>
+    </div>
+    <div class="btns"><button type="button" id="rbuy">Propose a real buy now</button><button type="button" class="o" id="rsell">Propose selling my position</button></div>
+    <div id="rprop"></div><div class="note" id="rerr"></div>
+    <p class="note">Real trades use your own USDG on Robinhood Chain mainnet through the KyberSwap route. Each one is quoted, checked against your caps and simulated on mainnet from your wallet; your wallet only asks you to sign after you press Yes. Approvals are exact, never unlimited. 0.2% of each trade goes to the public buyback and burn wallet 0xc651…9317. Trading can lose money.</p>
   </div>
 </div>
 
@@ -166,7 +182,7 @@ requestAnimationFrame(drawHub);
 let M = null, mk = null, candles = [], livePx = null, voiceOn = false, live = false, at = "";
 const usd = (v) => (v < 0 ? "−$" : "$") + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 async function loadMarkets() { const d = await (await fetch("../assets/chain/markets.json?t=" + Date.now())).json(); M = d.markets.filter((m) => m.hourly && m.hourly.length > 24 && m.px); at = d.at; }
-function pick(s) { mk = M.find((m) => m.s === s) || M[0]; candles = mk.hourly.map(([t, o, h, l, c, v]) => ({ t, o, h, l, c, v })); livePx = mk.px;
+function pick(s) { setTimeout(() => { try { realStatus(); } catch {} }, 0); mk = M.find((m) => m.s === s) || M[0]; candles = mk.hourly.map(([t, o, h, l, c, v]) => ({ t, o, h, l, c, v })); livePx = mk.px;
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.s === mk.s));
   $("mkt").textContent = `${mk.s} / USDG · ${mk.n} · ${mk.poolName || "Robinhood Chain pool"} · 1 HOUR CANDLES`;
   $("meta").innerHTML = `<b>${mk.s}</b> ${fmtP(mk.px)} · round trip cost <b>${mk.cost}%</b> at 1,000 USDG · price move <b>${mk.impact10k}%</b> at 10,000 USDG · data ${new Date(at).toISOString().slice(11, 16)} UTC`; }
@@ -231,7 +247,8 @@ async function sim(kind, sizeUsd, isLive) {
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 async function pulse(i, col, isLive) { active = i; activeCol = col; flash.set(i, col); await wait(isLive ? 260 : 30); active = -1; }
 function log(t, kind, cls, txt, pnl, isLive) {
-  fills.unshift({ t, kind, cls, txt, pnl, isLive }); AGS[10] = kind.toLowerCase() + " · logged";
+  fills.unshift({ t, kind, cls, txt, pnl, isLive });
+  if (isLive && (kind === "BUY" || kind === "SELL") && $("rauto").value === "ask" && account) setTimeout(() => propose(kind === "BUY" ? "buy" : "sell", "the agent signalled " + kind.toLowerCase()), 300); AGS[10] = kind.toLowerCase() + " · logged";
   if (isLive && voiceOn && "speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(kind === "BUY" ? `Buying ${mk.n}.` : kind === "SELL" ? `Selling ${mk.n}. ` + txt.split("·")[0] : kind === "BLOCKED" ? "Blocked by the rules." : kind === "PAUSED" ? "Loss limit reached. I stop for today." : "Waiting for the owner."); speechSynthesis.speak(u); }
 }
 
@@ -277,6 +294,83 @@ async function tick() {
   else if (mk) AGS[0] = "quote unreachable";
   if (acct) ui(); setTimeout(tick, 15000);
 }
+// ---------- mainnet mode: real trades from the visitor's own wallet, only after "Yes" ----------
+const FEE_WALLET = "0xc651fc557130be361a8b45a7ed19405dd06d9317", FEE_BPS = 20, ETHN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", EXP = "https://robinhoodchain.blockscout.com", CHAIN = "0x1237";
+let eth = null, account = null, plan = null, busy = false;
+const req = (m, p = []) => eth.request({ method: m, params: p });
+const isNative = (a) => a.toLowerCase() === ETHN.toLowerCase();
+const padA = (a) => a.slice(2).toLowerCase().padStart(64, "0"), short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+const realKey = () => "reinpay-real-" + (account || "").toLowerCase();
+function realLoad() { try { return JSON.parse(localStorage.getItem(realKey()) || "{}"); } catch { return {}; } }
+function realSave(v) { try { localStorage.setItem(realKey(), JSON.stringify(v)); } catch {} }
+async function ensureChain() {
+  if ((await req("eth_chainId")).toLowerCase() === CHAIN) return;
+  try { await req("wallet_switchEthereumChain", [{ chainId: CHAIN }]); }
+  catch (e) { if (e && (e.code === 4902 || /unrecognized|not added|unknown chain/i.test(e.message || ""))) await req("wallet_addEthereumChain", [{ chainId: CHAIN, chainName: "Robinhood Chain", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: [RPC], blockExplorerUrls: [EXP] }]); else throw e; }
+  if ((await req("eth_chainId")).toLowerCase() !== CHAIN) throw new Error("your wallet is not on Robinhood Chain");
+}
+// reads: public RPC with a short timeout, then the wallet's own RPC (some networks block the public one)
+async function read(m, p) { try { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 6000); const r = await fetch(RPC, { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: m, params: p }) }); clearTimeout(tm); const j = await r.json(); if (j.error) throw Object.assign(new Error(j.error.message), { rpc: true }); return j.result; } catch (e) { if (e.rpc || !eth) throw e; return await req(m, p); } }
+function realStatus() { const pos = realLoad()[mk?.s]; $("rstat").textContent = !account ? "NOT CONNECTED" : `${short(account)} · ${pos ? `holding real ${mk.s}` : "no real position in " + (mk?.s || "")}`; }
+$("rconn").onclick = async () => { $("rerr").textContent = ""; eth = window.ethereum; if (!eth) { $("rerr").textContent = "No browser wallet found. Open this page in your wallet's browser, or install one."; return; }
+  try { account = (await req("eth_requestAccounts"))[0]; await ensureChain(); $("rconn").textContent = short(account); eth.on?.("accountsChanged", () => location.reload()); eth.on?.("chainChanged", () => location.reload()); realStatus(); } catch (e) { $("rerr").textContent = "Wallet: " + (e.message || e); } };
+const spentToday = () => { const d = new Date().toISOString().slice(0, 10), r = realLoad(); return (r._day === d ? r._spent : 0) || 0; };
+async function propose(kind, why) {
+  if (busy) return; $("rerr").textContent = "";
+  if (!account) { $("rerr").textContent = "Connect your wallet first."; return; }
+  const cap = +$("rcap").value, dayCap = +$("rday").value, pos = realLoad()[mk.s];
+  if (!(cap > 0) || !(dayCap > 0)) { $("rerr").textContent = "Set your real money caps first."; return; }
+  if (kind === "sell" && !pos) { $("rerr").textContent = `You hold no real ${mk.s} from this desk to sell.`; return; }
+  if (kind === "buy" && spentToday() + cap > dayCap) { $("rprop").innerHTML = `<div class="prop"><b class="no">✗ Blocked by your real money cap</b><br>${usd(spentToday())} already traded today; ${usd(cap)} more is over your ${usd(dayCap)} a day. Nothing was sent.</div>`; return; }
+  busy = true; $("rprop").innerHTML = `<div class="prop">Quoting and simulating on Robinhood Chain mainnet…</div>`;
+  try {
+    const tin = kind === "buy" ? USDG : mk.a, tout = kind === "buy" ? mk.a : USDG;
+    const amt = kind === "buy" ? BigInt(Math.floor(cap * 1e6)) : BigInt(pos.qty);
+    const q = await (await fetch(`${K}/routes?tokenIn=${tin}&tokenOut=${tout}&amountIn=${amt}&feeAmount=${FEE_BPS}&isInBps=true&chargeFeeBy=currency_in&feeReceiver=${FEE_WALLET}`, { headers: { "x-client-id": CID } })).json();
+    if (q.code !== 0) throw new Error(q.message || "no route");
+    const rs = q.data.routeSummary, out = BigInt(rs.amountOut), min = out * 99n / 100n, decOut = kind === "buy" ? mk.dec : 6, decIn = kind === "buy" ? 6 : mk.dec;
+    const b = await (await fetch(`${K}/route/build`, { method: "POST", headers: { "x-client-id": CID, "content-type": "application/json" }, body: JSON.stringify({ routeSummary: rs, sender: account, recipient: account, slippageTolerance: 100 }) })).json();
+    if (b.code !== 0) throw new Error(b.message || "could not build the trade"); const tx = b.data;
+    // balance, exact approval, then the swap, simulated from your wallet on the latest block
+    const bal = isNative(tin) ? BigInt(await read("eth_getBalance", [account, "latest"])) : BigInt(await read("eth_call", [{ to: tin, data: "0x70a08231" + padA(account) }, "latest"]));
+    if (bal < amt) throw new Error(`your wallet holds ${(Number(bal) / 10 ** decIn).toLocaleString("en-US", { maximumFractionDigits: 6 })} ${kind === "buy" ? "USDG" : mk.s}, less than the trade`);
+    const allow = isNative(tin) ? amt : BigInt(await read("eth_call", [{ to: tin, data: "0xdd62ed3e" + padA(account) + padA(tx.routerAddress) }, "latest"]));
+    const needApprove = !isNative(tin) && allow < amt, swapCall = { from: account, to: tx.routerAddress, data: tx.data, value: "0x" + BigInt(tx.transactionValue || "0").toString(16) };
+    const calls = []; if (needApprove) calls.push({ from: account, to: tin, data: "0x095ea7b3" + padA(tx.routerAddress) + amt.toString(16).padStart(64, "0") }); calls.push({ ...swapCall, gas: "0x2dc6c0" });
+    let simOk = false, simTxt = "";
+    try { const r = await read("eth_simulateV1", [{ blockStateCalls: [{ calls }], validation: false }, "latest"]); simOk = r[0].calls.every((c) => c.status === "0x1"); simTxt = simOk ? `✓ succeeds at block ${parseInt(r[0].number, 16).toLocaleString("en-US")}` : `✗ ${r[0].calls.find((c) => c.status !== "0x1")?.error?.message || "reverts"}`; }
+    catch (e) { if (needApprove) { simOk = true; simTxt = "approval first; the swap is simulated again right after it lands"; } else { try { await read("eth_call", [swapCall, "latest"]); simOk = true; simTxt = "✓ succeeds (eth_call)"; } catch (e2) { simTxt = "✗ " + (e2.message || "reverts").slice(0, 120); } } }
+    plan = simOk ? { kind, tin, tout, amt, min, out, tx, swapCall, needApprove, decIn, decOut } : null;
+    const f = (v, d) => (Number(v) / 10 ** d).toLocaleString("en-US", { maximumFractionDigits: d === 6 ? 2 : 6 });
+    $("rprop").innerHTML = `<div class="prop"><b>${kind === "buy" ? "BUY" : "SELL"} ${mk.s} with real money</b> · ${why}<br>
+      You pay <b>${f(amt, decIn)} ${kind === "buy" ? "USDG" : mk.s}</b> · you get about <b>${f(out, decOut)} ${kind === "buy" ? mk.s : "USDG"}</b> (at least ${f(min, decOut)})<br>
+      ${needApprove ? `Step 1: approve exactly ${f(amt, decIn)} ${kind === "buy" ? "USDG" : mk.s} to ${short(tx.routerAddress)} · Step 2: the swap<br>` : ""}0.2% Reinpay fee to the buyback and burn wallet ${short(FEE_WALLET)}<br>
+      Mainnet simulation: <span class="${simOk ? "ok" : "no"}">${simTxt}</span><br>
+      ${simOk ? `<button class="yes" type="button" id="ryes">Yes, sign in my wallet</button>` : ""}<button class="cx" type="button" id="rno">Cancel</button><div class="note" id="rrr"></div></div>`;
+    $("rno").onclick = () => { plan = null; $("rprop").innerHTML = ""; };
+    if (simOk) $("ryes").onclick = () => execute();
+  } catch (e) { $("rprop").innerHTML = `<div class="prop"><b class="no">✗ Not proposed</b> · ${e.message || e}. Nothing was sent.</div>`; }
+  finally { busy = false; }
+}
+async function waitTx(h) { for (let i = 0; i < 120; i++) { let r = null; try { r = await read("eth_getTransactionReceipt", [h]); } catch {} if (r) return r; await new Promise((x) => setTimeout(x, 1500)); } throw new Error("no receipt yet, check the explorer"); }
+async function execute() {
+  const p = plan; if (!p) return; const say = (h) => { const el = $("rrr"); if (el) el.innerHTML = h; };
+  try { $("ryes").disabled = true; await ensureChain();
+    if (p.needApprove) { say("Your wallet asks you to approve the exact amount…"); const ah = await req("eth_sendTransaction", [{ from: account, to: p.tin, data: "0x095ea7b3" + padA(p.tx.routerAddress) + p.amt.toString(16).padStart(64, "0") }]);
+      say(`Approval sent <a class="back" href="${EXP}/tx/${ah}" target="_blank" rel="noopener">${short(ah)}</a>, waiting…`); const ar = await waitTx(ah); if (ar.status !== "0x1") throw new Error("the approval failed on chain");
+      try { const r = await read("eth_simulateV1", [{ blockStateCalls: [{ calls: [{ ...p.swapCall, gas: "0x2dc6c0" }] }], validation: false }, "latest"]); if (r[0].calls[0].status !== "0x1") throw new Error("the swap fails its simulation after the approval, so it was not sent"); } catch (e) { if (/fails its simulation/.test(e.message)) throw e; await read("eth_call", [p.swapCall, "latest"]); } }
+    say("Your wallet asks you to sign the trade…"); const h = await req("eth_sendTransaction", [{ ...p.swapCall, from: account }]);
+    say(`Trade sent <a class="back" href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)}</a>, waiting…`); const r = await waitTx(h);
+    let got = 0n; if (isNative(p.tout)) got = p.out; else for (const l of r.logs || []) if (l.address.toLowerCase() === p.tout.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(padA(account))) got += BigInt(l.data);
+    const store = realLoad(), d = new Date().toISOString().slice(0, 10);
+    if (r.status === "0x1") { if (p.kind === "buy") { store[mk.s] = { qty: got.toString(), cost: Number(p.amt) / 1e6, tx: h }; store._spent = (store._day === d ? store._spent || 0 : 0) + Number(p.amt) / 1e6; store._day = d; } else delete store[mk.s]; realSave(store); }
+    $("rprop").innerHTML = `<div class="prop"><b class="${r.status === "0x1" ? "ok" : "no"}">${r.status === "0x1" ? "✓ Traded on Robinhood Chain mainnet" : "✗ The trade failed on chain"}</b><br>Transaction <a class="back" href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)} ↗</a> · block ${parseInt(r.blockNumber, 16).toLocaleString("en-US")}${got > 0n ? ` · received ${(Number(got) / 10 ** p.decOut).toLocaleString("en-US", { maximumFractionDigits: 6 })} ${p.kind === "buy" ? mk.s : "USDG"}` : ""}</div>`;
+    log(Math.floor(Date.now() / 1000), "REAL " + p.kind.toUpperCase(), p.kind === "buy" ? "B" : "S", `real ${p.kind} of ${mk.s} · tx ${short(h)}`, "", false); ui(); plan = null; realStatus();
+  } catch (e) { say(e && e.code === 4001 ? "You declined in your wallet. Nothing was sent." : "Stopped: " + (e.message || e) + "."); const y = $("ryes"); if (y) y.disabled = false; }
+}
+$("rbuy").onclick = () => propose("buy", "you asked for a real buy");
+$("rsell").onclick = () => propose("sell", "you asked to sell your real position");
+
 $("replay").onclick = () => replay();
 $("snd").onclick = () => { voiceOn = !voiceOn; $("snd").textContent = voiceOn ? "🔊 Voice on" : "🔈 Voice off"; };
 (async () => {
