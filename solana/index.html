@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reinpay Agent · Solana</title>
+<meta name="description" content="Connect a Solana wallet, deposit SOL to your own bot, and let eight Reinpay agents trade trending Solana memecoins within your limits. The bot key lives only in your browser; every trade is simulated on Solana mainnet first.">
+<link rel="canonical" href="https://reinpay.app/solana/">
+<meta name="theme-color" content="#05080a">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Familjen+Grotesk:wght@600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<style>
+:root{--bg:#05080a;--pn:#0b1310;--pn2:#08100d;--ln:rgba(95,240,168,.18);--ink:#e3ebe5;--dim:#8aa597;--g:#5ff0a8;--gold:#e2b057;--bad:#f0836e;--blue:#7aa7ff;--violet:#b48cff}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 "IBM Plex Mono",monospace}
+body{background-image:linear-gradient(rgba(95,240,168,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(95,240,168,.035) 1px,transparent 1px);background-size:50px 50px}
+a{color:var(--g)}.app{max-width:1360px;margin:0 auto;padding:18px 16px 50px}
+.top{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:22px;align-items:center;padding:14px 18px;background:var(--pn);border:1px solid var(--ln);border-radius:14px}
+.pbtn{width:54px;height:54px;border-radius:50%;border:2px solid var(--ln);background:#06100c;color:var(--ink);font-size:18px;cursor:pointer}
+.ttl{font:700 26px "Familjen Grotesk";letter-spacing:-.02em}.ttl b{color:var(--g)}.ttl small{font:600 10px "IBM Plex Mono";color:var(--dim);border:1px solid var(--ln);padding:2px 6px;border-radius:5px;margin-left:8px;vertical-align:middle;letter-spacing:.08em}
+.run{font-size:12px;color:var(--g);margin-top:2px}.run.off{color:var(--bad)}.chip{display:inline-block;font-size:10px;letter-spacing:.08em;padding:2px 7px;border-radius:5px;background:#10201a;color:var(--dim);margin-left:6px}
+.big{font:700 30px "Familjen Grotesk";letter-spacing:-.02em}.big small{display:block;font:400 11px "IBM Plex Mono";color:var(--dim);letter-spacing:0}
+.cnt{text-align:center}.cnt b{font:700 26px "Familjen Grotesk";display:block}.w{color:var(--g)}.l{color:var(--bad)}
+.mode{font:600 11px "IBM Plex Mono";letter-spacing:.14em;padding:5px 10px;border-radius:7px;background:#251d0c;color:var(--gold);border:1px solid #5d4718}.mode.live{background:#0b2a1e;color:var(--g);border-color:#1f6e4c}
+.grid{display:grid;grid-template-columns:270px 1fr;gap:14px;margin-top:14px}
+.pn{background:var(--pn);border:1px solid var(--ln);border-radius:14px;padding:14px}.pn h3{margin:0 0 10px;font:600 10.5px "IBM Plex Mono";letter-spacing:.18em;color:var(--dim);display:flex;justify-content:space-between;gap:8px}
+.ag{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:start;padding:9px;border:1px solid var(--ln);border-radius:10px;margin-bottom:7px;background:var(--pn2);transition:.25s}
+.ag i{font-style:normal;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:14px}.ag .n{font:700 12.5px "Familjen Grotesk";letter-spacing:.04em}.ag .r{color:var(--dim);font-size:10px}.ag .t{grid-column:2/4;font-size:11px;color:#b9cdc2;margin-top:2px}
+.ag .s{font-size:9px;letter-spacing:.08em;padding:2px 6px;border-radius:4px;background:#10201a;color:var(--dim)}
+.ag.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 22px rgba(226,176,87,.15)}.ag.bad .t{color:var(--bad)}.ag.warn .t{color:var(--gold)}
+.flow{position:relative;height:460px;border:1px dashed var(--ln);border-radius:12px;background:var(--pn2);overflow:hidden}
+#core{position:absolute;inset:0;width:100%;height:100%}
+.tokens{position:absolute;left:12px;right:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.tk{border:1px dashed #2c4a3d;border-radius:8px;padding:5px 9px;font-size:11px;background:#06100c}.tk b{font-weight:600}.tk span{display:block;font-size:10px;color:var(--dim)}
+.tk.SIGNAL{border-color:var(--gold);color:var(--gold)}.tk.HOLD{border-color:var(--g);color:var(--g)}.tk.BLOCK{border-color:var(--bad);color:var(--bad)}
+.focusbox{position:absolute;right:12px;bottom:10px;width:250px;background:rgba(5,8,10,.88);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;font-size:11px}#spark{width:100%;height:54px;display:block;margin:4px 0}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.mini div{border:1px dashed var(--ln);border-radius:9px;padding:8px 10px;background:var(--pn2)}.mini small{display:block;font-size:9px;letter-spacing:.12em;color:var(--dim)}.mini b{font:700 18px "Familjen Grotesk"}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.trade .sym{font:700 22px "Familjen Grotesk"}.trade table{width:100%;font-size:12px;margin-top:6px}.trade td{padding:3px 0}.trade td:first-child{color:var(--dim);width:90px}
+.tail{background:#030605;border:1px solid var(--ln);border-radius:10px;padding:10px;height:190px;overflow:hidden;font-size:11px;color:#9fb5aa}.tail div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#eqc{width:100%;height:120px}.res{display:flex;justify-content:space-between;font-size:12px;margin-top:6px}
+.log{max-height:360px;overflow:auto}.log div{display:grid;grid-template-columns:62px 72px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid #12201a;font-size:12px}
+.tag{font-size:9px;letter-spacing:.06em;text-align:center;padding:3px 0;border-radius:4px;background:#10201a;height:fit-content}.tag.BUY,.tag.SELL\+{background:#0b2a1e;color:var(--g)}.tag.SELL-,.tag.ERROR,.tag.BLOCKED,.tag.PAUSED{background:#2c1513;color:var(--bad)}.tag.LIVE,.tag.DEPOSIT,.tag.WITHDRAW{background:#16143a;color:var(--violet)}
+.conn{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;margin-top:14px}.conn ol{margin:0;padding-left:18px;color:var(--dim)}.conn li{margin:4px 0}
+button{font:600 12px "IBM Plex Mono";border:0;border-radius:8px;padding:9px 13px;cursor:pointer;background:var(--gold);color:#1b1404}button.o{background:none;border:1px solid var(--ln);color:var(--ink)}button.t{background:var(--g);color:#03251a}button:disabled{opacity:.45;cursor:default}
+input,select{background:#030605;border:1px solid var(--ln);color:var(--ink);font:12px "IBM Plex Mono";padding:8px 9px;border-radius:8px;width:100%}
+.msg{margin-top:8px;min-height:16px}.err{color:var(--bad)}.ok{color:var(--g)}.muted{color:var(--dim)}
+.set{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}.set label{font-size:10px;color:var(--dim)}
+.consent{display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:11px;color:var(--dim)}.consent input{width:auto;margin-top:2px}
+.back{color:var(--g);text-decoration:none;font-size:12px}
+@media(max-width:1000px){.grid,.row,.conn{grid-template-columns:1fr}.top{grid-template-columns:auto 1fr}.set{grid-template-columns:repeat(2,1fr)}}
+.nets{display:flex;gap:4px;padding:3px;border:1px solid var(--ln);border-radius:9px;background:var(--pn2)}.nets a{font-size:11px;letter-spacing:.06em;padding:5px 12px;border-radius:6px;color:var(--dim);text-decoration:none}.nets a.on{background:var(--g);color:#03251a;font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap"><a class="back" href="../">← reinpay.app</a><div class="nets"><a href="/trading/">Robinhood Chain</a><a class="on" href="/solana/">Solana</a></div><span class="muted" style="font-size:11px">SOLANA MAINNET · YOUR BOT, YOUR KEY, YOUR LIMITS</span></div>
+  <div class="top">
+    <button class="pbtn" id="pause" title="Pause / resume">❚❚</button>
+    <div><div class="ttl">Reinpay <b>Agent</b> <small>8 AGENTS · SOLANA MEMECOINS</small></div><div class="run" id="run">starting…</div></div>
+    <div class="big" id="bal">–<small id="balu">balance</small></div>
+    <div class="cnt"><b id="trd">0</b><span class="muted">trades</span></div>
+    <div style="display:flex;gap:18px;align-items:center"><div class="cnt"><b class="w" id="win">0</b><span class="muted">wins</span></div><div class="cnt"><b class="l" id="los">0</b><span class="muted">losses</span></div><span class="mode" id="mode">PAPER</span></div>
+  </div>
+
+  <div class="pn conn" id="conn">
+    <div><h3><span>YOUR SOLANA BOT · REAL MONEY</span><span id="botAddr"></span></h3>
+      <ol><li><b>Connect wallet</b>: Phantom or OKX Wallet on Solana</li><li><b>Deposit to bot</b>: SOL (one approval in your wallet)</li><li>Tick the box and press <b>Start bot</b>. The agents trade memecoins on their own, inside your limits</li><li><b>Withdraw all</b> any time: positions are sold and every SOL goes back to your wallet</li></ol>
+      <div class="muted" style="margin-top:6px">Until then the bot trades on paper: real trending tokens, real Jupiter quotes, virtual 1 SOL. The bot key is created in this browser and never leaves it. Keep this tab open while the bot runs.</div></div>
+    <div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button id="cw">Connect wallet</button><span id="me" class="muted"></span></div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px"><label class="muted" style="font-size:10px">SOL<input id="dSol" value="0.2" inputmode="decimal"></label><button class="o" id="dep" disabled style="align-self:end">Deposit to bot</button></div>
+      <label class="consent"><input type="checkbox" id="ok">I let this bot sign trades for me without asking each time, only inside the limits below. Every trade is simulated on Solana mainnet first. Memecoins can lose money fast.</label>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="t" id="start" disabled>Start bot</button><button class="o" id="paper">Back to paper</button><button class="o" id="wd">Withdraw all</button><button class="o" id="bk">Back up bot key</button></div>
+      <div class="msg" id="msg"></div></div>
+  </div>
+
+  <div class="grid">
+    <div class="pn"><h3><span>AGENTS</span><span id="cyc"></span></h3><div id="agents"></div></div>
+    <div>
+      <div class="pn"><h3><span>LIVE FLOW · SCOUT → RUG CHECK → SIGNAL → SIZE → SIMULATE → EXECUTE → KEEP → LOG</span><span id="scan"></span></h3>
+        <div class="flow"><canvas id="core"></canvas><div class="tokens" id="tokens"></div>
+          <div class="focusbox"><div id="focus" class="muted"></div><canvas id="spark"></canvas><span id="fnote" class="muted"></span></div></div>
+        <div class="mini"><div><small>FILTERED</small><b id="mF">0</b></div><div><small>PASSED</small><b id="mP">0</b></div><div><small>LOG LINES</small><b id="mL">0</b></div><div><small>TODAY</small><b id="mD">0</b></div></div>
+      </div>
+      <div class="row">
+        <div class="pn trade"><h3><span>TRADE · ENTRY vs EXIT</span><span id="trSt"></span></h3><div id="trade" class="muted">no trade yet</div></div>
+        <div class="pn"><h3><span>tail -f agent.log</span><span class="muted" id="nl"></span></h3><div class="tail" id="tail"></div></div>
+      </div>
+      <div class="row">
+        <div class="pn"><h3><span>RESULT · DEPOSIT vs NOW</span><span id="resMode"></span></h3><canvas id="eqc"></canvas><div class="res"><span>start <b id="r0">–</b></span><span>now <b id="r1">–</b></span><span id="r2"></span></div></div>
+        <div class="pn"><h3><span>OPEN POSITIONS</span></h3><div id="pos" class="muted">none</div></div>
+      </div>
+      <div class="pn" style="margin-top:14px"><h3><span>LOG · EVERY DECISION HAS A REASON</span></h3><div class="log" id="log"></div></div>
+      <div class="pn" style="margin-top:14px"><h3><span>BOT RULES</span><button class="o" id="save">Save</button></h3><div class="set" id="set"></div>
+        <div class="muted" style="margin-top:8px">Buys a trending token when it is up by the signal in the last hour (but not more than the max), the last 5 minutes are not falling, buys beat sells, and it passes the rug check: mint and freeze authority revoked, no Token-2022 transfer tax, enough liquidity, an old enough pool, and a buy-then-sell quote that costs less than half the stop loss. The Keeper values every position by a real Jupiter sell quote and sells on take profit, stop loss, trailing stop or max hold. Empty token accounts are closed so their rent comes back. No Reinpay fee on Solana. Memecoins can go to zero; paper results are not a promise of anything.</div></div>
+    </div>
+  </div>
+</div>
+<script type="module">
+// @solana/web3.js expects Node's Buffer; browsers do not have it
+import { Buffer } from "https://cdn.jsdelivr.net/npm/buffer@6.0.3/+esm"; window.Buffer = Buffer;
+// Reinpay Agent on Solana. Data: GeckoTerminal trending pools, Jupiter quotes and swaps, Solana mainnet RPC. Real mode:
+// a bot keypair created in THIS browser (localStorage), funded by the owner once; it signs its own trades inside the
+// owner's limits. No server ever sees the key.
+const W3 = window.solanaWeb3, $ = (i) => document.getElementById(i);
+// the public api.mainnet-beta RPC refuses browsers; PublicNode serves browsers without a key (no indexed calls)
+const RPC = "https://solana-rpc.publicnode.com", ATA_PROG = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL", JUP = "https://lite-api.jup.ag", GECKO = "https://api.geckoterminal.com/api/v2", SOL = "So11111111111111111111111111111111111111112";
+const PAPER_START = 1, EXP = "https://solscan.io/tx/";
+const AG = [["scout","SCOUT","◎","#7aa7ff","trending Solana tokens"],["rug","RUG CHECK","⛨","#f0836e","authorities, liquidity, sell test"],["signal","SIGNAL","↗","#e2b057","1h momentum + buy flow"],["size","SIZER","÷","#b48cff","size, day budget, loss limit"],["sim","SIMULATOR","⎔","#7be3ff","simulateTransaction first"],["exec","EXECUTOR","⚡","#5ff0a8","Jupiter swap, bot signs"],["keep","KEEPER","◈","#ffb36b","TP, SL, trailing, max hold"],["scribe","SCRIBE","≡","#c6d6cc","writes the why of every trade"]];
+const SETS = [["solPerTrade","SOL per trade",0.03],["maxSolPerDay","Max SOL / day",0.3],["maxOpen","Max positions",3],["dailyLossSol","Daily loss stop (SOL)",0.05],["sig","Signal % per hour",6],["maxSig","Max % per hour",30],["minVol","Min 1h volume $",20000],["tp","Take profit %",15],["sl","Stop loss %",8],["trail","Trailing %",6],["maxHold","Max hold (min)",120],["minLiq","Min liquidity $",50000],["minAge","Min pool age (h)",6]];
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = () => Date.now(), today = () => new Date().toISOString().slice(0, 10);
+const sol = (v, d = 4) => v == null ? "–" : (+v).toFixed(d) + " SOL", px = (p) => p == null ? "–" : p >= 1 ? "$" + p.toFixed(3) : "$" + p.toPrecision(4);
+const b64 = { enc: (u8) => { let s = ""; for (const x of u8) s += String.fromCharCode(x); return btoa(s); }, dec: (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0)) };
+const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+const b58 = (u8) => { let n = 0n; for (const x of u8) n = n * 256n + BigInt(x); let s = ""; while (n > 0n) { s = B58[Number(n % 58n)] + s; n /= 58n; } for (const x of u8) { if (x) break; s = "1" + s; } return s; };
+const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+// ---------- state ----------
+let owner = null, prov = null, kp = null, mode = "paper", paused = false;
+const RULES = { ...Object.fromEntries(SETS.map(([k, , d]) => [k, d])), ...store.get("reinpay-sol-rules", {}) };
+let B = null; const bookKey = () => mode === "live" ? "reinpay-sol-live-" + owner : "reinpay-sol-paper";
+function loadBook() { B = store.get(bookKey(), null) || { sol: mode === "paper" ? PAPER_START : 0, start: mode === "paper" ? PAPER_START : null, pos: {}, day: {}, log: [], closed: [], trades: 0, wins: 0, losses: 0, filtered: 0, passed: 0, cool: {}, eq: [] }; }
+const saveBook = () => store.set(bookKey(), B);
+const dayRec = () => { if (B.day.date !== today()) B.day = { date: today(), spent: 0, pnl: 0 }; return B.day; };
+const RT = { stage: "idle", agents: {}, watch: [], solUsd: null };
+const say = (id, text, state = "ok") => (RT.agents[id] = { text, state });
+function log(agent, kind, text) { B.log.unshift({ t: now(), agent, kind, text }); B.log = B.log.slice(0, 300); saveBook(); }
+
+// ---------- network ----------
+async function getJSON(url, opts = {}) { for (let i = 0; i < 3; i++) { const ac = new AbortController(), to = setTimeout(() => ac.abort(), 12000);
+    try { const r = await fetch(url, { ...opts, signal: ac.signal }); if (r.status === 429) { await sleep(1500 * (i + 1)); continue; } const j = await r.json(); if (!r.ok) throw new Error(j.error || j.message || "HTTP " + r.status); return j; }
+    catch (e) { if (i === 2) throw new Error(new URL(url).host + ": " + (e.name === "AbortError" ? "timeout" : e.message)); await sleep(800 * (i + 1)); } finally { clearTimeout(to); } } throw new Error(new URL(url).host + ": rate limited"); }
+const rpc = async (method, params) => { const j = await getJSON(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) }); if (j.error) throw new Error(j.error.message); return j.result; };
+const quote = async (a, b, amt) => { const q = await getJSON(`${JUP}/swap/v1/quote?inputMint=${a}&outputMint=${b}&amount=${amt}&slippageBps=150`); if (!q.outAmount) throw new Error(q.error || "no route"); return q; };
+const solBal = async (who) => Number((await rpc("getBalance", [who])).value) / 1e9;
+// token balances without indexed RPC calls: Jupiter delivers into the bot's associated token account, whose address is
+// derived from (bot, token program, mint), so the bot reads exactly that account
+const progOf = {};
+async function mintProgram(mint) { if (!progOf[mint]) progOf[mint] = (await rpc("getAccountInfo", [mint, { encoding: "base64" }]))?.value?.owner; return progOf[mint]; }
+async function tokenAccts(mint) { const mints = mint ? [mint] : [...new Set(B.mints || [])], out = [];
+  for (const m of mints) { const prog = await mintProgram(m); if (!prog) continue;
+    const addr = W3.PublicKey.findProgramAddressSync([kp.publicKey.toBytes(), new W3.PublicKey(prog).toBytes(), new W3.PublicKey(m).toBytes()], new W3.PublicKey(ATA_PROG))[0].toBase58();
+    const v = (await rpc("getAccountInfo", [addr, { encoding: "jsonParsed" }]))?.value; if (v) out.push({ pubkey: addr, program: v.owner, mint: m, amount: BigInt(v.data.parsed.info.tokenAmount.amount) }); }
+  return out; }
+async function confirm(sig) { for (let i = 0; i < 45; i++) { await sleep(1500); const s = (await rpc("getSignatureStatuses", [[sig]])).value[0]; if (s?.err) throw new Error("failed on chain " + sig); if (s && ["confirmed", "finalized"].includes(s.confirmationStatus)) return sig; } throw new Error("not confirmed after 70s " + sig); }
+async function sendTx(tx) { const sig = await rpc("sendTransaction", [b64.enc(tx.serialize()), { encoding: "base64", maxRetries: 3 }]); return confirm(sig); }
+async function swapLive(q) {
+  const j = await getJSON(`${JUP}/swap/v1/swap`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ quoteResponse: q, userPublicKey: kp.publicKey.toBase58(), wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true, prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 200000, priorityLevel: "high" } } }) });
+  RT.stage = "sim"; say("sim", "simulating on Solana mainnet…");
+  const sim = await rpc("simulateTransaction", [j.swapTransaction, { encoding: "base64", sigVerify: false, replaceRecentBlockhash: true }]);
+  if (sim.value.err) { say("sim", "✗ simulation failed, nothing sent", "bad"); throw new Error("simulation failed: " + JSON.stringify(sim.value.err)); }
+  say("sim", `✓ succeeds · ${sim.value.unitsConsumed} compute units`); RT.stage = "exec";
+  const tx = W3.VersionedTransaction.deserialize(b64.dec(j.swapTransaction)); tx.sign([kp]); return sendTx(tx);
+}
+async function closeEmpty() { // give back the rent of token accounts the bot no longer uses
+  const empty = (await tokenAccts()).filter((a) => a.amount === 0n); if (!empty.length) return 0; const closed = new Set(empty.slice(0, 10).map((a) => a.mint));
+  const { blockhash } = (await rpc("getLatestBlockhash", [{ commitment: "confirmed" }])).value, tx = new W3.Transaction({ feePayer: kp.publicKey, recentBlockhash: blockhash });
+  for (const a of empty.slice(0, 10)) tx.add(new W3.TransactionInstruction({ programId: new W3.PublicKey(a.program), keys: [{ pubkey: new W3.PublicKey(a.pubkey), isSigner: false, isWritable: true }, { pubkey: kp.publicKey, isSigner: false, isWritable: true }, { pubkey: kp.publicKey, isSigner: true, isWritable: false }], data: Uint8Array.of(9) }));
+  tx.sign(kp); const sig = await sendTx(tx); B.mints = (B.mints || []).filter((m) => !closed.has(m) || B.pos[m]); saveBook(); log("keep", "RENT", `closed ${Math.min(10, empty.length)} empty token account(s), rent back to the bot · ${EXP}${sig}`); return empty.length;
+}
+
+// ---------- the agents ----------
+const book = () => B.pos; const safe = {}, trail = {}; let pools = [], lastScan = 0;
+async function scout() {
+  RT.stage = "scout"; say("scout", "reading trending Solana pools…");
+  const pages = await Promise.all([1].map((p) => getJSON(`${GECKO}/networks/solana/trending_pools?page=${p}`).catch(() => ({ data: [] }))));
+  if (!pages.some((pg) => pg.data?.length)) { lastScan = now() - 30000; say("scout", pools.length ? `GeckoTerminal busy · using the last scan (${pools.length} tokens)` : "GeckoTerminal busy · retrying in 30s", "warn"); return; }
+  const seen = new Set(); pools = [];
+  for (const pg of pages) for (const p of pg.data || []) { const a = p.attributes, mint = p.relationships?.base_token?.data?.id?.replace("solana_", ""); if (!mint || mint === SOL || seen.has(mint)) continue; seen.add(mint);
+    const t = { mint, sym: a.name.split(" / ")[0], price: +a.base_token_price_usd, liq: +a.reserve_in_usd, created: Date.parse(a.pool_created_at), h1: +a.price_change_percentage.h1, m5: +a.price_change_percentage.m5, b5: a.transactions?.m5?.buys || 0, s5: a.transactions?.m5?.sells || 0, vol: +a.volume_usd.h1, pool: a.address };
+    pools.push(t); (trail[mint] ||= []).push([now(), t.price]); if (trail[mint].length > 200) trail[mint].shift(); }
+  lastScan = now(); say("scout", `${pools.length} trending tokens scanned`);
+}
+async function rugCheck(t) {
+  const c = safe[t.mint]; if (c && now() - c.t < 20 * 60000) return c; const bad = [];
+  if (t.liq < RULES.minLiq) bad.push(`liquidity $${Math.round(t.liq).toLocaleString()}`);
+  const age = (now() - t.created) / 3600000; if (age < RULES.minAge) bad.push(`pool ${age.toFixed(1)}h old`);
+  if (!bad.length) { const info = (await rpc("getAccountInfo", [t.mint, { encoding: "jsonParsed" }]))?.value?.data?.parsed?.info;
+    if (!info) bad.push("not a token mint"); else { if (info.mintAuthority) bad.push("mint authority not revoked"); if (info.freezeAuthority) bad.push("freeze authority not revoked"); const ext = (info.extensions || []).map((e) => e.extension); if (ext.includes("transferFeeConfig")) bad.push("Token-2022 transfer tax"); if (ext.includes("permanentDelegate")) bad.push("permanent delegate"); t.dec = info.decimals; } }
+  if (!bad.length) { try { const lam = Math.round(RULES.solPerTrade * 1e9), q1 = await quote(SOL, t.mint, lam), q2 = await quote(t.mint, SOL, q1.outAmount), rt = 1 - Number(q2.outAmount) / lam; t.rt = rt;
+      if (rt * 100 > RULES.sl / 2) bad.push(`buy then sell costs ${(rt * 100).toFixed(1)}%`); } catch { bad.push("no sell route"); } }
+  bad.length ? B.filtered++ : B.passed++; return (safe[t.mint] = { t: now(), ok: !bad.length, bad, dec: t.dec, rt: t.rt });
+}
+async function decide() {
+  RT.stage = "rug"; RT.watch = []; const list = [];
+  for (const t of pools) { const sig = t.h1 >= RULES.sig && t.h1 <= RULES.maxSig && t.m5 >= 0 && t.b5 > t.s5 && t.vol >= RULES.minVol, held = !!B.pos[t.mint], w = { ...t, sig, held };
+    if (sig && !held && !(B.cool[t.mint] && now() - B.cool[t.mint] < 3600000)) { const r = await rugCheck(t); w.safe = r.ok; w.bad = r.bad?.[0]; if (r.ok) list.push({ ...t, dec: r.dec }); else say("rug", `${t.sym} filtered · ${r.bad[0]}`, "warn"); }
+    RT.watch.push(w); }
+  if (!RT.watch.some((w) => w.safe === false)) say("rug", list.length ? `${list.length} token(s) passed` : "nothing to check yet");
+  RT.stage = "signal"; const top = [...pools].sort((a, b) => b.h1 - a.h1)[0];
+  say("signal", list.length ? `${list.length} safe signal(s) · ${list.map((t) => t.sym).join(", ")}` : top ? `no safe signal · strongest ${top.sym} ${top.h1.toFixed(1)}%/h (window ${RULES.sig}–${RULES.maxSig}%)` : "waiting for data");
+  return list;
+}
+async function cash() { if (mode !== "live") return B.sol; try { B.sol = await solBal(kp.publicKey.toBase58()); } catch {} return B.sol; }
+async function enter(t) {
+  const d = dayRec(); RT.stage = "size";
+  if (Object.keys(B.pos).length >= RULES.maxOpen) return say("size", `held · ${RULES.maxOpen} positions open`, "warn");
+  if (d.spent + RULES.solPerTrade > RULES.maxSolPerDay + 1e-9) return say("size", `held · ${RULES.maxSolPerDay} SOL day budget used`, "warn");
+  if (d.pnl <= -RULES.dailyLossSol) return say("size", "held · daily loss stop reached, no new buys today", "warn");
+  const bal = await cash(); if (bal < RULES.solPerTrade + 0.006) return say("size", `cash ${sol(bal)} is too low (trade + 0.006 for fees and rent)`, "warn");
+  const lam = Math.round(RULES.solPerTrade * 1e9), q = await quote(SOL, t.mint, lam), dec = t.dec ?? 6;
+  say("size", `${RULES.solPerTrade} SOL → ±${(Number(q.outAmount) / 10 ** dec).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${t.sym}`);
+  const why = `up ${t.h1.toFixed(1)}%/h · 5m buys ${t.b5} > sells ${t.s5} · round trip ${(t.rt * 100 || 0).toFixed(1)}%`;
+  let qty = BigInt(q.outAmount), spent = RULES.solPerTrade, sig = "paper";
+  if (mode === "paper") { spent += 0.00005; B.sol -= spent; }
+  else { const before = (await tokenAccts(t.mint)).reduce((a, x) => a + x.amount, 0n), s0 = await solBal(kp.publicKey.toBase58()); RT.stage = "exec"; say("exec", `buying ${t.sym}…`);
+    sig = await swapLive(q); await sleep(2500); qty = (await tokenAccts(t.mint)).reduce((a, x) => a + x.amount, 0n) - before; spent = s0 - await solBal(kp.publicKey.toBase58()); if (qty <= 0n) throw new Error("tokens did not arrive " + sig); B.sol = await solBal(kp.publicKey.toBase58()); }
+  B.mints = [...new Set([...(B.mints || []), t.mint])];
+  B.pos[t.mint] = { mint: t.mint, sym: t.sym, qty: qty.toString(), dec, spent, entryUsd: t.price, peak: 0, t: now(), tx: sig, pool: t.pool };
+  d.spent += RULES.solPerTrade; B.trades++; saveBook(); say("exec", `BUY ${t.sym} · ${sol(spent)}`);
+  log("exec", "BUY", `${mode === "paper" ? "[paper] " : ""}${t.sym} · ${sol(spent)} → ${(Number(qty) / 10 ** dec).toLocaleString("en-US", { maximumFractionDigits: 0 })} · ${why}${sig !== "paper" ? " · " + EXP + sig : ""}`);
+}
+async function sell(p, why) {
+  RT.stage = "exec"; say("exec", `selling ${p.sym}…`); let got, sig = "paper";
+  if (mode === "paper") { got = Number((await quote(p.mint, SOL, p.qty)).outAmount) / 1e9 - 0.00005; B.sol += got; }
+  else { const amt = (await tokenAccts(p.mint)).reduce((a, x) => a + x.amount, 0n); if (amt <= 0n) { delete B.pos[p.mint]; saveBook(); return; }
+    const s0 = await solBal(kp.publicKey.toBase58()); sig = await swapLive(await quote(p.mint, SOL, amt.toString())); await sleep(2500); got = await solBal(kp.publicKey.toBase58()) - s0;
+    try { await closeEmpty(); } catch (e) { log("keep", "WARN", "rent close: " + e.message); } B.sol = await solBal(kp.publicKey.toBase58()); }
+  const pnl = got - p.spent; delete B.pos[p.mint]; B.cool[p.mint] = now(); dayRec().pnl += pnl; pnl >= 0 ? B.wins++ : B.losses++;
+  B.closed.unshift({ sym: p.sym, spent: p.spent, got, pnl, why, mode, t: now(), tx: sig }); B.closed = B.closed.slice(0, 50); saveBook();
+  log("keep", pnl >= 0 ? "SELL+" : "SELL-", `${mode === "paper" ? "[paper] " : ""}${p.sym} · got ${sol(got)} · ${pnl >= 0 ? "+" : ""}${pnl.toFixed(4)} SOL (${((pnl / p.spent) * 100).toFixed(1)}%) · ${why}${sig !== "paper" ? " · " + EXP + sig : ""}`);
+}
+async function keep() { // value = a real Jupiter sell quote for exactly the position, so exits match the SOL that would come back
+  RT.stage = "keep"; const list = Object.values(B.pos); if (!list.length) { say("keep", "no open positions"); return; }
+  for (const p of list) { try { p.val = Number((await quote(p.mint, SOL, p.qty)).outAmount) / 1e9; } catch { continue; }
+    const g = p.val / p.spent - 1, held = (now() - p.t) / 60000; p.g = g; p.peak = Math.max(p.peak || 0, g); let why = null;
+    if (g >= RULES.tp / 100) why = `take profit: sells for ${sol(p.val)} (+${(g * 100).toFixed(1)}%)`; else if (g <= -RULES.sl / 100) why = `stop loss: sells for ${sol(p.val)} (${(g * 100).toFixed(1)}%)`;
+    else if (p.peak * 100 >= RULES.trail + 2 && (p.peak - g) * 100 >= RULES.trail) why = `trailing stop: ${(g * 100).toFixed(1)}%, top was +${(p.peak * 100).toFixed(1)}%`; else if (held >= RULES.maxHold) why = `held ${RULES.maxHold} min (${(g * 100).toFixed(1)}%)`;
+    if (why) await sell(p, why).catch((e) => log("keep", "ERROR", `${p.sym} sell: ${e.message}`)); }
+  saveBook(); say("keep", `${Object.keys(B.pos).length} open · TP +${RULES.tp}% · SL −${RULES.sl}% · trail ${RULES.trail}%`);
+}
+const equity = () => B.sol + Object.values(B.pos).reduce((a, p) => a + (p.val ?? p.spent), 0);
+let busy = false;
+async function loop() {
+  if (busy) return; busy = true;
+  try { if (paused) { say("scout", "paused by you", "warn"); return; }
+    RT.solUsd = (await getJSON(`${JUP}/price/v3?ids=${SOL}`).catch(() => ({})))[SOL]?.usdPrice ?? RT.solUsd;
+    if (now() - lastScan > 60000 || !pools.length) await scout();
+    await keep(); const list = await decide();
+    for (const t of list) await enter(t).catch((e) => { log("exec", "ERROR", `${t.sym}: ${e.message}`); say("exec", e.message.slice(0, 80), "bad"); });
+    await cash(); B.eq.push([now(), equity()]); if (B.eq.length > 600) B.eq.shift(); RT.stage = "scribe"; say("scribe", `${B.log.length} lines · every decision has a reason`); saveBook();
+  } catch (e) { say("scout", "error: " + e.message.slice(0, 90), "bad"); } finally { busy = false; setTimeout(() => (RT.stage = "idle"), 700); }
+}
+
+// ---------- wallet, bot key, deposit, start, withdraw ----------
+const msg = (t, ok) => { $("msg").textContent = t; $("msg").className = "msg " + (ok ? "ok" : "err"); };
+function loadBot() { let k = store.get("reinpay-sol-key-" + owner, null); if (!k) { const n = W3.Keypair.generate(); k = Array.from(n.secretKey); store.set("reinpay-sol-key-" + owner, k); } kp = W3.Keypair.fromSecretKey(Uint8Array.from(k)); const a = kp.publicKey.toBase58(); $("botAddr").textContent = "bot " + a.slice(0, 4) + "…" + a.slice(-4); }
+$("cw").onclick = async () => { prov = window.phantom?.solana || window.okxwallet?.solana || window.solana; if (!prov) return msg("No Solana wallet found. Install Phantom or OKX Wallet in this browser.");
+  try { const r = await prov.connect(); owner = (r?.publicKey || prov.publicKey).toString(); loadBot(); $("me").textContent = owner.slice(0, 4) + "…" + owner.slice(-4); $("cw").textContent = "Connected"; $("dep").disabled = false; $("start").disabled = false;
+    if (store.get("reinpay-sol-mode-" + owner, "paper") === "live") { mode = "live"; loadBook(); }
+    msg("Wallet connected. Your bot address: " + kp.publicKey.toBase58(), true); } catch (e) { msg("Wallet: " + (e.message || e)); } };
+$("dep").onclick = async () => { try { const lam = Math.round(+$("dSol").value * 1e9); if (!(lam > 0)) return msg("Enter how much SOL to deposit.");
+    const { blockhash } = (await rpc("getLatestBlockhash", [{ commitment: "confirmed" }])).value;
+    const tx = new W3.Transaction({ feePayer: new W3.PublicKey(owner), recentBlockhash: blockhash }).add(W3.SystemProgram.transfer({ fromPubkey: new W3.PublicKey(owner), toPubkey: kp.publicKey, lamports: lam }));
+    msg("Approve the transfer to your bot in your wallet…", true); let sig;
+    if (prov.signAndSendTransaction) { const r = await prov.signAndSendTransaction(tx); sig = r.signature || r; } else { const s = await prov.signTransaction(tx); sig = await rpc("sendTransaction", [b64.enc(s.serialize()), { encoding: "base64" }]); }
+    msg(`Sent ✓ ${String(sig).slice(0, 12)}… wait ~20 seconds, then tick the box and press Start bot.`, true); } catch (e) { msg("Deposit: " + (e.message || e)); } };
+$("start").onclick = async () => { if (!kp) return msg("Connect your wallet first."); if (!$("ok").checked) return msg("Tick the box first: it is your one yes for the bot to trade inside your limits.");
+  const bal = await solBal(kp.publicKey.toBase58()); if (bal < RULES.solPerTrade + 0.006) return msg(`Your bot holds ${sol(bal)}. Deposit at least ${sol(RULES.solPerTrade + 0.01, 3)} first.`);
+  mode = "live"; loadBook(); B.sol = bal; if (B.start == null) B.start = bal; dayRec(); store.set("reinpay-sol-mode-" + owner, "live");
+  log("system", "LIVE", `bot ${kp.publicKey.toBase58()} trades real money: ${sol(bal)} · ${RULES.solPerTrade} SOL per trade, ${RULES.maxSolPerDay} SOL a day, ${RULES.maxOpen} positions, daily loss stop ${RULES.dailyLossSol} SOL`);
+  closeEmpty().catch(() => {}); msg("LIVE: your bot trades real money inside your limits. Keep this tab open.", true); };
+$("paper").onclick = () => { mode = "paper"; if (owner) store.set("reinpay-sol-mode-" + owner, "paper"); loadBook(); msg("Back on paper. Real positions stay in your bot wallet.", true); };
+$("wd").onclick = async () => { if (!kp || !owner) return msg("Connect your wallet first."); if (!window.confirm("Sell every real position and send all SOL from your bot back to your wallet?")) return;
+  try { mode = "live"; loadBook(); msg("Selling positions…", true);
+    for (const p of Object.values(B.pos)) await sell(p, "withdraw all").catch((e) => log("system", "ERROR", `${p.sym}: ${e.message}`));
+    for (const a of await tokenAccts()) if (a.amount > 0n) { try { await swapLive(await quote(a.mint, SOL, a.amount.toString())); } catch (e) { log("system", "WARN", `could not sell leftover ${a.mint.slice(0, 6)}…: ${e.message}`); } }
+    await closeEmpty().catch(() => {}); const lam = Number((await rpc("getBalance", [kp.publicKey.toBase58()])).value) - 5000;
+    if (lam > 0) { const { blockhash } = (await rpc("getLatestBlockhash", [{ commitment: "confirmed" }])).value, tx = new W3.Transaction({ feePayer: kp.publicKey, recentBlockhash: blockhash }).add(W3.SystemProgram.transfer({ fromPubkey: kp.publicKey, toPubkey: new W3.PublicKey(owner), lamports: lam })); tx.sign(kp); const sig = await sendTx(tx); log("system", "WITHDRAW", `${sol(lam / 1e9)} sent to ${owner} · ${EXP}${sig}`); }
+    B.sol = 0; B.start = null; saveBook(); mode = "paper"; store.set("reinpay-sol-mode-" + owner, "paper"); loadBook(); msg("Done ✓ everything went back to your wallet.", true); } catch (e) { msg("Withdraw: " + (e.message || e)); } };
+$("bk").onclick = () => { if (!kp) return msg("Connect your wallet first."); if (!window.confirm("Show your bot's private key? Anyone who sees it can take what the bot holds. Write it down offline, never share it.")) return; prompt("Bot private key (base58, imports into Phantom):", b58(kp.secretKey)); };
+$("pause").onclick = () => { paused = !paused; log("system", paused ? "PAUSE" : "RESUME", paused ? "paused by you" : "resumed"); };
+$("set").innerHTML = SETS.map(([k, l]) => `<label>${l}<input id="z-${k}" inputmode="decimal"></label>`).join(""); for (const [k] of SETS) $("z-" + k).value = RULES[k];
+$("save").onclick = () => { for (const [k] of SETS) RULES[k] = +$("z-" + k).value; store.set("reinpay-sol-rules", RULES); log("system", "RULES", "rules changed"); $("save").textContent = "Saved ✓"; setTimeout(() => ($("save").textContent = "Save"), 1500); };
+
+// ---------- drawing ----------
+$("agents").innerHTML = AG.map(([id, n, ic, c, r]) => `<div class="ag" id="a-${id}"><i style="background:${c}22;color:${c}">${ic}</i><div><div class="n">${n}</div><div class="r">${r}</div></div><span class="s" id="s-${id}">READY</span><div class="t" id="t-${id}">waiting…</div></div>`).join("");
+function line(cv, pts, color) { const r = devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; cv.width = W * r; cv.height = H * r; const g = cv.getContext("2d"); g.scale(r, r); if (!pts || pts.length < 2) return;
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), X = (x) => 4 + (x - x0) / (x1 - x0 || 1) * (W - 8), Y = (y) => H - 6 - (y - y0) / (y1 - y0 || 1) * (H - 12);
+  g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1])))); g.strokeStyle = color; g.lineWidth = 2; g.shadowColor = color; g.shadowBlur = 10; g.stroke(); g.shadowBlur = 0;
+  g.lineTo(X(x1), H); g.lineTo(X(x0), H); g.closePath(); const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, color + "44"); gr.addColorStop(1, color + "00"); g.fillStyle = gr; g.fill(); }
+function ui() {
+  if (!B) return; const live = mode === "live", eq = equity(), d = dayRec();
+  $("run").innerHTML = paused ? "paused" : `● running · ${new Date().toTimeString().slice(0, 8)} <span class="chip">${RT.stage.toUpperCase()}</span> <span class="chip">checks every 20s</span>`; $("run").className = "run" + (paused ? " off" : ""); $("pause").textContent = paused ? "▶" : "❚❚";
+  $("bal").firstChild.nodeValue = sol(eq, 3); $("balu").textContent = (RT.solUsd ? `≈ $${(eq * RT.solUsd).toFixed(2)} · ` : "") + (live ? `your bot · ${sol(B.sol)} cash` : "paper money");
+  $("trd").textContent = B.trades; $("win").textContent = B.wins; $("los").textContent = B.losses; $("mode").textContent = live ? "LIVE · REAL MONEY" : "PAPER"; $("mode").className = "mode" + (live ? " live" : "");
+  for (const [id] of AG) { const a = RT.agents[id], el = $("a-" + id); if (a) { $("t-" + id).textContent = a.text; el.className = "ag" + (a.state !== "ok" ? " " + a.state : ""); } const on = RT.stage === id || (RT.stage === "idle" && id === "scribe"); if (on) el.classList.add("on"); $("s-" + id).textContent = on ? "WORKING" : a?.state === "bad" ? "ERROR" : a?.state === "warn" ? "HOLD" : "READY"; }
+  $("scan").textContent = `${pools.length} trending · scan every 60s`; $("cyc").textContent = live ? "live" : "paper";
+  const shown = [...RT.watch].sort((a, b) => ((b.held ? 3 : b.safe ? 2 : b.sig ? 1 : 0) - (a.held ? 3 : a.safe ? 2 : a.sig ? 1 : 0)) || b.h1 - a.h1).slice(0, 6);
+  $("tokens").innerHTML = shown.map((t) => { const st = t.held ? "HOLD" : t.safe === false ? "BLOCK" : t.sig ? "SIGNAL" : "WATCH"; return `<div class="tk ${st}"><b>$${esc(t.sym)}</b> ${st === "HOLD" || t.safe ? "✓" : st === "BLOCK" ? "✗" : ""}<span>${t.h1 >= 0 ? "+" : ""}${t.h1.toFixed(1)}%/h · liq $${Math.round(t.liq / 1000)}k${t.bad ? " · " + esc(t.bad) : ""}</span></div>`; }).join("");
+  const fp = Object.values(B.pos)[0], ft = fp ? { sym: fp.sym, mint: fp.mint } : shown[0];
+  if (ft) { $("focus").innerHTML = `<b style="color:#e3ebe5">$${esc(ft.sym)}</b> · ${fp ? "open position" : ft.safe ? "passed, waiting for size" : ft.safe === false ? "filtered" : "watching"}`; line($("spark"), trail[ft.mint], fp ? "#5ff0a8" : ft.safe === false ? "#f0836e" : "#7aa7ff"); $("fnote").textContent = fp ? `${fp.g != null ? (fp.g >= 0 ? "+" : "") + (fp.g * 100).toFixed(1) + "% if sold now" : "valuing…"}` : ft.bad || ""; }
+  $("mF").textContent = B.filtered; $("mP").textContent = B.passed; $("mL").textContent = B.log.length; $("mD").textContent = (d.pnl >= 0 ? "+" : "") + d.pnl.toFixed(4); $("mD").className = d.pnl >= 0 ? "w" : "l";
+  const c = B.closed[0];
+  if (fp) { const g = fp.g ?? 0; $("trSt").innerHTML = '<span class="w">OPEN</span>'; $("trade").innerHTML = `<div class="sym">$${esc(fp.sym)} <span class="${g >= 0 ? "w" : "l"}" style="font-size:15px">${g >= 0 ? "+" : ""}${(g * 100).toFixed(1)}% live</span></div><table><tr><td>paid</td><td>${sol(fp.spent)}</td></tr><tr><td>sells for</td><td>${sol(fp.val)}</td></tr><tr><td>exits</td><td>+${RULES.tp}% / −${RULES.sl}% / trail ${RULES.trail}%</td></tr><tr><td>tx</td><td>${fp.tx === "paper" ? "paper" : `<a target="_blank" href="${EXP}${fp.tx}">solscan</a>`}</td></tr></table>`; }
+  else if (c) { $("trSt").innerHTML = `<span class="${c.pnl >= 0 ? "w" : "l"}">CLOSED</span>`; $("trade").innerHTML = `<div class="sym">$${esc(c.sym)} <span class="${c.pnl >= 0 ? "w" : "l"}" style="font-size:15px">${c.pnl >= 0 ? "+" : ""}${c.pnl.toFixed(4)} SOL</span></div><table><tr><td>paid</td><td>${sol(c.spent)}</td></tr><tr><td>got back</td><td>${sol(c.got)}</td></tr><tr><td>reason</td><td>${esc(c.why)}</td></tr><tr><td>mode</td><td>${c.mode}</td></tr></table>`; }
+  $("tail").innerHTML = B.log.slice(0, 11).map((l) => `<div>${new Date(l.t).toTimeString().slice(0, 5)} ${l.kind.padEnd(7, " ")} ${esc(l.text)}</div>`).join("") || '<div class="muted">waiting for the first decision…</div>'; $("nl").textContent = B.log.length + " lines";
+  const pts = B.start != null ? [[B.eq[0]?.[0] ?? now(), B.start], ...B.eq] : B.eq; line($("eqc"), pts.slice(-300), "#b48cff"); const e0 = B.start ?? B.eq[0]?.[1], e1 = B.eq.at(-1)?.[1] ?? eq;
+  $("r0").textContent = sol(e0, 3); $("r1").textContent = sol(e1, 3); $("r2").innerHTML = e0 ? `<b class="${e1 >= e0 ? "w" : "l"}">${e1 >= e0 ? "+" : ""}${((e1 / e0 - 1) * 100).toFixed(2)}%</b>` : ""; $("resMode").textContent = live ? "real money" : "paper";
+  $("pos").innerHTML = Object.values(B.pos).map((p) => { const g = (p.g ?? 0) * 100; return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #12201a"><b>$${esc(p.sym)}</b><span>${sol(p.spent)}</span><span class="${g >= 0 ? "w" : "l"}">${g >= 0 ? "+" : ""}${g.toFixed(1)}%</span></div>`; }).join("") || '<span class="muted">none</span>';
+  $("log").innerHTML = B.log.map((l) => `<div><span class="muted">${new Date(l.t).toTimeString().slice(0, 8)}</span><span class="tag ${l.kind}">${l.kind}</span><span>${esc(l.text)}</span></div>`).join("");
+}
+// the living core
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647; let veins = null, sparks = [], lastStage = "", bpm = 64;
+function grow(x, y, ang, len, depth, out, col) { if (depth <= 0 || len < 4) return; const a2 = ang + (rnd() - .5) * .9, x2 = x + Math.cos(a2) * len, y2 = y + Math.sin(a2) * len; out.push({ x, y, cx: x + Math.cos(ang) * len * .55, cy: y + Math.sin(ang) * len * .55, x2, y2, d: depth, col, ph: rnd() * 6.28 }); const kids = depth > 6 ? 2 : rnd() < .6 ? 2 : 1; for (let i = 0; i < kids; i++) grow(x2, y2, a2 + (kids === 2 ? (i ? 1 : -1) * (.25 + rnd() * .5) : (rnd() - .5) * .5), len * (.7 + rnd() * .16), depth - 1, out, col); }
+const agPos = (W, H, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / AG.length; return [W / 2 + Math.cos(a) * W * .38, H / 2 + 26 + Math.sin(a) * H * .3]; };
+function beat(k) { return k < .06 ? Math.sin(k / .06 * Math.PI) * .25 : k < .1 ? -Math.sin((k - .06) / .04 * Math.PI) * .3 : k < .15 ? Math.sin((k - .1) / .05 * Math.PI) : k < .2 ? -Math.sin((k - .15) / .05 * Math.PI) * .35 : k > .35 && k < .5 ? Math.sin((k - .35) / .15 * Math.PI) * .22 : 0; }
+function drawCore(t) {
+  const cv = $("core"), r = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight; if (cv.width !== Math.round(W * r)) { cv.width = Math.round(W * r); cv.height = Math.round(H * r); veins = null; }
+  const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, W, H); const s = t / 1000, cx = W / 2, cy = H / 2 + 26, period = 60 / bpm, ph = (s / period) % 1, hb = Math.max(0, 1 - ph * 3.2);
+  if (!veins) { seed = 7; veins = []; const VC = ["153,69,255", "20,241,149", "122,167,255", "240,96,90", "226,176,87", "255,138,180"]; for (let k = 0; k < 28; k++) { const a = k * 2 * Math.PI / 28 + (rnd() - .5) * .2; grow(cx + Math.cos(a) * 70, cy + Math.sin(a) * 56, a, Math.min(W, 900) * (.075 + rnd() * .03) * (Math.abs(Math.cos(a)) * .5 + .6), 9, veins, VC[k % VC.length]); } }
+  g.save(); g.lineCap = "round"; g.globalCompositeOperation = "lighter";
+  for (const v of veins) { const wave = Math.max(0, 1 - Math.abs(ph * 4 - (10 - v.d) / 9 * 1.4)); g.strokeStyle = `rgba(${v.col},${(.05 + v.d * .026) * (.7 + .9 * wave)})`; g.lineWidth = Math.max(.5, v.d * .6 * (1 + .25 * wave)); g.beginPath(); g.moveTo(v.x, v.y); g.quadraticCurveTo(v.cx, v.cy, v.x2, v.y2); g.stroke(); }
+  for (let k = 0; k < veins.length; k += 3) { const v = veins[k]; if (v.d < 4) continue; const q = (s * (.3 + v.d * .04) + v.ph) % 1, x = (1 - q) ** 2 * v.x + 2 * (1 - q) * q * v.cx + q * q * v.x2, y = (1 - q) ** 2 * v.y + 2 * (1 - q) * q * v.cy + q * q * v.y2; g.fillStyle = `rgba(${v.col},.85)`; g.beginPath(); g.arc(x, y, Math.max(1.1, v.d * .3), 0, 6.283); g.fill(); }
+  g.restore();
+  const st_ = RT.stage; if (st_ !== lastStage) { const i = AG.findIndex((a) => a[0] === (st_ === "idle" ? "scribe" : st_)); if (i >= 0) sparks.push({ t, i, c: AG[i][3] }); lastStage = st_; }
+  AG.forEach((a, i) => { const [x, y] = agPos(W, H, i), on = st_ === a[0] || (st_ === "idle" && a[0] === "scribe"); g.strokeStyle = on ? a[3] : "rgba(138,165,151,.25)"; g.lineWidth = on ? 2 : 1; g.setLineDash(on ? [] : [3, 6]); g.beginPath(); g.moveTo(cx, cy); g.quadraticCurveTo((cx + x) / 2 + (y - cy) * .15, (cy + y) / 2 - (x - cx) * .15, x, y); g.stroke(); g.setLineDash([]); });
+  for (let k = sparks.length - 1; k >= 0; k--) { const sp = sparks[k], q = (t - sp.t) / 800; if (q >= 1) { sparks.splice(k, 1); continue; } const [x, y] = agPos(W, H, sp.i), mx = (cx + x) / 2 + (y - cy) * .15, my = (cy + y) / 2 - (x - cx) * .15, qx = (1 - q) ** 2 * cx + 2 * (1 - q) * q * mx + q * q * x, qy = (1 - q) ** 2 * cy + 2 * (1 - q) * q * my + q * q * y; g.fillStyle = sp.c; g.shadowColor = sp.c; g.shadowBlur = 16; g.beginPath(); g.arc(qx, qy, 4.5, 0, 6.283); g.fill(); g.shadowBlur = 0; }
+  AG.forEach((a, i) => { const [x, y] = agPos(W, H, i), on = st_ === a[0] || (st_ === "idle" && a[0] === "scribe"), ag = RT.agents[a[0]]; g.fillStyle = "#06100c"; g.strokeStyle = on ? a[3] : "rgba(138,165,151,.45)"; g.lineWidth = on ? 2.2 : 1.2; g.shadowColor = a[3]; g.shadowBlur = on ? 18 : 0; g.beginPath(); g.roundRect(x - 66, y - 19, 132, 38, 19); g.fill(); g.stroke(); g.shadowBlur = 0;
+    g.fillStyle = a[3]; g.font = '600 14px "IBM Plex Mono"'; g.textAlign = "center"; g.fillText(a[2], x - 48, y + 5); g.textAlign = "left"; g.fillStyle = "#e3ebe5"; g.font = '700 10.5px "Familjen Grotesk"'; g.fillText(a[1], x - 34, y - 3); g.fillStyle = ag?.state === "bad" ? "#f0836e" : ag?.state === "warn" ? "#e2b057" : "#9fb5aa"; g.font = '400 9px "IBM Plex Mono"'; let tx = ag?.text || "…"; while (g.measureText(tx).width > 92 && tx.length > 4) tx = tx.slice(0, -2) + "…"; g.fillText(tx, x - 34, y + 10); });
+  const R0 = 60 * (1 + .07 * hb), gl = g.createRadialGradient(cx, cy, 0, cx, cy, R0 * 2.4); gl.addColorStop(0, `rgba(153,69,255,${.16 + .25 * hb})`); gl.addColorStop(.5, "rgba(20,241,149,.08)"); gl.addColorStop(1, "rgba(20,241,149,0)"); g.fillStyle = gl; g.beginPath(); g.arc(cx, cy, R0 * 2.4, 0, 6.283); g.fill();
+  g.fillStyle = "#050b09"; g.strokeStyle = `rgba(20,241,149,${.55 + .4 * hb})`; g.lineWidth = 1.6; g.beginPath(); g.arc(cx, cy, R0, 0, 6.283); g.fill(); g.stroke();
+  for (let k = 0; k < 3; k++) { g.strokeStyle = `rgba(20,241,149,${.18 - k * .05})`; g.beginPath(); g.arc(cx, cy, R0 + 10 + k * 9 + hb * 6, s * (k ? -1 : 1) * .6, s * (k ? -1 : 1) * .6 + 4.4); g.stroke(); }
+  g.save(); g.beginPath(); g.arc(cx, cy, R0 - 6, 0, 6.283); g.clip(); g.strokeStyle = "#f0605a"; g.lineWidth = 2; g.shadowColor = "#f0605a"; g.shadowBlur = 10; g.beginPath();
+  for (let x = -R0; x <= R0; x += 2) { const tt = s / period - (R0 - x) / (R0 * 2) * 1.2, yv = beat(((tt % 1) + 1) % 1); x === -R0 ? g.moveTo(cx + x, cy + 6 - yv * 26) : g.lineTo(cx + x, cy + 6 - yv * 26); } g.stroke(); g.restore();
+  g.fillStyle = "#e3ebe5"; g.font = '700 10.5px "Familjen Grotesk"'; g.textAlign = "center"; g.fillText("REINPAY", cx, cy - 30); g.fillText("INTELLIGENCE", cx, cy - 18); g.fillStyle = "#9fb5aa"; g.font = '400 9px "IBM Plex Mono"'; g.fillText(`${bpm} bpm · ${RT.stage.toUpperCase()}`, cx, cy + 36); g.textAlign = "left";
+  requestAnimationFrame(drawCore);
+}
+setInterval(() => { bpm = paused ? 48 : RT.stage === "exec" ? 96 : RT.stage === "sim" || RT.stage === "rug" ? 82 : RT.stage === "signal" ? 76 : Object.keys(B?.pos || {}).length ? 72 : 64; }, 400);
+
+(async () => { loadBook(); dayRec(); log("system", "START", `${mode} · Solana mainnet · trending tokens from GeckoTerminal, quotes from Jupiter`); requestAnimationFrame(drawCore); setInterval(ui, 1000); ui(); loop(); setInterval(loop, 20000); })();
+</script>
+</body>
+</html>
