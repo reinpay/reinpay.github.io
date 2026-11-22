@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reinpay Swap · preview</title>
+<meta name="description" content="Reinpay Swap preview: a real quote, Reinpay's rules and a Robinhood Chain mainnet simulation for any swap, before anything is signed. Read only; swapping is in development.">
+<link rel="canonical" href="https://reinpay.app/swap/">
+<meta name="theme-color" content="#060908">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Familjen+Grotesk:wght@600;700&display=swap">
+<style>
+  :root { --g: #5ff0a8; --o: #ffb36b; --gold: #e2b057; --bad: #f0836e; --ink: #e3ebe5; --dim: #8aa597; --line: rgba(95,240,168,.28); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #060908; color: var(--ink); font-family: "IBM Plex Mono", monospace; }
+  body { background-image: linear-gradient(rgba(95,240,168,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(95,240,168,.045) 1px, transparent 1px); background-size: 50px 50px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 60px; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .k { font: 600 12px "IBM Plex Mono"; letter-spacing: .2em; color: var(--gold); }
+  h1 { margin: 10px 0 0; font: 700 clamp(34px, 5vw, 60px)/1 "Familjen Grotesk"; letter-spacing: -.035em; }
+  h1 em { font-style: normal; color: var(--g); }
+  .lede { margin: 14px 0 0; color: var(--dim); font-size: 14px; line-height: 1.6; max-width: 640px; }
+  .tag { font: 600 12px "IBM Plex Mono"; letter-spacing: .14em; color: var(--gold); border: 1px solid rgba(226,176,87,.6); padding: 8px 12px; white-space: nowrap; }
+  .back { display: inline-block; margin-top: 14px; font: 600 12px "IBM Plex Mono"; color: var(--g); text-decoration: none; border: 1px solid rgba(95,240,168,.4); padding: 7px 12px; }
+  .grid { display: grid; grid-template-columns: 420px 1fr; gap: 20px; margin-top: 28px; align-items: start; }
+  .card { border: 1px solid var(--line); background: rgba(6,12,10,.9); padding: 20px; }
+  .card h2 { margin: 0 0 14px; font: 600 12px "IBM Plex Mono"; letter-spacing: .16em; color: var(--gold); }
+  label { display: block; font: 600 11px "IBM Plex Mono"; letter-spacing: .12em; color: var(--dim); margin: 14px 0 6px; }
+  .row { display: flex; gap: 8px; }
+  input, select { width: 100%; font: 500 15px "IBM Plex Mono"; color: var(--ink); background: #0a1311; border: 1px solid rgba(95,240,168,.32); padding: 11px 12px; outline: none; border-radius: 0; }
+  input:focus, select:focus { border-color: var(--g); }
+  select { width: 150px; flex: none; }
+  .flip { display: block; margin: 10px auto 0; background: none; border: 1px solid var(--line); color: var(--g); font: 700 16px "Familjen Grotesk"; width: 40px; height: 34px; cursor: pointer; }
+  .rules { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .hint { font: 500 11.5px/1.5 "IBM Plex Mono"; color: #6f8a7d; margin-top: 6px; }
+  .go { margin-top: 18px; width: 100%; font: 700 17px "Familjen Grotesk"; color: #04130b; background: var(--g); border: 0; padding: 14px; cursor: pointer; }
+  .go[disabled] { opacity: .5; cursor: wait; }
+  .swap { margin-top: 10px; width: 100%; font: 700 15px "Familjen Grotesk"; color: var(--dim); background: transparent; border: 1px dashed rgba(138,165,151,.5); padding: 12px; cursor: not-allowed; }
+  .out { font: 700 34px "Familjen Grotesk"; letter-spacing: -.02em; }
+  .out small { display: block; font: 500 13px "IBM Plex Mono"; color: var(--dim); letter-spacing: 0; margin-top: 4px; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 16px 0 0; font-size: 13px; }
+  dt { color: var(--dim); } dd { margin: 0; text-align: right; word-break: break-all; }
+  .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .checks li { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; font-size: 13px; padding: 9px 10px; border: 1px solid rgba(95,240,168,.18); background: rgba(95,240,168,.03); }
+  .checks li b { font-weight: 600; } .checks li span { color: var(--dim); font-size: 12px; text-align: right; }
+  .ok { color: var(--g); } .no { color: var(--bad); } .wait { color: var(--gold); }
+  .sim { font: 700 22px "Familjen Grotesk"; } .sim.ok { color: var(--g); } .sim.no { color: var(--bad); }
+  .stack { display: grid; gap: 20px; }
+  .muted { color: var(--dim); font-size: 13px; line-height: 1.6; margin: 0; }
+  .plan { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 4px; }
+  .plan div { border: 1px solid rgba(226,176,87,.4); padding: 12px; font-size: 12.5px; line-height: 1.5; color: var(--dim); }
+  .plan b { display: block; color: var(--gold); font-size: 11px; letter-spacing: .14em; margin-bottom: 4px; }
+  .err { color: var(--bad); font-size: 13px; margin-top: 10px; min-height: 1em; }
+  a { color: var(--g); }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .plan { grid-template-columns: 1fr 1fr; } .rules { grid-template-columns: 1fr 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><div class="k">REINPAY SWAP · ROBINHOOD CHAIN MAINNET</div><h1>Swap inside <em>your rules.</em></h1>
+      <p class="lede">A real quote, Reinpay's rules and a mainnet simulation of the exact transaction, before anything is signed. $REINPAY swaps route through the existing pool.</p>
+      <a class="back" href="/">← reinpay.app</a></div>
+    <div class="tag">PREVIEW · NOTHING IS SIGNED</div>
+  </div>
+
+  <div class="grid">
+    <form class="card" id="f" autocomplete="off">
+      <h2>YOUR SWAP</h2>
+      <label for="amt">YOU PAY</label>
+      <div class="row"><input id="amt" inputmode="decimal" value="0.01" aria-label="Amount you pay"><select id="tin" aria-label="Token you pay"></select></div>
+      <button class="flip" type="button" id="flip" aria-label="Swap direction">⇅</button>
+      <label for="tout">YOU GET</label>
+      <div class="row"><input id="est" disabled value="…" aria-label="Estimated amount"><select id="tout" aria-label="Token you get"></select></div>
+      <label>YOUR RULES</label>
+      <div class="rules">
+        <div><input id="budget" inputmode="decimal" value="0.05" aria-label="Budget per swap"><div class="hint">budget per swap (in the token you pay)</div></div>
+        <div><input id="slip" inputmode="decimal" value="1" aria-label="Slippage cap percent"><div class="hint">slippage cap %</div></div>
+        <div><input id="impact" inputmode="decimal" value="5" aria-label="Max price impact percent"><div class="hint">max price impact %</div></div>
+      </div>
+      <label for="addr">YOUR ADDRESS (OPTIONAL, FOR THE SIMULATION)</label>
+      <input id="addr" placeholder="0x… leave empty to use a test address" spellcheck="false">
+      <div class="hint">Read only. Your address is only used to simulate; nothing is sent to your wallet and nothing is signed.</div>
+      <button class="go" id="go" type="submit">Get quote and simulate</button>
+      <button class="swap" type="button" disabled>Swap · in development</button>
+      <div class="err" id="err"></div>
+    </form>
+
+    <div class="stack">
+      <div class="card" id="qcard"><h2>QUOTE</h2><p class="muted">Enter an amount and press <b>Get quote and simulate</b>. The quote comes from the KyberSwap aggregator on Robinhood Chain mainnet.</p></div>
+      <div class="card"><h2>REINPAY CHECKS</h2><ul class="checks" id="checks"><li><b class="wait">·</b><b>Waiting for a quote</b><span></span></li></ul></div>
+      <div class="card" id="scard"><h2>MAINNET SIMULATION · ETH_SIMULATEV1</h2><p class="muted">The exact transaction is run against the latest Robinhood Chain mainnet block. If it fails here, it would never be signed.</p></div>
+      <div class="card"><h2>PLANNED · SWAP FEE → BUYBACK → BURN</h2>
+        <p class="muted" style="margin-bottom:12px">Not live. Fee size and launch date are not set yet. When it ships, every buyback and burn will be on chain and tracked here.</p>
+        <div class="plan"><div><b>01 SWAP</b>you swap inside your rules</div><div><b>02 FEE</b>a small fee to a public wallet</div><div><b>03 BUYBACK</b>buy $REINPAY through the existing pool</div><div><b>04 BURN</b>send it to 0x…dEaD</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// Reinpay Swap preview. Quote and calldata: KyberSwap aggregator (Robinhood Chain). Simulation: eth_simulateV1 on the public
+// Robinhood Chain mainnet RPC. Nothing here asks a wallet for anything and nothing is signed.
+(() => {
+  const K = "https://aggregator-api.kyberswap.com/robinhood/api/v1", RPC = "https://rpc.mainnet.chain.robinhood.com", CID = "reinpay";
+  const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", TEST = "0x1111111111111111111111111111111111111111";
+  const T = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", PONS = "0x5b0e4f5072b356ae8edba9b3677e75c8bada86d9";
+  const TOK = { ETH: { a: ETH, d: 18, budget: "0.05", amt: "0.01" }, REINPAY: { a: "0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3", d: 18, budget: "1000000", amt: "100000" }, USDG: { a: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", d: 6, budget: "100", amt: "10" } };
+  const $ = (id) => document.getElementById(id);
+  for (const s of ["tin", "tout"]) for (const k of Object.keys(TOK)) $(s).add(new Option(k, k));
+  $("tin").value = "ETH"; $("tout").value = "REINPAY";
+  const setIn = () => { const t = TOK[$("tin").value]; $("budget").value = t.budget; $("amt").value = t.amt; $("est").value = "…"; };
+  $("tin").onchange = () => { if ($("tin").value === $("tout").value) $("tout").value = $("tin").value === "REINPAY" ? "ETH" : "REINPAY"; setIn(); };
+  $("tout").onchange = () => { $("est").value = "…"; };
+  $("flip").onclick = () => { const a = $("tin").value; $("tin").value = $("tout").value; $("tout").value = a; setIn(); };
+  const units = (s, d) => { s = String(s).trim(); if (!/^\d*\.?\d*$/.test(s) || s === "" || s === ".") return null; const [i, f = ""] = s.split("."); return BigInt(i || "0") * 10n ** BigInt(d) + BigInt((f + "0".repeat(d)).slice(0, d) || "0"); };
+  const show = (raw, d, dp = 4) => { const v = Number(BigInt(raw) * 10n ** 6n / 10n ** BigInt(d)) / 1e6; return v.toLocaleString("en-US", { maximumFractionDigits: v >= 1000 ? 2 : v < 1 ? 6 : dp }); };
+  const pad = (a) => a.slice(2).toLowerCase().padStart(64, "0");
+  async function rpc(method, params) { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) }); const j = await r.json(); if (j.error) throw new Error(j.error.message || "RPC error"); return j.result; }
+  const quote = async (tin, tout, amt) => { const r = await fetch(`${K}/routes?tokenIn=${tin}&tokenOut=${tout}&amountIn=${amt}`, { headers: { "x-client-id": CID } }); const j = await r.json(); if (j.code !== 0 || !j.data) throw new Error(j.message || "no route"); return j.data; };
+  const li = (st, title, note) => `<li><b class="${st}">${st === "ok" ? "✓" : st === "no" ? "✗" : "·"}</b><b>${title}</b><span>${note || ""}</span></li>`;
+
+  $("f").onsubmit = async (e) => {
+    e.preventDefault(); $("err").textContent = "";
+    const A = TOK[$("tin").value], B = TOK[$("tout").value];
+    if (A === B) { $("err").textContent = "Pick two different tokens."; return; }
+    const amt = units($("amt").value, A.d), budget = units($("budget").value, A.d), slip = Number($("slip").value), maxImp = Number($("impact").value);
+    if (!amt || amt <= 0n) { $("err").textContent = "Enter an amount to pay."; return; }
+    if (!(slip > 0 && slip <= 50) || !(maxImp > 0 && maxImp <= 100) || budget === null) { $("err").textContent = "Check your rules: budget, slippage cap and price impact."; return; }
+    let me = $("addr").value.trim(); const test = !me; if (test) me = TEST;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(me)) { $("err").textContent = "That address is not a full 0x… address."; return; }
+    $("go").disabled = true; $("go").textContent = "Reading the chain…";
+    try {
+      const q = await quote(A.a, B.a, amt.toString()), rs = q.routeSummary, out = BigInt(rs.amountOut);
+      // price impact: compare against a quote for 1/100 of the amount (same route source, same block)
+      let impact = null; try { const small = amt / 100n; if (small > 0n) { const q2 = await quote(A.a, B.a, small.toString()); const r1 = Number(out) / Number(amt), r2 = Number(BigInt(q2.routeSummary.amountOut)) / Number(small); impact = Math.max(0, (1 - r1 / r2) * 100); } } catch {}
+      const pools = [...new Set(rs.route.flat().map((h) => h.pool.toLowerCase()))], viaPons = pools.includes(PONS);
+      const minOut = out * BigInt(Math.round((100 - slip) * 100)) / 10000n;
+      $("est").value = show(out, B.d);
+      $("qcard").innerHTML = `<h2>QUOTE</h2><div class="out">${show(out, B.d)} ${$("tout").value}<small>for ${show(amt, A.d, 6)} ${$("tin").value} · minimum ${show(minOut, B.d)} with a ${slip}% slippage cap</small></div>
+        <dl><dt>Route</dt><dd>${pools.map((p) => p === PONS ? "REINPAY pool 0x5b0e…86d9 ✓" : p.slice(0, 6) + "…" + p.slice(-4)).join(" → ")}</dd>
+        <dt>Price impact</dt><dd>${impact === null ? "not available" : impact.toFixed(2) + "%"}</dd><dt>Router</dt><dd>${q.routerAddress}</dd>
+        <dt>Est. gas</dt><dd>${rs.gas} gas</dd><dt>Quote source</dt><dd>KyberSwap aggregator · Robinhood Chain</dd></dl>`;
+      const isTok = A.a !== ETH, isReinpay = A === TOK.REINPAY || B === TOK.REINPAY;
+      const checks = [
+        li(amt <= budget ? "ok" : "no", "Within your budget per swap", `${show(amt, A.d, 6)} of ${show(budget, A.d, 6)} ${$("tin").value}`),
+        li(impact === null ? "wait" : impact <= maxImp ? "ok" : "no", "Price impact under your cap", impact === null ? "could not measure" : `${impact.toFixed(2)}% of ${maxImp}% max`),
+        li("ok", "Minimum received is enforced", `${show(minOut, B.d)} ${$("tout").value} or the swap reverts`),
+        li("ok", isTok ? "Exact approval only" : "No approval needed", isTok ? `approve exactly ${show(amt, A.d, 6)} ${$("tin").value} to the router, never unlimited` : "paying in ETH"),
+        isReinpay ? li(viaPons ? "ok" : "no", "Routes through the REINPAY pool", viaPons ? "the existing pool, 0x5b0e…86d9" : "this route skips the existing pool") : "",
+      ];
+      $("checks").innerHTML = checks.join("") + li("wait", "Mainnet simulation", "see below");
+      // build the exact transaction, then simulate it on the latest mainnet block
+      $("go").textContent = "Simulating on mainnet…";
+      const br = await fetch(`${K}/route/build`, { method: "POST", headers: { "content-type": "application/json", "x-client-id": CID }, body: JSON.stringify({ routeSummary: rs, sender: me, recipient: me, slippageTolerance: Math.round(slip * 100) }) });
+      const bj = await br.json(); if (bj.code !== 0 || !bj.data) throw new Error(bj.message || "could not build the swap");
+      const tx = bj.data, calls = [], override = {}; let note = "";
+      if (isTok) {
+        const bal = BigInt(await rpc("eth_call", [{ to: A.a, data: "0x70a08231" + pad(me) }, "latest"]));
+        if (bal < amt) { $("scard").innerHTML = `<h2>MAINNET SIMULATION · ETH_SIMULATEV1</h2><div class="sim no">Not simulated</div><p class="muted">${test ? "The test address holds no " + $("tin").value + "." : "This address holds " + show(bal, A.d, 6) + " " + $("tin").value + ", less than the amount."} Enter an address that holds at least ${show(amt, A.d, 6)} ${$("tin").value} to simulate the exact approval and the swap.</p>`;
+          $("checks").innerHTML = checks.join("") + li("wait", "Mainnet simulation", "needs an address holding the amount"); return; }
+        calls.push({ from: me, to: A.a, data: "0x095ea7b3" + pad(tx.routerAddress) + amt.toString(16).padStart(64, "0") });
+      } else {
+        const bal = BigInt(await rpc("eth_getBalance", [me, "latest"]));
+        if (bal < amt + 10n ** 15n) { override[me] = { balance: "0x" + (amt + 10n ** 17n).toString(16) }; note = test ? "Simulated from a public test address with an ETH balance override." : "This address holds less ETH than the amount, so the simulation adds an ETH balance override."; }
+      }
+      calls.push({ from: me, to: tx.routerAddress, data: tx.data, value: "0x" + BigInt(tx.transactionValue || "0").toString(16), gas: "0x" + (3_000_000).toString(16) });
+      const res = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: override, calls }], traceTransfers: true, validation: false }, "latest"]);
+      const cs = res[0].calls, last = cs[cs.length - 1], ok = cs.every((c) => c.status === "0x1");
+      let got = 0n; if (ok) { if (B.a === ETH) { for (const l of last.logs || []) if (l.address.toLowerCase() === ETH.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(me))) got += BigInt(l.data); } else for (const l of last.logs || []) if (l.address.toLowerCase() === B.a.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(me))) got += BigInt(l.data); }
+      const gotTxt = got > 0n ? `${show(got, B.d)} ${$("tout").value}` : (B.a === ETH ? "ETH received (native transfer)" : "—");
+      $("scard").innerHTML = `<h2>MAINNET SIMULATION · ETH_SIMULATEV1</h2><div class="sim ${ok ? "ok" : "no"}">${ok ? "✓ The swap succeeds on mainnet" : "✗ The swap fails on mainnet, so it would never be signed"}</div>
+        <dl><dt>Block</dt><dd>${parseInt(res[0].number, 16).toLocaleString("en-US")}</dd>${isTok ? `<dt>Exact approval</dt><dd>${cs[0].status === "0x1" ? "✓" : "✗"} ${show(amt, A.d, 6)} ${$("tin").value} to ${tx.routerAddress.slice(0, 6)}…${tx.routerAddress.slice(-4)}</dd>` : ""}
+        <dt>Received in simulation</dt><dd>${ok ? gotTxt : "—"}</dd><dt>Gas used</dt><dd>${parseInt(last.gasUsed, 16).toLocaleString("en-US")}</dd>${last.error ? `<dt>Error</dt><dd>${last.error.message}</dd>` : ""}<dt>From</dt><dd>${me.slice(0, 6)}…${me.slice(-4)}${test ? " (public test address)" : ""}</dd></dl>${note ? `<p class="muted" style="margin-top:12px">${note}</p>` : ""}`;
+      $("checks").innerHTML = checks.join("") + li(ok ? "ok" : "no", "Mainnet simulation", ok ? "the exact transaction succeeds" : "the transaction reverts");
+    } catch (x) { $("err").textContent = "Could not complete: " + (x.message || x) + ". Nothing was signed."; }
+    finally { $("go").disabled = false; $("go").textContent = "Get quote and simulate"; }
+  };
+})();
+</script>
+</body>
+</html>
