@@ -133,7 +133,7 @@
       catch (e) { if (e.rpc || !eth || !account) throw e; viaWallet = true; } }
     return await wreq(method, params);
   }
-  const wreq = (method, params, ms = 30000) => Promise.race([eth.request({ method, params }), new Promise((_, no) => setTimeout(() => no(new Error(`your wallet did not answer ${method} in time`)), ms))]);
+  const wreq = (method, params, ms = 12000) => Promise.race([eth.request({ method, params }), new Promise((_, no) => setTimeout(() => no(Object.assign(new Error("NET"), { net: true })), ms))]);
   // eth_simulateV1 when the RPC has it; otherwise step by step with eth_call on the latest block (same chain, same state)
   async function simulate(calls, override) {
     if (!viaWallet) { try { const res = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: override, calls }], traceTransfers: true, validation: false }, "latest"]); if (!viaWallet) return { kind: "eth_simulateV1", block: parseInt(res[0].number, 16), calls: res[0].calls }; } catch (e) { if (!viaWallet) throw e; } }
@@ -230,8 +230,9 @@
     plan = { approveFirst, ok: allOk && !!account, A, B, An, Bn, amt, minOut, got, tx, swapCall, needApprove: isTok && allowance < amt, gas: last ? BigInt(last.gasUsed) : 0n, at: Date.now(), slip };
     swapBtn(allOk ? null : "Swap · every check must pass first");
   }
+  const netMsg = "Your network cannot reach Robinhood Chain right now, not directly and not through your wallet (both use the same RPC). Nothing was signed. Try another connection, for example mobile data, or a different DNS such as 1.1.1.1, then press Get quote again.";
   $("f").onsubmit = async (e) => { e.preventDefault(); $("err").textContent = ""; $("review").hidden = true; $("go").disabled = true; $("go").textContent = "Reading the chain…";
-    try { await prepare(); } catch (x) { plan = null; swapBtn(); $("err").textContent = "Could not complete: " + (x.message || x) + ". Nothing was signed."; }
+    try { await prepare(); } catch (x) { plan = null; swapBtn(); $("err").textContent = x && x.net ? netMsg : "Could not complete: " + (x.message || x) + ". Nothing was signed."; }
     finally { $("go").disabled = false; $("go").textContent = "Get quote and simulate"; } };
 
   // ---------- review, then sign only after Yes ----------
@@ -267,7 +268,7 @@
       rv.innerHTML = `<h2>RECEIPT</h2><div class="sim ${r.status === "0x1" ? "ok" : "no"}">${r.status === "0x1" ? "✓ Swapped on Robinhood Chain mainnet" : "✗ The swap failed on chain"}</div>
         <dl><dt>Transaction</dt><dd><a href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)} ↗</a></dd><dt>Block</dt><dd>${parseInt(r.blockNumber, 16).toLocaleString("en-US")}</dd>${got > 0n ? `<dt>Received</dt><dd>${show(got, q.B.d)} ${q.Bn}</dd>` : ""}<dt>Reinpay fee</dt><dd>${FEE_BPS / 100}% to ${short(FEE_WALLET)} for buyback and burn</dd></dl>`;
       plan = null; swapBtn();
-    } catch (x) { $("rerr").textContent = (x && x.code === 4001 ? "You declined in your wallet. Nothing was sent." : "Stopped: " + (x.message || x) + "."); $("yes").disabled = false; }
+    } catch (x) { $("rerr").textContent = (x && x.code === 4001 ? "You declined in your wallet. Nothing was sent." : x && x.net ? netMsg : "Stopped: " + (x.message || x) + "."); $("yes").disabled = false; }
   }
   swapBtn();
 })();
