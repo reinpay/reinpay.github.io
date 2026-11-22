@@ -32,6 +32,7 @@ a{color:var(--g)}.app{max-width:1360px;margin:0 auto;padding:18px 16px 50px}
 .tokens{position:absolute;left:12px;right:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap}
 .tk{border:1px dashed #2c4a3d;border-radius:8px;padding:5px 9px;font-size:11px;background:#06100c}.tk b{font-weight:600}.tk span{display:block;font-size:10px;color:var(--dim)}
 .tk.SIGNAL{border-color:var(--gold);color:var(--gold)}.tk.HOLD{border-color:var(--g);color:var(--g)}.tk.BLOCK{border-color:var(--bad);color:var(--bad)}
+.copy{display:grid;grid-template-columns:1fr 1.4fr;gap:12px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--ln)}.copy label{font-size:10px;color:var(--dim)}textarea{background:#030605;border:1px solid var(--ln);color:var(--ink);font:11px "IBM Plex Mono";padding:8px 9px;border-radius:8px;width:100%;resize:vertical}
 .focusbox{position:absolute;right:12px;bottom:10px;width:250px;background:rgba(5,8,10,.88);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;font-size:11px}#spark{width:100%;height:54px;display:block;margin:4px 0}
 .mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.mini div{border:1px dashed var(--ln);border-radius:9px;padding:8px 10px;background:var(--pn2)}.mini small{display:block;font-size:9px;letter-spacing:.12em;color:var(--dim)}.mini b{font:700 18px "Familjen Grotesk"}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
@@ -91,6 +92,10 @@ input,select{background:#030605;border:1px solid var(--ln);color:var(--ink);font
       </div>
       <div class="pn" style="margin-top:14px"><h3><span>LOG · EVERY DECISION HAS A REASON</span></h3><div class="log" id="log"></div></div>
       <div class="pn" style="margin-top:14px"><h3><span>BOT RULES</span><button class="o" id="save">Save</button></h3><div class="set" id="set"></div>
+        <div class="copy"><div><label>Strategy<select id="strat"><option value="mom">Momentum (trending tokens)</option><option value="copy">Copy wallets</option><option value="both">Both</option></select></label>
+          <label class="consent" style="margin-top:8px"><input type="checkbox" id="copySell">Sell when the wallet I copy sells</label>
+          <div class="muted" style="font-size:11px;margin-top:6px">Copy buys still go through the rug check, the size, day budget and loss limits, and the Keeper's take profit and stop loss. Only trades made after you save are copied.</div></div>
+          <label>Wallets to copy (Solana addresses you choose, one per line, max 10)<textarea id="watch" rows="5" spellcheck="false" placeholder="paste public Solana wallet addresses here"></textarea></label></div>
         <div class="muted" style="margin-top:8px">Buys a trending token when it is up by the signal in the last hour (but not more than the max), the last 5 minutes are not falling, buys beat sells, and it passes the rug check: mint and freeze authority revoked, no Token-2022 transfer tax, enough liquidity, an old enough pool, and a buy-then-sell quote that costs less than half the stop loss. The Keeper values every position by a real Jupiter sell quote and sells on take profit, stop loss, trailing stop or max hold. Empty token accounts are closed so their rent comes back. No Reinpay fee on Solana. Memecoins can go to zero; paper results are not a promise of anything.</div></div>
     </div>
   </div>
@@ -159,6 +164,37 @@ async function closeEmpty() { // give back the rent of token accounts the bot no
   tx.sign(kp); const sig = await sendTx(tx); B.mints = (B.mints || []).filter((m) => !closed.has(m) || B.pos[m]); saveBook(); log("keep", "RENT", `closed ${Math.min(10, empty.length)} empty token account(s), rent back to the bot · ${EXP}${sig}`); return empty.length;
 }
 
+// ---------- copy wallets: read each chosen wallet's newest transactions and copy its buys ----------
+const COPY = { strat: "mom", sell: true, wallets: [], ...store.get("reinpay-sol-copy", {}) }, lastSig = {}, STABLES = new Set(["EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", SOL]);
+const short = (a) => a.slice(0, 4) + "…" + a.slice(-4);
+async function watch() {
+  if (COPY.strat === "mom" || !COPY.wallets.length) return [];
+  RT.stage = "scout"; const buys = [], sells = [];
+  for (const w of COPY.wallets) {
+    let sigs; try { sigs = await rpc("getSignaturesForAddress", [w, { limit: 6 }]); } catch (e) { say("scout", `${short(w)}: ${e.message.slice(0, 60)}`, "warn"); continue; }
+    if (!sigs.length) continue; const fresh = []; for (const x of sigs) { if (x.signature === lastSig[w]) break; if (!x.err) fresh.push(x.signature); }
+    const first = !lastSig[w]; lastSig[w] = sigs[0].signature; if (first) continue; // only trades made after the watch starts
+    for (const sig of fresh.reverse()) {
+      const tx = await rpc("getTransaction", [sig, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }]).catch(() => null); if (!tx?.meta) continue;
+      const keys = tx.transaction.message.accountKeys.map((k) => k.pubkey || k), i = keys.indexOf(w), solD = i >= 0 ? (tx.meta.postBalances[i] - tx.meta.preBalances[i]) / 1e9 : 0, d = {};
+      for (const b of tx.meta.preTokenBalances || []) if (b.owner === w) d[b.mint] = (d[b.mint] || 0) - +b.uiTokenAmount.uiAmount;
+      for (const b of tx.meta.postTokenBalances || []) if (b.owner === w) d[b.mint] = (d[b.mint] || 0) + +b.uiTokenAmount.uiAmount;
+      const paid = solD < -0.001 || Object.entries(d).some(([m, v]) => STABLES.has(m) && v < 0), got = solD > 0.001 || Object.entries(d).some(([m, v]) => STABLES.has(m) && v > 0);
+      for (const [m, v] of Object.entries(d)) { if (STABLES.has(m)) continue; if (v > 0 && paid) buys.push({ mint: m, w, sig }); else if (v < 0 && got) sells.push({ mint: m, w, sig }); }
+    }
+  }
+  if (COPY.sell) for (const s_ of sells) { const p = B.pos[s_.mint]; if (p && p.copy === s_.w) { log("signal", "COPY", `${short(s_.w)} sold ${p.sym} · ${EXP}${s_.sig}`); await sell(p, `copied wallet ${short(s_.w)} sold`).catch((e) => log("keep", "ERROR", e.message)); } }
+  const out = [];
+  for (const b_ of buys) { if (B.pos[b_.mint] || out.some((x) => x.mint === b_.mint)) continue;
+    let pair = null; try { const j = await getJSON(`https://api.dexscreener.com/latest/dex/tokens/${b_.mint}`); pair = (j.pairs || []).filter((x) => x.chainId === "solana").sort((a, c) => (c.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0]; } catch {}
+    if (!pair) { log("signal", "COPY", `${short(b_.w)} bought ${short(b_.mint)} · no market data, skipped`); continue; }
+    const t = { mint: b_.mint, sym: pair.baseToken.symbol, price: +pair.priceUsd, liq: pair.liquidity?.usd || 0, created: pair.pairCreatedAt || now(), h1: pair.priceChange?.h1 || 0, b5: pair.txns?.m5?.buys || 0, s5: pair.txns?.m5?.sells || 0, copy: b_.w };
+    log("signal", "COPY", `${short(b_.w)} bought ${t.sym} · ${EXP}${b_.sig}`); (trail[t.mint] ||= []).push([now(), t.price]);
+    const r = await rugCheck(t); if (!r.ok) { log("rug", "BLOCKED", `${t.sym} (copied from ${short(b_.w)}) · ${r.bad[0]}`); say("rug", `${t.sym} filtered · ${r.bad[0]}`, "warn"); continue; }
+    out.push({ ...t, dec: r.dec, rt: r.rt, why: `copied ${short(b_.w)} · round trip ${(r.rt * 100).toFixed(1)}%` }); }
+  say("scout", `watching ${COPY.wallets.length} wallet(s) · ${buys.length} new buy(s), ${sells.length} sell(s) this pass`); return out;
+}
+
 // ---------- the agents ----------
 const book = () => B.pos; const safe = {}, trail = {}; let pools = [], lastScan = 0;
 async function scout() {
@@ -200,13 +236,13 @@ async function enter(t) {
   const bal = await cash(); if (bal < RULES.solPerTrade + 0.006) return say("size", `cash ${sol(bal)} is too low (trade + 0.006 for fees and rent)`, "warn");
   const lam = Math.round(RULES.solPerTrade * 1e9), q = await quote(SOL, t.mint, lam), dec = t.dec ?? 6;
   say("size", `${RULES.solPerTrade} SOL → ±${(Number(q.outAmount) / 10 ** dec).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${t.sym}`);
-  const why = `up ${t.h1.toFixed(1)}%/h · 5m buys ${t.b5} > sells ${t.s5} · round trip ${(t.rt * 100 || 0).toFixed(1)}%`;
+  const why = t.why || `up ${t.h1.toFixed(1)}%/h · 5m buys ${t.b5} > sells ${t.s5} · round trip ${(t.rt * 100 || 0).toFixed(1)}%`;
   let qty = BigInt(q.outAmount), spent = RULES.solPerTrade, sig = "paper";
   if (mode === "paper") { spent += 0.00005; B.sol -= spent; }
   else { const before = (await tokenAccts(t.mint)).reduce((a, x) => a + x.amount, 0n), s0 = await solBal(kp.publicKey.toBase58()); RT.stage = "exec"; say("exec", `buying ${t.sym}…`);
     sig = await swapLive(q); await sleep(2500); qty = (await tokenAccts(t.mint)).reduce((a, x) => a + x.amount, 0n) - before; spent = s0 - await solBal(kp.publicKey.toBase58()); if (qty <= 0n) throw new Error("tokens did not arrive " + sig); B.sol = await solBal(kp.publicKey.toBase58()); }
   B.mints = [...new Set([...(B.mints || []), t.mint])];
-  B.pos[t.mint] = { mint: t.mint, sym: t.sym, qty: qty.toString(), dec, spent, entryUsd: t.price, peak: 0, t: now(), tx: sig, pool: t.pool };
+  B.pos[t.mint] = { copy: t.copy || null, mint: t.mint, sym: t.sym, qty: qty.toString(), dec, spent, entryUsd: t.price, peak: 0, t: now(), tx: sig, pool: t.pool };
   d.spent += RULES.solPerTrade; B.trades++; saveBook(); say("exec", `BUY ${t.sym} · ${sol(spent)}`);
   log("exec", "BUY", `${mode === "paper" ? "[paper] " : ""}${t.sym} · ${sol(spent)} → ${(Number(qty) / 10 ** dec).toLocaleString("en-US", { maximumFractionDigits: 0 })} · ${why}${sig !== "paper" ? " · " + EXP + sig : ""}`);
 }
@@ -236,7 +272,7 @@ async function loop() {
   try { if (paused) { say("scout", "paused by you", "warn"); return; }
     RT.solUsd = (await getJSON(`${JUP}/price/v3?ids=${SOL}`).catch(() => ({})))[SOL]?.usdPrice ?? RT.solUsd;
     if (now() - lastScan > 60000 || !pools.length) await scout();
-    await keep(); const list = await decide();
+    await keep(); const list = [...(await watch().catch((e) => { say("scout", "watch: " + e.message.slice(0, 70), "bad"); return []; })), ...(COPY.strat === "copy" ? [] : await decide())];
     for (const t of list) await enter(t).catch((e) => { log("exec", "ERROR", `${t.sym}: ${e.message}`); say("exec", e.message.slice(0, 80), "bad"); });
     await cash(); B.eq.push([now(), equity()]); if (B.eq.length > 600) B.eq.shift(); RT.stage = "scribe"; say("scribe", `${B.log.length} lines · every decision has a reason`); saveBook();
   } catch (e) { say("scout", "error: " + e.message.slice(0, 90), "bad"); } finally { busy = false; setTimeout(() => (RT.stage = "idle"), 700); }
@@ -271,7 +307,10 @@ $("wd").onclick = async () => { if (!kp || !owner) return msg("Connect your wall
 $("bk").onclick = () => { if (!kp) return msg("Connect your wallet first."); if (!window.confirm("Show your bot's private key? Anyone who sees it can take what the bot holds. Write it down offline, never share it.")) return; prompt("Bot private key (base58, imports into Phantom):", b58(kp.secretKey)); };
 $("pause").onclick = () => { paused = !paused; log("system", paused ? "PAUSE" : "RESUME", paused ? "paused by you" : "resumed"); };
 $("set").innerHTML = SETS.map(([k, l]) => `<label>${l}<input id="z-${k}" inputmode="decimal"></label>`).join(""); for (const [k] of SETS) $("z-" + k).value = RULES[k];
-$("save").onclick = () => { for (const [k] of SETS) RULES[k] = +$("z-" + k).value; store.set("reinpay-sol-rules", RULES); log("system", "RULES", "rules changed"); $("save").textContent = "Saved ✓"; setTimeout(() => ($("save").textContent = "Save"), 1500); };
+$("strat").value = COPY.strat; $("copySell").checked = COPY.sell; $("watch").value = COPY.wallets.join("\n");
+$("save").onclick = () => { for (const [k] of SETS) RULES[k] = +$("z-" + k).value; store.set("reinpay-sol-rules", RULES);
+  const ws = [...new Set($("watch").value.split(/[\s,]+/).filter((a) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a)))].slice(0, 10); for (const k in lastSig) if (!ws.includes(k)) delete lastSig[k];
+  Object.assign(COPY, { strat: $("strat").value, sell: $("copySell").checked, wallets: ws }); store.set("reinpay-sol-copy", COPY); $("watch").value = ws.join("\n"); log("system", "RULES", `strategy ${COPY.strat}${ws.length ? ` · copying ${ws.length} wallet(s): ${ws.map(short).join(", ")}` : ""}`); log("system", "RULES", "rules changed"); $("save").textContent = "Saved ✓"; setTimeout(() => ($("save").textContent = "Save"), 1500); };
 
 // ---------- drawing ----------
 $("agents").innerHTML = AG.map(([id, n, ic, c, r]) => `<div class="ag" id="a-${id}"><i style="background:${c}22;color:${c}">${ic}</i><div><div class="n">${n}</div><div class="r">${r}</div></div><span class="s" id="s-${id}">READY</span><div class="t" id="t-${id}">waiting…</div></div>`).join("");
