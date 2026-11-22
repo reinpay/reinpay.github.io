@@ -94,9 +94,15 @@
       <div class="card"><h2>REINPAY CHECKS</h2><ul class="checks" id="checks"><li><b class="wait">·</b><b>Waiting for a quote</b><span></span></li></ul></div>
       <div class="card" id="scard"><h2>MAINNET SIMULATION · ETH_SIMULATEV1</h2><p class="muted">The exact transaction is run against the latest Robinhood Chain mainnet block. If it fails here, it would never be signed.</p></div>
       <div class="card" id="review" hidden></div>
+      <div class="card" id="bb" hidden><h2>BUYBACK &amp; BURN · FEE WALLET</h2>
+        <p class="muted">This panel only opens for the public fee wallet. One transaction: ETH from the fee wallet buys REINPAY through the existing pool, and the REINPAY goes straight to 0x…dEaD. No Reinpay fee on buybacks. Simulated first; your wallet only asks after you press Yes.</p>
+        <dl><dt>Fee wallet balance</dt><dd id="bbbal">…</dd><dt>Kept for gas</dt><dd>0.00005 ETH</dd></dl>
+        <label for="bbamt">ETH TO BUY BACK AND BURN</label><input id="bbamt" inputmode="decimal">
+        <button class="go" id="bbgo" type="button">Quote and simulate the buyback</button><div id="bbout"></div><div class="err" id="bberr"></div></div>
       <div class="card"><h2 id="planh">SWAP FEE → BUYBACK → BURN</h2>
         <p class="muted" style="margin-bottom:12px" id="plann"></p>
         <div class="plan"><div><b>01 SWAP</b>you swap inside your rules</div><div><b>02 FEE</b>a small fee to a public wallet</div><div><b>03 BUYBACK</b>buy $REINPAY through the existing pool</div><div><b>04 BURN</b>send it to 0x…dEaD</div></div>
+        <dl id="trk" style="margin-top:16px"></dl><ul class="steps" id="trklist"></ul>
       </div>
     </div>
   </div>
@@ -232,7 +238,7 @@
   }
   const netMsg = "Your network cannot reach Robinhood Chain right now, not directly and not through your wallet (both use the same RPC). Nothing was signed. Try another connection, for example mobile data, or a different DNS such as 1.1.1.1, then press Get quote again.";
   $("f").onsubmit = async (e) => { e.preventDefault(); $("err").textContent = ""; $("review").hidden = true; $("go").disabled = true; $("go").textContent = "Reading the chain…";
-    try { await prepare(); } catch (x) { plan = null; swapBtn(); $("err").textContent = x && x.net ? netMsg : "Could not complete: " + (x.message || x) + ". Nothing was signed."; }
+    try { await prepare(); } catch (x) { plan = null; swapBtn(); const lastLi = [...document.querySelectorAll("#checks li")].pop(); if (lastLi && /running/.test(lastLi.textContent)) lastLi.outerHTML = li("no", "Mainnet simulation", x && x.net ? "could not reach the chain" : "stopped"); $("err").textContent = x && x.net ? netMsg : "Could not complete: " + (x.message || x) + ". Nothing was signed."; }
     finally { $("go").disabled = false; $("go").textContent = "Get quote and simulate"; } };
 
   // ---------- review, then sign only after Yes ----------
@@ -269,6 +275,58 @@
         <dl><dt>Transaction</dt><dd><a href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)} ↗</a></dd><dt>Block</dt><dd>${parseInt(r.blockNumber, 16).toLocaleString("en-US")}</dd>${got > 0n ? `<dt>Received</dt><dd>${show(got, q.B.d)} ${q.Bn}</dd>` : ""}<dt>Reinpay fee</dt><dd>${FEE_BPS / 100}% to ${short(FEE_WALLET)} for buyback and burn</dd></dl>`;
       plan = null; swapBtn();
     } catch (x) { $("rerr").textContent = (x && x.code === 4001 ? "You declined in your wallet. Nothing was sent." : x && x.net ? netMsg : "Stopped: " + (x.message || x) + "."); $("yes").disabled = false; }
+  }
+  // ---------- public tracker: the fee wallet, live balance, and every buyback and burn (from the on-chain job) ----------
+  const DEAD = "0x000000000000000000000000000000000000dEaD", RESERVE = 5n * 10n ** 13n;
+  async function tracker() {
+    if (!LIVE) return; let bal = null, d = null;
+    try { bal = BigInt(await (async () => { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [FEE_WALLET, "latest"] }) }); return (await r.json()).result; })()); } catch {}
+    try { d = await (await fetch("../assets/chain/buyback.json?t=" + Date.now())).json(); } catch {}
+    if (bal === null && d) bal = BigInt(d.balance);
+    const bb = d ? d.buybacks : [], burned = bb.reduce((a, x) => a + BigInt(x.burned), 0n), spent = bb.reduce((a, x) => a + BigInt(x.eth), 0n);
+    $("trk").innerHTML = `<dt>Fee wallet</dt><dd><a href="${EXP}/address/${FEE_WALLET}" target="_blank" rel="noopener">${short(FEE_WALLET)} ↗</a></dd>
+      <dt>Waiting to be bought back</dt><dd>${bal === null ? "…" : show(bal, 18, 8) + " ETH"}</dd><dt>Buybacks so far</dt><dd>${bb.length}</dd>
+      <dt>ETH spent on buybacks</dt><dd>${show(spent, 18, 8)} ETH</dd><dt>REINPAY burned by buybacks</dt><dd>${show(burned, 18)}</dd>${d ? `<dt>Tracker updated</dt><dd>${new Date(d.at).toISOString().slice(0, 16).replace("T", " ")} UTC</dd>` : ""}`;
+    $("trklist").innerHTML = bb.slice().reverse().slice(0, 8).map((x) => `<li>🔥 ${show(BigInt(x.burned), 18)} REINPAY burned for ${show(BigInt(x.eth), 18, 8)} ETH · <a href="${EXP}/tx/${x.tx}" target="_blank" rel="noopener">${short(x.tx)} ↗</a> · ${new Date(x.time * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC</li>`).join("");
+    return bal;
+  }
+  tracker();
+
+  // ---------- buyback and burn, only for the fee wallet ----------
+  let bbPlan = null;
+  async function bbOpen() {
+    if (!LIVE || !account || account.toLowerCase() !== FEE_WALLET.toLowerCase()) return; $("bb").hidden = false;
+    const bal = BigInt(await rpc("eth_getBalance", [account, "latest"])); $("bbbal").textContent = show(bal, 18, 8) + " ETH";
+    $("bbamt").value = bal > RESERVE ? (Number((bal - RESERVE) / 10n ** 10n) / 1e8).toString() : "0";
+  }
+  const _conn = $("conn").onclick; $("conn").onclick = async () => { await _conn(); try { await bbOpen(); } catch (e) { $("bberr").textContent = e.message || e; } };
+  async function bbPrepare() {
+    const amt = units($("bbamt").value, 18), bal = BigInt(await rpc("eth_getBalance", [account, "latest"])); $("bbbal").textContent = show(bal, 18, 8) + " ETH";
+    if (bal <= RESERVE) throw new Error(`the fee wallet holds ${show(bal, 18, 8)} ETH, not enough for a buyback after keeping 0.00005 ETH for gas`); if (!amt || amt <= 0n) throw new Error("enter an ETH amount");
+    if (amt + RESERVE > bal) throw new Error(`the fee wallet holds ${show(bal, 18, 8)} ETH; keep at least 0.00005 ETH for gas`);
+    const q = await quote(TOK.ETH, TOK.REINPAY, amt.toString(), false), rs = q.routeSummary, out = BigInt(rs.amountOut), minOut = out * 99n / 100n;
+    const pools = [...new Set(rs.route.flat().map((h) => h.pool.toLowerCase()))]; if (!pools.includes(PONS)) throw new Error("this route skips the existing REINPAY pool, so no buyback");
+    const r = await fetch(`${K}/route/build`, { method: "POST", headers: { "content-type": "application/json", "x-client-id": CID }, body: JSON.stringify({ routeSummary: rs, sender: account, recipient: DEAD, slippageTolerance: 100 }) });
+    const j = await r.json(); if (j.code !== 0 || !j.data) throw new Error(j.message || "could not build the buyback"); const tx = j.data;
+    const call = { from: account, to: tx.routerAddress, data: tx.data, value: "0x" + BigInt(tx.transactionValue).toString(16) };
+    const sim = await simulate([{ ...call, gas: "0x2dc6c0" }], {}), c = sim.calls[0]; let burn = 0n;
+    if (c.status === "0x1") { if (sim.kind === "eth_simulateV1") { for (const l of c.logs || []) if (l.address.toLowerCase() === TOK.REINPAY.a.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(DEAD))) burn += BigInt(l.data); } else burn = c.ret && c.ret.length >= 66 ? BigInt("0x" + c.ret.slice(2, 66)) : 0n; }
+    const ok = c.status === "0x1" && burn >= minOut;
+    bbPlan = ok ? { amt, minOut, burn, call, gas: BigInt(c.gasUsed || "0x0") } : null;
+    $("bbout").innerHTML = `<dl><dt>REINPAY to burn</dt><dd>${show(out, 18)} (minimum ${show(minOut, 18)})</dd><dt>Route</dt><dd>${pools.map((x) => x === PONS ? "REINPAY pool 0x5b0e…86d9 ✓" : short(x)).join(" → ")}</dd><dt>Recipient</dt><dd>0x…dEaD (burn)</dd>
+      <dt>Simulation</dt><dd>${ok ? "✓ succeeds · " + show(burn, 18) + " REINPAY reach 0x…dEaD" : "✗ " + (c.error?.message || "fails") }</dd><dt>Block</dt><dd>${sim.block.toLocaleString("en-US")} · ${sim.kind}</dd></dl>
+      ${ok ? `<p style="margin-top:14px"><button class="yes" id="bbyes" type="button">Yes, buy back and burn</button></p><div class="err" id="bbrerr"></div>` : ""}`;
+    if (ok) $("bbyes").onclick = bbExecute;
+  }
+  $("bbgo").onclick = async () => { $("bberr").textContent = ""; $("bbgo").disabled = true; try { await bbPrepare(); } catch (x) { $("bberr").textContent = x && x.net ? netMsg : "Stopped: " + (x.message || x) + ". Nothing was signed."; } finally { $("bbgo").disabled = false; } };
+  async function bbExecute() {
+    try { $("bbyes").disabled = true; await ensureChain(); await bbPrepare(); if (!bbPlan) throw new Error("the fresh simulation failed, so nothing was sent");
+      const p = bbPlan, h = await req("eth_sendTransaction", [{ ...p.call, gas: "0x" + (p.gas * 13n / 10n + 30000n).toString(16) }]);
+      $("bbout").innerHTML = `<p class="muted">Buyback sent: <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)}</a>. Waiting for it to land…</p>`;
+      const r = await waitTx(h); let burned = 0n; for (const l of r.logs || []) if (l.address.toLowerCase() === TOK.REINPAY.a.toLowerCase() && l.topics[0] === T && l.topics[2].endsWith(pad(DEAD))) burned += BigInt(l.data);
+      $("bbout").innerHTML = `<div class="sim ${r.status === "0x1" ? "ok" : "no"}">${r.status === "0x1" ? "🔥 Bought back and burned" : "✗ The buyback failed on chain"}</div><dl><dt>Transaction</dt><dd><a href="${EXP}/tx/${h}" target="_blank" rel="noopener">${short(h)} ↗</a></dd><dt>ETH spent</dt><dd>${show(p.amt, 18, 8)} ETH</dd><dt>REINPAY burned</dt><dd>${show(burned, 18)}</dd></dl>`;
+      bbPlan = null; bbOpen(); tracker();
+    } catch (x) { const e = $("bbrerr") || $("bberr"); e.textContent = x && x.code === 4001 ? "You declined in your wallet. Nothing was sent." : x && x.net ? netMsg : "Stopped: " + (x.message || x) + "."; if ($("bbyes")) $("bbyes").disabled = false; }
   }
   swapBtn();
 })();
