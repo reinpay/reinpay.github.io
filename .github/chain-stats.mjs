@@ -157,4 +157,18 @@ async function extras() {
       dev: { a: DEVW, received: G.dev.in, toDead: G.dev.dead, elsewhere: G.dev.other, balance: (gb.get(DEVW) || 0n).toString() }, holders: holdersG, former, burns: G.burns, series: G.series }));
     console.log("galaxy", holdersG.length, "holders", former.length, "former", G.burns.length, "burns", G.series.length, "points");
   } catch (e) { console.log("galaxy skipped:", e.message); }
+  // Reinpay Swap buyback tracker: the public fee wallet's balance, and every burn sent by a transaction from that wallet
+  // (ETH spent, REINPAY burned, gas). Burn transactions already checked are remembered in buyback-state.json.
+  try {
+    const FEEW = "0xc651fc557130be361a8b45a7ed19405dd06d9317", bp = `${dir}/buyback-state.json`;
+    const B = existsSync(bp) ? JSON.parse(readFileSync(bp, "utf8")) : { checked: {}, buybacks: [] };
+    for (const b of st.burns) { const k = b.tx.toLowerCase(); if (k in B.checked) continue;
+      const tx = await rpc("eth_getTransactionByHash", [b.tx]); const mine = tx && tx.from.toLowerCase() === FEEW; B.checked[k] = mine;
+      if (mine) { const rc = await rpc("eth_getTransactionReceipt", [b.tx]); const blk = await rpc("eth_getBlockByNumber", [tx.blockNumber, false]);
+        B.buybacks.push({ tx: b.tx, block: parseInt(tx.blockNumber, 16), time: parseInt(blk.timestamp, 16), eth: BigInt(tx.value).toString(), burned: b.amount, gas: (BigInt(rc.gasUsed) * BigInt(rc.effectiveGasPrice || tx.gasPrice || "0x0")).toString() }); } }
+    B.buybacks.sort((x, y) => x.block - y.block); writeFileSync(bp, JSON.stringify(B));
+    const bal = BigInt(await rpc("eth_getBalance", [FEEW, "latest"]));
+    writeFileSync(`${dir}/buyback.json`, JSON.stringify({ kind: "reinpay-buyback", version: 1, chainId: 4663, feeWallet: FEEW, feeBps: 20, at: new Date().toISOString(), balance: bal.toString(), buybacks: B.buybacks }));
+    console.log("buyback tracker", B.buybacks.length, "buybacks, fee wallet", Number(bal) / 1e18, "ETH");
+  } catch (e) { console.log("buyback skipped:", e.message); }
 }
