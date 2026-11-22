@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reinpay Trading Desk · paper</title>
+<meta name="description" content="A paper trading agent on real Robinhood Chain prices: ETH, BTC, US stocks and ETFs, and REINPAY. Agents trade, Reinpay's rules decide, and live trades are simulated on mainnet first. Virtual money, no leverage.">
+<link rel="canonical" href="https://reinpay.app/trading/">
+<meta name="theme-color" content="#05080a">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Familjen+Grotesk:wght@600;700&display=swap">
+<style>
+  :root { --g: #5ff0a8; --o: #ffb36b; --gold: #e2b057; --bad: #f0836e; --blue: #7aa7ff; --ink: #e3ebe5; --dim: #8aa597; --line: rgba(95,240,168,.25); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #05080a; color: var(--ink); font-family: "IBM Plex Mono", monospace; }
+  body { background-image: linear-gradient(rgba(95,240,168,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(95,240,168,.04) 1px, transparent 1px); background-size: 50px 50px; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 22px 20px 50px; }
+  .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .k { font: 600 11.5px "IBM Plex Mono"; letter-spacing: .2em; color: var(--gold); }
+  h1 { margin: 8px 0 0; font: 700 clamp(30px, 4vw, 48px)/1 "Familjen Grotesk"; letter-spacing: -.03em; } h1 em { font-style: normal; color: var(--g); }
+  .meta { font-size: 12px; color: var(--dim); margin-top: 8px; } .meta b { color: var(--ink); }
+  .bal { text-align: right; } .bal small { display: block; font: 600 11px "IBM Plex Mono"; letter-spacing: .16em; color: var(--dim); }
+  .bal b { display: block; font: 700 42px "Familjen Grotesk"; letter-spacing: -.02em; } .bal span { font-size: 12.5px; }
+  .tag { display: inline-block; margin-top: 10px; font: 600 11px "IBM Plex Mono"; letter-spacing: .14em; color: var(--gold); border: 1px solid rgba(226,176,87,.55); padding: 6px 10px; }
+  .card { border: 1px solid var(--line); background: rgba(5,11,9,.93); padding: 14px 16px; margin-top: 14px; }
+  .card h2 { margin: 0; font: 600 11.5px "IBM Plex Mono"; letter-spacing: .16em; color: var(--dim); display: flex; justify-content: space-between; gap: 10px; }
+  .card h2 b { color: var(--g); font-weight: 600; }
+  #hub { display: block; width: 100%; height: 470px; }
+  #chart { display: block; width: 100%; height: 300px; margin-top: 8px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 14px; }
+  #eq { display: block; width: 100%; height: 150px; margin-top: 8px; }
+  .fills { margin-top: 8px; max-height: 210px; overflow: auto; font-size: 12px; }
+  .fill { display: grid; grid-template-columns: 72px 86px 1fr auto; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(95,240,168,.1); align-items: center; }
+  .fill i { font-style: normal; font: 600 10.5px "IBM Plex Mono"; letter-spacing: .1em; padding: 3px 6px; text-align: center; }
+  .B { background: var(--g); color: #04130b; } .S { background: var(--blue); color: #04130b; } .X { background: #c4553f; color: #fff; } .W { background: var(--gold); color: #04130b; } .P { background: #6b2a22; color: #ffd1c4; }
+  .fill .t { color: var(--dim); } .pos { color: var(--g); } .neg { color: var(--bad); }
+  .ctl { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 10px; }
+  .ctl label { font: 600 10.5px "IBM Plex Mono"; letter-spacing: .1em; color: var(--dim); display: grid; gap: 5px; }
+  .ctl input, .ctl select { font: 500 13px "IBM Plex Mono"; color: var(--ink); background: #0a1311; border: 1px solid rgba(95,240,168,.3); padding: 8px; border-radius: 0; width: 100%; }
+  .btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; } .btns button { font: 700 14px "Familjen Grotesk"; color: #04130b; background: var(--g); border: 0; padding: 9px 16px; cursor: pointer; } .btns .o { background: none; color: var(--ink); border: 1px solid var(--line); }
+  .note { font-size: 11.5px; color: #5d7568; margin-top: 10px; line-height: 1.6; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; } .tabs button { font: 600 12px "IBM Plex Mono"; color: var(--dim); background: rgba(95,240,168,.04); border: 1px solid rgba(95,240,168,.22); padding: 7px 11px; cursor: pointer; } .tabs button.on { color: #04130b; background: var(--g); border-color: var(--g); }
+  .back { color: var(--g); font-size: 12px; text-decoration: none; }
+  @media (max-width: 900px) { .row2 { grid-template-columns: 1fr; } .ctl { grid-template-columns: repeat(2, 1fr); } #hub { height: 380px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div><div class="k">REINPAY TRADING DESK · ROBINHOOD CHAIN MAINNET · <a class="back" href="/">reinpay.app</a> · <a class="back" href="/desk/">six agents at once: Reinpay Desk →</a></div><h1>Agents trade. <em>Rules decide.</em></h1>
+      <div class="meta" id="meta">loading the REINPAY pool…</div><div class="tag">PAPER · VIRTUAL 10,000 USDG · NO LEVERAGE · NOTHING IS SIGNED</div></div>
+    <div class="bal"><small>PAPER EQUITY</small><b id="bal">$10,000.00</b><span id="ret">±0.00% from $10,000</span></div>
+  </div>
+
+  <div class="card"><h2><span>11 AGENTS · ONE REINPAY INTELLIGENCE</span><b id="mode">LOADING</b></h2><canvas id="hub"></canvas></div>
+
+  <div class="card"><div class="tabs" id="tabs"></div><h2 style="margin-top:12px"><span id="mkt">loading markets…</span><b id="pos">FLAT</b></h2><canvas id="chart"></canvas></div>
+
+  <div class="row2">
+    <div class="card"><h2><span>EQUITY · VIRTUAL USDG</span><b id="eqv"></b></h2><canvas id="eq"></canvas></div>
+    <div class="card"><h2><span>FILLS AND DECISIONS</span><b id="nf"></b></h2><div class="fills" id="fills"></div></div>
+  </div>
+
+  <div class="card"><h2><span>STRATEGY AND RULES</span><b>CHANGE AND REPLAY</b></h2>
+    <div class="ctl">
+      <label>STRATEGY<select id="st"><option value="mom">Momentum</option><option value="dip">Buy the dip</option></select></label>
+      <label>SIGNAL %<input id="sig" value="1.5"></label>
+      <label>TAKE PROFIT %<input id="tp" value="4"></label>
+      <label>STOP LOSS %<input id="sl" value="2.5"></label>
+      <label>MAX PER TRADE (USDG)<input id="mpt" value="1000"></label>
+      <label>DAILY BUDGET (USDG)<input id="day" value="3000"></label>
+      <label>MAX PRICE IMPACT %<input id="imp" value="1"></label>
+      <label>DAILY LOSS LIMIT %<input id="loss" value="3"></label>
+      <label>ASK ME ABOVE (USDG)<input id="line" value="2500"></label>
+    </div>
+    <div class="btns"><button type="button" id="replay">Replay with these rules</button><button type="button" class="o" id="snd">🔈 Voice off</button></div>
+    <p class="note" id="note">Candles are hourly prices of each market's deepest Robinhood Chain pool (GeckoTerminal, from on-chain swaps); the live price is a KyberSwap quote in your browser every 15 seconds. Each paper trade pays half the measured round trip cost of a 1,000 USDG swap on each side, plus Reinpay's 0.2%. Price impact is estimated from a 10,000 USDG quote. Live trades are simulated with eth_simulateV1 on mainnet before they count. A replay is not a promise of anything.</p>
+  </div>
+</div>
+
+<script type="module">
+// Reinpay Trading Desk (paper). Data: the REINPAY pool's own Swap events on Robinhood Chain mainnet (eth_getLogs), block
+// times from the chain, the pool's ETH reserve (eth_getBalance), live quotes from the KyberSwap aggregator. Strategies run
+// on virtual ETH; Reinpay's rules decide every trade; live trades are simulated with eth_simulateV1 from a public test
+// address with a pretend ETH balance. No wallet is asked for anything and nothing is signed.
+import { makeTypist } from "../assets/typist.js";
+const RPC = "https://rpc.mainnet.chain.robinhood.com", K = "https://aggregator-api.kyberswap.com/robinhood/api/v1", CID = "reinpay";
+const USDG = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", ME = "0x1111111111111111111111111111111111111111", T = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+// a pretend USDG balance for the public test address in simulations: USDG keeps balances in storage slot 1 (found by probing)
+const USDG_SLOT = "0x8eec1c9afb183a84aac7003cf8e730bfb6385f6e43761d6425fba4265de3a9eb", REINPAY_FEE = 0.002, START = 10000, $ = (id) => document.getElementById(id);
+// the public RPC throttles bursts (a throttled reply fails as a network error in the browser), so every call retries
+const retry = async (fn) => { for (let k = 1; ; k++) { try { return await fn(); } catch (e) { if (k >= 5 || /exceed|span|allowed|invalid/i.test(e.message)) throw e; await new Promise((r) => setTimeout(r, 700 * k)); } } };
+let id = 0; const rpc = (m, p) => retry(async () => { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method: m, params: p }) }); const j = await r.json(); if (j.error) throw new Error(j.error.message); return j.result; });
+const batch = (calls) => retry(async () => { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(calls.map(([m, p], i) => ({ jsonrpc: "2.0", id: i + 1, method: m, params: p }))) }); const j = await r.json(); if (!Array.isArray(j)) throw new Error("throttled"); const by = new Map(j.map((x) => [x.id, x.result])); return calls.map((_, i) => by.get(i + 1)); });
+const fmtP = (p) => p >= 1000 ? "$" + p.toLocaleString("en-US", { maximumFractionDigits: 0 }) : p >= 1 ? "$" + p.toFixed(2) : "$" + p.toPrecision(4);
+const utc = (t) => new Date(t * 1000).toISOString().slice(11, 16);
+
+// ---------- the hub: Reinpay Intelligence typing in the centre, eleven agents around it ----------
+const AG = [["PRICE SCOUT", "g"], ["SIGNAL", "g"], ["POSITION", "g"], ["BUDGET GUARD", "r"], ["IMPACT GATE", "r"], ["LOSS LIMIT", "x"], ["APPROVAL LINE", "r"], ["EXACT APPROVAL", "r"], ["SIMULATOR", "g"], ["EXECUTOR", "g"], ["SCRIBE", "g"]];
+const AGS = AG.map(() => "…"); let active = -1, activeCol = null, flash = new Map();
+const COL = { g: "95,240,168", r: "226,176,87", x: "240,131,110", b: "122,167,255" };
+const typist = makeTypist(), hub = $("hub"), hg = hub.getContext("2d");
+function fitC(c) { const d = Math.min(2, devicePixelRatio || 1), w = c.clientWidth, h = c.clientHeight; if (c.width !== w * d) { c.width = w * d; c.height = h * d; } const g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); return [g, w, h]; }
+// the spider web around Reinpay Intelligence: radial threads, a sagging spiral between them, dew that catches the light,
+// and a spider that walks the rings and turns toward whichever agent just lit up
+const SPOKES = 22, RINGS = 9, SPIDERS = [{ k: 0, ring: 7, speed: .055, size: 1 }, { k: 11, ring: 4, speed: -.04, size: .78 }];
+// a running spider: abdomen, head, eight two-part legs in an alternating gait, heading along its ring
+function runSpider(g, cx, cy, rx, ry, s, sp) {
+  sp.k = (sp.k + sp.speed + SPOKES) % SPOKES;
+  const k0 = Math.floor(sp.k), f = sp.k - k0, [ax, ay] = webPt(cx, cy, rx, ry, k0 % SPOKES, sp.ring), [bx, by] = webPt(cx, cy, rx, ry, (k0 + 1) % SPOKES, sp.ring);
+  const x = ax + (bx - ax) * f, y = ay + (by - ay) * f, ang = Math.atan2(by - ay, bx - ax) + (sp.speed < 0 ? Math.PI : 0), z = Math.max(7, rx * .03) * sp.size, run = s * 16 * Math.abs(sp.speed) / .05;
+  g.save(); g.translate(x, y); g.rotate(ang); g.lineCap = "round"; g.lineJoin = "round";
+  // eight legs fanning out from the head: two front pairs reach forward, two back pairs reach back; alternate legs swing together
+  for (const side of [-1, 1]) for (let l = 0; l < 4; l++) {
+    const swing = Math.sin(run + ((l + (side > 0 ? 1 : 0)) % 2 ? Math.PI : 0)) * .2, th = [.55, 1.15, 1.95, 2.55][l] + swing;
+    const hx = z * .45, kx = hx + Math.cos(th) * z * 1.35, ky = side * Math.sin(th) * z * 1.35 - side * z * .1, fx = kx + Math.cos(th * .85 + (l < 2 ? -.35 : .35)) * z * 1.7, fy = ky + side * Math.sin(th * .85 + (l < 2 ? -.35 : .35)) * z * 1.7;
+    g.strokeStyle = "#5ff0a8"; g.lineWidth = Math.max(1.2, z * .15); g.beginPath(); g.moveTo(hx, 0); g.lineTo(kx, ky); g.lineTo(fx, fy); g.stroke(); }
+  g.shadowColor = "#5ff0a8"; g.shadowBlur = 14; g.fillStyle = "#06110d"; g.strokeStyle = "#5ff0a8"; g.lineWidth = Math.max(1.3, z * .17);
+  g.beginPath(); g.ellipse(-z * .85, 0, z * 1.05, z * .78, 0, 0, 6.283); g.fill(); g.stroke();
+  g.beginPath(); g.ellipse(z * .45, 0, z * .55, z * .46, 0, 0, 6.283); g.fill(); g.stroke(); g.shadowBlur = 0;
+  g.fillStyle = "#5ff0a8"; g.beginPath(); g.arc(z * .78, -z * .17, z * .12, 0, 6.283); g.arc(z * .78, z * .17, z * .12, 0, 6.283); g.fill();
+  g.strokeStyle = "rgba(226,176,87,.95)"; g.lineWidth = Math.max(1, z * .14); g.beginPath(); g.moveTo(-z * 1.3, -z * .3); g.lineTo(-z * .45, z * .3); g.moveTo(-z * 1.3, z * .3); g.lineTo(-z * .45, -z * .3); g.stroke();
+  g.restore();
+}
+function webPt(cx, cy, rx, ry, k, r) { const a = -Math.PI / 2 + k * 2 * Math.PI / SPOKES, f = (r + 1) / (RINGS + 1); return [cx + Math.cos(a) * rx * f, cy + Math.sin(a) * ry * f]; }
+function web(g, cx, cy, rx, ry, s) {
+  g.save(); g.lineCap = "round";
+  for (let k = 0; k < SPOKES; k++) { const [x, y] = webPt(cx, cy, rx, ry, k, RINGS); g.strokeStyle = "rgba(200,235,220,.24)"; g.lineWidth = 1.1; g.beginPath(); g.moveTo(cx, cy); g.lineTo(x, y); g.stroke(); }
+  for (let r = 1; r <= RINGS; r++) {
+    g.strokeStyle = `rgba(200,235,220,${.16 + .14 * (r / RINGS)})`; g.lineWidth = 1; g.beginPath();
+    for (let k = 0; k <= SPOKES; k++) { const [x, y] = webPt(cx, cy, rx, ry, k % SPOKES, r); if (!k) { g.moveTo(x, y); continue; }
+      const [px, py] = webPt(cx, cy, rx, ry, (k - 1) % SPOKES, r), mx = (px + x) / 2, my = (py + y) / 2, sag = .08 + .02 * Math.sin(s * .8 + k + r); g.quadraticCurveTo(mx + (cx - mx) * sag, my + (cy - my) * sag, x, y); }
+    g.stroke(); }
+  for (let k = 0; k < SPOKES; k += 2) for (let r = 2; r <= RINGS; r += 3) { const [x, y] = webPt(cx, cy, rx, ry, (k + r) % SPOKES, r), tw = .4 + .6 * Math.abs(Math.sin(s * 1.3 + k * 1.7 + r)); g.fillStyle = `rgba(220,255,240,${.35 * tw})`; g.beginPath(); g.arc(x, y, 1.6, 0, 6.283); g.fill(); }
+  // two spiders run around the web, each on its own ring
+  for (const sp of SPIDERS) runSpider(g, cx, cy, rx, ry, s, sp);
+  g.restore();
+}
+function drawHub(now) {
+  const [g, W, H] = fitC(hub), s = now / 1000, cx = W / 2, cy = H / 2 + 6, rx = Math.min(W * .42, 520), ry = H * .4;
+  g.clearRect(0, 0, W, H);
+  const pts = AG.map((_, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / AG.length; return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]; });
+  pts.forEach(([x, y], i) => { const on = i === active || flash.has(i), col = COL[(flash.get(i) || activeCol) && on ? (flash.get(i) || activeCol) : AG[i][1]];
+    g.strokeStyle = `rgba(${col},${on ? .9 : .2})`; g.lineWidth = on ? 2 : 1; g.setLineDash(on ? [] : [4, 6]); g.beginPath(); g.moveTo(cx, cy); g.lineTo(x, y); g.stroke(); g.setLineDash([]);
+    if (on) { const q = (s * 1.4) % 1; g.fillStyle = `rgb(${col})`; g.beginPath(); g.arc(cx + (x - cx) * q, cy + (y - cy) * q, 3.5, 0, 6.283); g.fill(); } });
+  web(g, cx, cy, rx * .92, ry * .92, s);
+  const gl = g.createRadialGradient(cx, cy, 0, cx, cy, 150); gl.addColorStop(0, "rgba(5,11,9,.97)"); gl.addColorStop(1, "rgba(5,11,9,0)"); g.fillStyle = gl; g.fillRect(cx - 160, cy - 160, 320, 320);
+  typist(g, cx, cy + 8, 250, s);
+  g.font = '600 10.5px "IBM Plex Mono"'; g.fillStyle = "#cfe9dc"; g.textAlign = "center"; g.fillText("REINPAY INTELLIGENCE · " + ($("mode").textContent || ""), cx, cy + 92); g.textAlign = "left";
+  pts.forEach(([x, y], i) => { const on = i === active || flash.has(i), col = COL[(flash.get(i) || activeCol) && on ? (flash.get(i) || activeCol) : AG[i][1]], w = Math.min(176, W * .17), h = 42;
+    g.fillStyle = "#050b09"; g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, 6); g.fill(); g.fillStyle = on ? `rgba(${col},.14)` : "rgba(5,11,9,.95)"; g.strokeStyle = `rgba(${col},${on ? 1 : .45})`; g.lineWidth = on ? 1.6 : 1; g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, 6); g.fill(); g.stroke();
+    g.fillStyle = `rgb(${COL[AG[i][1]]})`; g.font = '600 10.5px "IBM Plex Mono"'; g.fillText(AG[i][0], x - w / 2 + 10, y - 4);
+    g.fillStyle = "#9fb5aa"; g.font = '500 10.5px "IBM Plex Mono"'; let t = AGS[i]; while (g.measureText(t).width > w - 18 && t.length > 4) t = t.slice(0, -2) + "…"; g.fillText(t, x - w / 2 + 10, y + 12); });
+  const n = performance.now(); for (const [k, v] of flash) if (n - v.t > 1600) flash.delete(k);
+  requestAnimationFrame(drawHub);
+}
+flash.set = ((orig) => function (k, col) { return orig.call(this, k, Object.assign(new String(col), { t: performance.now() })); })(flash.set);
+requestAnimationFrame(drawHub);
+
+
+// ---------- markets: assets/chain/markets.json (hourly candles of each market's deepest Robinhood Chain pool, and real
+// KyberSwap quotes: price, round-trip cost at 1,000 USDG, price move at 10,000 USDG), refreshed by the public on-chain job.
+// The selected market's live price comes from a KyberSwap quote in your browser every 15 seconds. ----------
+let M = null, mk = null, candles = [], livePx = null, voiceOn = false, live = false, at = "";
+const usd = (v) => (v < 0 ? "−$" : "$") + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+async function loadMarkets() { const d = await (await fetch("../assets/chain/markets.json?t=" + Date.now())).json(); M = d.markets.filter((m) => m.hourly && m.hourly.length > 24 && m.px); at = d.at; }
+function pick(s) { mk = M.find((m) => m.s === s) || M[0]; candles = mk.hourly.map(([t, o, h, l, c, v]) => ({ t, o, h, l, c, v })); livePx = mk.px;
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.s === mk.s));
+  $("mkt").textContent = `${mk.s} / USDG · ${mk.n} · ${mk.poolName || "Robinhood Chain pool"} · 1 HOUR CANDLES`;
+  $("meta").innerHTML = `<b>${mk.s}</b> ${fmtP(mk.px)} · round trip cost <b>${mk.cost}%</b> at 1,000 USDG · price move <b>${mk.impact10k}%</b> at 10,000 USDG · data ${new Date(at).toISOString().slice(11, 16)} UTC`; }
+async function quoteLive() {
+  try { const amt = 1000n * 10n ** 6n, r = await (await fetch(`${K}/routes?tokenIn=${USDG}&tokenOut=${mk.a}&amountIn=${amt}`, { headers: { "x-client-id": CID } })).json();
+    if (r.code === 0) { livePx = 1000 / (Number(BigInt(r.data.routeSummary.amountOut)) / 10 ** mk.dec); return true; } } catch {} return false;
+}
+
+// ---------- the agent: strategy on hourly closes, Reinpay's rules on every trade (virtual 10,000 USDG) ----------
+let acct, fills, eqs;
+const P = () => ({ st: $("st").value, sig: +$("sig").value / 100, tp: +$("tp").value / 100, sl: +$("sl").value / 100, mpt: +$("mpt").value, day: +$("day").value, imp: +$("imp").value / 100, loss: +$("loss").value / 100, line: +$("line").value });
+function reset() { acct = { usd: START, qty: 0, entry: 0, cost: 0, spentDay: {}, startDay: {}, paused: {} }; fills = []; eqs = []; }
+const side = () => (mk.cost / 2) / 100 + REINPAY_FEE; // half the measured round trip cost per side, plus Reinpay's 0.2%
+const equity = (px) => acct.usd + acct.qty * px * (1 - side());
+const dayOf = (t) => new Date(t * 1000).toISOString().slice(0, 10);
+async function step(c, prev, isLive) {
+  const p = P(), px = c.c, day = dayOf(c.t), eq = equity(px);
+  if (acct.startDay[day] == null) acct.startDay[day] = eq;
+  AGS[0] = `${mk.s} ${fmtP(px)} · ${utc(c.t)}`;
+  const dd = (eq - acct.startDay[day]) / acct.startDay[day]; AGS[5] = `${(dd * 100).toFixed(2)}% of −${(p.loss * 100).toFixed(1)}%`;
+  if (dd <= -p.loss && !acct.paused[day]) { acct.paused[day] = true; log(c.t, "PAUSED", "P", `daily loss limit −${(p.loss * 100).toFixed(1)}% reached · agent stops for the day`, "", isLive); await pulse(5, "x", isLive); }
+  if (acct.paused[day]) { eqs.push([c.t, eq]); return; }
+  if (acct.qty > 0) { const ch = (px - acct.entry) / acct.entry; AGS[2] = `long ${mk.s} · ${(ch * 100).toFixed(2)}%`;
+    if (ch >= p.tp || ch <= -p.sl) { const why = ch >= p.tp ? `take profit +${(p.tp * 100).toFixed(1)}%` : `stop loss −${(p.sl * 100).toFixed(1)}%`;
+      if (!(await sim("sell", acct.cost, isLive))) log(c.t, "BLOCKED", "X", "sell failed its mainnet simulation, nothing counted", "", isLive);
+      else { const got = acct.qty * px * (1 - side()), pnl = got - acct.cost; acct.usd += got; log(c.t, "SELL", "S", `${why} · ${fmtP(px)}`, (pnl >= 0 ? "+" : "") + usd(pnl).replace("$", "$"), isLive); acct.qty = 0; AGS[2] = "flat"; await pulse(9, "b", isLive); await pulse(10, "g", isLive); } }
+    eqs.push([c.t, equity(px)]); return; }
+  AGS[2] = "flat";
+  const i = candles.indexOf(c), win = candles.slice(Math.max(0, i - 24), i + 1), hi = Math.max(...win.map((x) => x.h)), prevC = prev ? prev.c : px;
+  const move = (px - prevC) / prevC, off = (hi - px) / hi, sigOk = p.st === "mom" ? move >= p.sig : off >= p.sig;
+  AGS[1] = p.st === "mom" ? `${(move * 100).toFixed(2)}% in 1h vs +${(p.sig * 100).toFixed(1)}%` : `${(off * 100).toFixed(2)}% under 24h high vs ${(p.sig * 100).toFixed(1)}%`;
+  if (!sigOk) { eqs.push([c.t, eq]); if (isLive) await pulse(1, "g", true); return; }
+  await pulse(1, "g", isLive);
+  const size = Math.min(p.mpt, acct.usd), spent = acct.spentDay[day] || 0; AGS[3] = `${usd(spent)} of ${usd(p.day)} today`;
+  if (spent + size > p.day + 1e-9) { log(c.t, "BLOCKED", "X", `budget guard · ${usd(spent)} + ${usd(size)} is over today's ${usd(p.day)}`, "", isLive); await pulse(3, "x", isLive); eqs.push([c.t, eq]); return; }
+  await pulse(3, "r", isLive);
+  const impact = (mk.impact10k / 100) * size / 10000; AGS[4] = `${(impact * 100).toFixed(3)}% vs ${(p.imp * 100).toFixed(1)}% cap`;
+  if (impact > p.imp) { log(c.t, "BLOCKED", "X", `impact gate · about ${(impact * 100).toFixed(2)}% price impact is over your ${(p.imp * 100).toFixed(1)}% cap`, "", isLive); await pulse(4, "x", isLive); eqs.push([c.t, eq]); return; }
+  await pulse(4, "r", isLive);
+  if (size > p.line) { AGS[6] = `${usd(size)} > ${usd(p.line)} · asks owner`; log(c.t, "WAITING", "W", `approval line · ${usd(size)} is above ${usd(p.line)}, the owner decides (skipped in paper)`, "", isLive); await pulse(6, "r", isLive); eqs.push([c.t, eq]); return; }
+  AGS[6] = `${usd(size)} ≤ ${usd(p.line)}`; await pulse(6, "r", isLive);
+  AGS[7] = `approve exactly ${usd(size)} USDG`; await pulse(7, "r", isLive);
+  if (!(await sim("buy", size, isLive))) { log(c.t, "BLOCKED", "X", "buy failed its mainnet simulation, nothing counted", "", isLive); eqs.push([c.t, eq]); return; }
+  acct.usd -= size; acct.qty = size * (1 - side()) / px; acct.entry = px; acct.cost = size; acct.spentDay[day] = spent + size;
+  log(c.t, "BUY", "B", `${p.st === "mom" ? "momentum" : "dip"} · ${usd(size)} of ${mk.s} at ${fmtP(px)}`, "", isLive); await pulse(9, "g", isLive); await pulse(10, "g", isLive);
+  eqs.push([c.t, equity(px)]);
+}
+// live trades: the exact KyberSwap route, simulated with eth_simulateV1 from the public test address with a pretend USDG balance
+async function sim(kind, sizeUsd, isLive) {
+  if (!isLive) { AGS[8] = "replay · not simulated"; return true; }
+  await pulse(8, "g", true);
+  try { const H = { "x-client-id": CID, "content-type": "application/json" }, pad = (a) => a.slice(2).toLowerCase().padStart(64, "0"), amt = BigInt(Math.floor(sizeUsd * 1e6));
+    const route = async (a, b, n) => { const q = await (await fetch(`${K}/routes?tokenIn=${a}&tokenOut=${b}&amountIn=${n}`, { headers: { "x-client-id": CID } })).json(); const bd = await (await fetch(`${K}/route/build`, { method: "POST", headers: H, body: JSON.stringify({ routeSummary: q.data.routeSummary, sender: ME, recipient: ME, slippageTolerance: 100 }) })).json(); return [q.data.routeSummary, bd.data]; };
+    const [rs, b] = await route(USDG, mk.a, amt), calls = [{ from: ME, to: USDG, data: "0x095ea7b3" + pad(b.routerAddress) + amt.toString(16).padStart(64, "0"), gas: "0x186a0" }, { from: ME, to: b.routerAddress, data: b.data, value: "0x" + BigInt(b.transactionValue || "0").toString(16), gas: "0x2dc6c0" }];
+    if (kind === "sell") { const got = BigInt(rs.amountOut) * 99n / 100n, [, b2] = await route(mk.a, USDG, got);
+      if (!/^0xe+$/i.test(mk.a)) calls.push({ from: ME, to: mk.a, data: "0x095ea7b3" + pad(b2.routerAddress) + got.toString(16).padStart(64, "0"), gas: "0x186a0" });
+      calls.push({ from: ME, to: b2.routerAddress, data: b2.data, value: "0x" + BigInt(b2.transactionValue || "0").toString(16), gas: "0x2dc6c0" }); }
+    const r = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: { [ME]: { balance: "0x" + (10n ** 17n).toString(16) }, [USDG]: { stateDiff: { [USDG_SLOT]: "0x" + (10n ** 12n).toString(16).padStart(64, "0") } } }, calls }], validation: false }, "latest"]);
+    const ok = r[0].calls.every((c) => c.status === "0x1"); AGS[8] = ok ? `✓ block ${parseInt(r[0].number, 16).toLocaleString("en-US")}` : "✗ reverts"; return ok;
+  } catch (e) { AGS[8] = "RPC unreachable"; return false; }
+}
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+async function pulse(i, col, isLive) { active = i; activeCol = col; flash.set(i, col); await wait(isLive ? 260 : 30); active = -1; }
+function log(t, kind, cls, txt, pnl, isLive) {
+  fills.unshift({ t, kind, cls, txt, pnl, isLive }); AGS[10] = kind.toLowerCase() + " · logged";
+  if (isLive && voiceOn && "speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(kind === "BUY" ? `Buying ${mk.n}.` : kind === "SELL" ? `Selling ${mk.n}. ` + txt.split("·")[0] : kind === "BLOCKED" ? "Blocked by the rules." : kind === "PAUSED" ? "Loss limit reached. I stop for today." : "Waiting for the owner."); speechSynthesis.speak(u); }
+}
+
+// ---------- drawing ----------
+function drawChart() {
+  const [g, W, H] = fitC($("chart")); g.clearRect(0, 0, W, H); const C = candles.slice(-96); if (!C.length) return;
+  const lo = Math.min(...C.map((c) => c.l)), hi = Math.max(...C.map((c) => c.h)), pad = (hi - lo) * .12 || hi * .01, y = (v) => 12 + (hi + pad - v) / (hi - lo + 2 * pad) * (H - 40), cw = (W - 76) / C.length;
+  g.strokeStyle = "rgba(95,240,168,.07)"; g.font = '500 10px "IBM Plex Mono"'; for (let k = 0; k < 5; k++) { const yy = 12 + k * (H - 40) / 4; g.beginPath(); g.moveTo(0, yy); g.lineTo(W - 70, yy); g.stroke(); g.fillStyle = "#5d7568"; g.fillText(fmtP(hi + pad - k * (hi - lo + 2 * pad) / 4), W - 66, yy + 3); }
+  const vmax = Math.max(...C.map((c) => c.v), 1e-9);
+  C.forEach((c, i) => { const x = i * cw + cw / 2, up = c.c >= c.o, col = up ? "#5ff0a8" : "#f0836e"; g.strokeStyle = col; g.beginPath(); g.moveTo(x, y(c.h)); g.lineTo(x, y(c.l)); g.stroke(); g.fillStyle = col; const yo = y(c.o), yc = y(c.c); g.fillRect(x - cw * .32, Math.min(yo, yc), cw * .64, Math.max(1.5, Math.abs(yo - yc)));
+    g.fillStyle = up ? "rgba(95,240,168,.18)" : "rgba(240,131,110,.18)"; const vh = c.v / vmax * 24; g.fillRect(x - cw * .32, H - 4 - vh, cw * .64, vh); });
+  const t0 = C[0].t; for (const f of fills) { if (f.t < t0 || !["BUY", "SELL"].includes(f.kind)) continue; const i = C.findIndex((c) => c.t === Math.floor(f.t / 3600) * 3600); if (i < 0) continue; const x = i * cw + cw / 2, yy = y(C[i].c);
+    g.fillStyle = f.kind === "BUY" ? "#5ff0a8" : "#7aa7ff"; g.beginPath(); if (f.kind === "BUY") { g.moveTo(x, yy + 8); g.lineTo(x - 6, yy + 18); g.lineTo(x + 6, yy + 18); } else { g.moveTo(x, yy - 8); g.lineTo(x - 6, yy - 18); g.lineTo(x + 6, yy - 18); } g.fill(); }
+  const last = C.at(-1); g.fillStyle = "#5ff0a8"; g.fillRect(W - 72, y(last.c) - 9, 72, 18); g.fillStyle = "#04130b"; g.font = '600 10px "IBM Plex Mono"'; g.fillText(fmtP(last.c), W - 68, y(last.c) + 4);
+  g.fillStyle = "#5d7568"; g.font = '500 10px "IBM Plex Mono"'; for (let i = 0; i < C.length; i += 12) g.fillText(new Date(C[i].t * 1000).toISOString().slice(5, 13).replace("T", " ") + "h", i * cw, H - 30);
+}
+function drawEq() {
+  const [g, W, H] = fitC($("eq")); g.clearRect(0, 0, W, H); if (eqs.length < 2) return; const E = eqs.slice(-400), lo = Math.min(...E.map((e) => e[1]), START), hi = Math.max(...E.map((e) => e[1]), START), y = (v) => 8 + (hi - v) / (hi - lo || 1) * (H - 20);
+  g.strokeStyle = "rgba(138,165,151,.35)"; g.setLineDash([3, 5]); g.beginPath(); g.moveTo(0, y(START)); g.lineTo(W, y(START)); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = E.at(-1)[1] >= START ? "#5ff0a8" : "#f0836e"; g.lineWidth = 2; g.beginPath(); E.forEach((e, i) => { const x = i / (E.length - 1) * W; i ? g.lineTo(x, y(e[1])) : g.moveTo(x, y(e[1])); }); g.stroke();
+  $("eqv").textContent = usd(E.at(-1)[1]);
+}
+function ui() {
+  const px = candles.at(-1)?.c || 0, eq = equity(px), r = (eq / START - 1) * 100;
+  $("bal").textContent = usd(eq); $("ret").innerHTML = `<span class="${r >= 0 ? "pos" : "neg"}">${r >= 0 ? "+" : ""}${r.toFixed(2)}%</span> from ${usd(START)} · ${fills.filter((f) => f.kind === "BUY" || f.kind === "SELL").length} trades · ${fills.filter((f) => ["BLOCKED", "WAITING", "PAUSED"].includes(f.kind)).length} stopped by rules`;
+  $("pos").textContent = acct.qty > 0 ? `LONG ${mk.s} · entry ${fmtP(acct.entry)}` : "FLAT";
+  $("nf").textContent = fills.length + " decisions";
+  $("fills").innerHTML = fills.slice(0, 60).map((f) => `<div class="fill"><span class="t">${f.isLive ? "LIVE " : ""}${new Date(f.t * 1000).toISOString().slice(5, 16).replace("T", " ")}</span><i class="${f.cls}">${f.kind}</i><span>${f.txt}</span><b class="${String(f.pnl).startsWith("-") || String(f.pnl).startsWith("−") ? "neg" : "pos"}">${f.pnl}</b></div>`).join("") || '<p class="note">No decisions yet.</p>';
+  drawChart(); drawEq();
+}
+let runId = 0;
+async function replay() {
+  const my = ++runId; reset(); live = false; $("mode").textContent = "REPLAY · LAST 7 DAYS";
+  for (let i = 0; i < candles.length; i++) { if (my !== runId) return; await pulse(0, "g", false); await step(candles[i], candles[i - 1], false); if (i % 3 === 0) { ui(); await wait(12); } }
+  if (my !== runId) return; live = true; $("mode").textContent = "LIVE · PAPER"; ui();
+}
+// live: a KyberSwap quote every 15 seconds builds the current hourly candle; when the hour closes, the agent decides on it
+async function tick() {
+  if (mk && await quoteLive()) { const now = Math.floor(Date.now() / 1000), k = Math.floor(now / 3600) * 3600; let c = candles.at(-1);
+    if (c.t < k) { const closed = c; c = { t: k, o: closed.c, h: livePx, l: livePx, c: livePx, v: 0 }; candles.push(c); if (live) await step(closed, candles.at(-3), true); }
+    else { c.c = livePx; c.h = Math.max(c.h, livePx); c.l = Math.min(c.l, livePx); }
+    AGS[0] = `${mk.s} ${fmtP(livePx)} · live`; await pulse(0, "g", true); }
+  else if (mk) AGS[0] = "quote unreachable";
+  if (acct) ui(); setTimeout(tick, 15000);
+}
+$("replay").onclick = () => replay();
+$("snd").onclick = () => { voiceOn = !voiceOn; $("snd").textContent = voiceOn ? "🔊 Voice on" : "🔈 Voice off"; };
+(async () => {
+  try { await loadMarkets(); } catch (e) { $("meta").textContent = "Could not load the markets: " + e.message; return; }
+  $("tabs").innerHTML = M.map((m) => `<button type="button" data-s="${m.s}">${m.s}</button>`).join("");
+  $("tabs").onclick = (e) => { const b = e.target.closest("button[data-s]"); if (b) { pick(b.dataset.s); replay(); } };
+  pick(new URLSearchParams(location.search).get("m") || "ETH"); await replay(); setTimeout(tick, 2000);
+})();
+</script>
+</body>
+</html>

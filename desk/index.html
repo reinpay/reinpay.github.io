@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reinpay Desk · paper swarm</title>
+<meta name="description" content="Six paper trading agents on real Robinhood Chain prices, wired to Reinpay Intelligence. Every trade passes Reinpay's rules; live trades are simulated on mainnet. Virtual money, no leverage.">
+<link rel="canonical" href="https://reinpay.app/desk/">
+<meta name="theme-color" content="#04070a">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Familjen+Grotesk:wght@600;700&display=swap">
+<style>
+  :root { --g: #5ff0a8; --gold: #e2b057; --bad: #f0836e; --blue: #7aa7ff; --vio: #b48cff; --ink: #e3ebe5; --dim: #7f9a8d; --line: rgba(95,240,168,.22); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #04070a; color: var(--ink); font-family: "IBM Plex Mono", monospace; }
+  body { background-image: radial-gradient(rgba(95,240,168,.07) 1px, transparent 1px); background-size: 22px 22px; }
+  .bar { display: flex; align-items: center; gap: 18px; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; background: rgba(4,7,10,.9); position: sticky; top: 0; z-index: 5; }
+  .logo { font: 700 20px "Familjen Grotesk"; letter-spacing: -.02em; } .logo em { font-style: normal; color: var(--g); }
+  .logo small { display: block; font: 600 9.5px "IBM Plex Mono"; letter-spacing: .14em; color: var(--dim); }
+  .kv { font-size: 10px; letter-spacing: .12em; color: var(--dim); } .kv b { display: block; font: 700 17px "Familjen Grotesk"; letter-spacing: 0; color: var(--ink); }
+  .kv b.g { color: var(--g); } .kv b.r { color: var(--bad); }
+  .clock { margin-left: auto; font: 700 24px "Familjen Grotesk"; } .clock small { font: 600 10px "IBM Plex Mono"; color: var(--dim); margin-left: 6px; }
+  .pill { font: 600 10px "IBM Plex Mono"; letter-spacing: .12em; color: #04130b; background: var(--g); padding: 6px 10px; } .pill.o { background: none; color: var(--gold); border: 1px solid rgba(226,176,87,.55); }
+  .wire { display: flex; gap: 22px; overflow: hidden; white-space: nowrap; font-size: 11px; color: var(--dim); padding: 7px 16px; border-bottom: 1px solid var(--line); }
+  .wire b { color: var(--ink); } .wire .u { color: var(--g); } .wire .d { color: var(--bad); }
+  .grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 10px; padding: 10px 16px; }
+  .p { border: 1px solid var(--line); background: rgba(5,11,9,.94); padding: 10px 12px; position: relative; min-width: 0; }
+  .p h3 { margin: 0 0 6px; font: 600 10.5px "IBM Plex Mono"; letter-spacing: .14em; color: var(--dim); display: flex; justify-content: space-between; gap: 8px; } .p h3 b { color: var(--ink); font-weight: 600; } .p h3 i { font-style: normal; color: var(--g); }
+  .big { font: 700 44px "Familjen Grotesk"; letter-spacing: -.03em; line-height: 1; } .big small { font-size: 22px; color: var(--dim); }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; } .tiles div { border: 1px solid rgba(95,240,168,.15); padding: 6px 8px; font-size: 9.5px; letter-spacing: .1em; color: var(--dim); } .tiles b { display: block; font: 700 16px "Familjen Grotesk"; color: var(--ink); letter-spacing: 0; margin-top: 2px; }
+  canvas { display: block; width: 100%; }
+  .syn { grid-column: 1 / -1; }
+  .row3 { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 10px; grid-column: 1 / -1; }
+  .mk { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; } .mk div { border: 1px solid rgba(95,240,168,.14); padding: 6px 7px; font-size: 10px; cursor: pointer; } .mk div.on { border-color: var(--g); background: rgba(95,240,168,.07); }
+  .mk b { font: 600 11px "IBM Plex Mono"; } .mk span { display: block; font: 700 13px "Familjen Grotesk"; margin-top: 2px; } .mk em { font-style: normal; font-size: 10px; }
+  .trace { max-height: 290px; overflow: hidden; font-size: 11px; } .tr { display: grid; grid-template-columns: 54px 70px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(95,240,168,.08); align-items: start; animation: in .4s; }
+  @keyframes in { from { opacity: 0; transform: translateY(-6px); } }
+  .tr i { font-style: normal; font: 600 9.5px "IBM Plex Mono"; letter-spacing: .08em; padding: 3px 5px; text-align: center; } .tr .t { color: var(--dim); }
+  .B { background: var(--g); color: #04130b; } .S { background: var(--blue); color: #04130b; } .X { background: #c4553f; color: #fff; } .W { background: var(--gold); color: #04130b; } .P { background: #6b2a22; color: #ffd1c4; } .L { background: rgba(127,154,141,.25); color: var(--ink); }
+  .gates { display: grid; gap: 6px; font-size: 11px; } .gate { display: grid; grid-template-columns: 1fr auto; gap: 6px; } .gate .bar2 { grid-column: 1 / -1; height: 6px; background: rgba(95,240,168,.08); } .gate .bar2 i { display: block; height: 100%; }
+  .agents { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; grid-column: 1 / -1; }
+  .ag { border: 1px solid var(--line); background: rgba(5,11,9,.94); padding: 8px 10px; font-size: 10.5px; } .ag b { display: block; font: 700 14px "Familjen Grotesk"; } .ag .s { color: var(--dim); margin-top: 3px; } .ag .v { font: 700 16px "Familjen Grotesk"; margin-top: 4px; }
+  .foot { padding: 8px 16px 18px; font-size: 10.5px; color: #5d7568; line-height: 1.6; }
+  .foot a { color: var(--g); }
+  .pos { color: var(--g); } .neg { color: var(--bad); }
+  @media (max-width: 1000px) { .grid, .row3 { grid-template-columns: 1fr; } .agents { grid-template-columns: repeat(3, 1fr); } .mk { grid-template-columns: repeat(3, 1fr); } .clock { margin-left: 0; } }
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="logo">REINPAY <em>DESK</em><small>SIX PAPER AGENTS · ONE REINPAY INTELLIGENCE · ROBINHOOD CHAIN</small></div>
+  <div class="kv">PAPER EQUITY<b id="hEq">…</b></div>
+  <div class="kv">SINCE START<b id="hRet">…</b></div>
+  <div class="kv">TRADES<b id="hTr">0</b></div>
+  <div class="kv">STOPPED BY RULES<b class="g" id="hSt">0</b></div>
+  <div class="kv">MARKETS<b id="hMk">…</b></div>
+  <div class="clock" id="clock">--:--:--<small>UTC</small></div>
+  <span class="pill" id="mode">LOADING</span><span class="pill o">PAPER · NO LEVERAGE · NOTHING SIGNED</span>
+</div>
+<div class="wire" id="wire">loading Robinhood Chain prices…</div>
+<div class="grid">
+  <div class="p"><h3><span>SWARM PAPER EQUITY · 6 × 10,000 USDG</span><i id="eqT"></i></h3>
+    <div class="big" id="bigEq">…</div>
+    <div class="tiles"><div>TRADES<b id="tTr">0</b></div><div>WIN RATE<b id="tWr">–</b></div><div>BEST AGENT<b id="tBest">–</b></div><div>MAX DRAWDOWN<b id="tDd">–</b></div></div>
+    <canvas id="eq" style="height:150px;margin-top:8px"></canvas></div>
+  <div class="p"><h3><span id="tapeH">THE TAPE</span><i id="tapeP"></i></h3><canvas id="tape" style="height:250px"></canvas></div>
+
+  <div class="p syn"><h3><span>THE SYNAPSE · REINPAY INTELLIGENCE · ITS VEINS CARRY EVERY DECISION</span><i id="synI">every trade runs through the rules first</i></h3><canvas id="syn" style="height:560px"></canvas></div>
+
+  <div class="agents" id="agents"></div>
+
+  <div class="row3">
+    <div class="p"><h3><span>MARKETS · ROBINHOOD CHAIN · 24H</span><i>tap one for the tape</i></h3><div class="mk" id="mk"></div></div>
+    <div class="p"><h3><span>THE TRACE · EVERY DECISION</span><i id="trN"></i></h3><div class="trace" id="trace"></div></div>
+    <div class="p"><h3><span>THE GATES · WHAT THE RULES STOPPED</span><i id="gtN"></i></h3><div class="gates" id="gates"></div></div>
+  </div>
+</div>
+<div class="foot" id="foot">Paper trading with virtual USDG. Candles: hourly prices of each market's deepest Robinhood Chain pool (GeckoTerminal, from on-chain swaps), refreshed by Reinpay's public on-chain job. Live prices: KyberSwap quotes in your browser. Costs per trade: half of the measured round trip cost of a 1,000 USDG swap each way, plus Reinpay's 0.2%. Live trades are simulated with eth_simulateV1 on Robinhood Chain mainnet before they count. The first part of the curve is a replay of the last 7 days; replays are not a promise of anything. <a href="/trading/">One agent in detail →</a></div>
+<script type="module">
+// Reinpay Desk: six paper agents (one per market) on real Robinhood Chain prices, every decision through Reinpay's rules,
+// drawn around Reinpay Intelligence. Nothing asks a wallet for anything; nothing is signed.
+import { makeTypist } from "../assets/typist.js";
+const RPC = "https://rpc.mainnet.chain.robinhood.com", K = "https://aggregator-api.kyberswap.com/robinhood/api/v1", CID = "reinpay";
+const USDG = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", ME = "0x1111111111111111111111111111111111111111", USDG_SLOT = "0x8eec1c9afb183a84aac7003cf8e730bfb6385f6e43761d6425fba4265de3a9eb";
+const $ = (id) => document.getElementById(id), START = 10000, FEE_R = .002, SWARM = ["ETH", "BTC", "NVDA", "TSLA", "SPY", "GLD"];
+const RULES = { st: "mom", sig: .015, tp: .04, sl: .025, mpt: 1000, day: 3000, imp: .01, loss: .03, line: 2500 };
+const usd = (v) => (v < 0 ? "−$" : "$") + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtP = (p) => p >= 1000 ? "$" + p.toLocaleString("en-US", { maximumFractionDigits: 0 }) : p >= 1 ? "$" + p.toFixed(2) : "$" + p.toPrecision(4);
+const hhmm = (t) => new Date(t * 1000).toISOString().slice(5, 16).replace("T", " ");
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+let id = 0; const rpc = async (m, p) => { const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method: m, params: p }) }); const j = await r.json(); if (j.error) throw new Error(j.error.message); return j.result; };
+
+// ---------- the synapse: Reinpay Intelligence as the soma, branching dendrites to eleven rule neurons and six agents ----------
+const NEU = [["SPOTTER", "reads prices", "g"], ["SIGNAL", "trend · dip", "g"], ["BUDGET", "per trade · day", "r"], ["IMPACT", "price impact cap", "r"], ["LOSS LIMIT", "pauses the day", "x"], ["APPROVAL", "asks the owner", "r"], ["EXACT", "approve exact", "r"], ["SIMULATOR", "eth_simulateV1", "g"], ["EXECUTOR", "paper fill", "g"], ["SCRIBE", "logs the why", "v"], ["CLOSER", "take profit · stop", "b"]];
+const COL = { g: "95,240,168", r: "226,176,87", x: "240,131,110", b: "122,167,255", v: "180,140,255" };
+const typist = makeTypist(); let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+let branches = null, spikes = [], lit = new Map(), neuStat = NEU.map(() => "…");
+// vessels: each segment is a curve; branches fork and thin out like veins and nerves in a body
+function grow(x, y, ang, len, depth, out, col, path) { if (depth <= 0 || len < 4) return; const bend = (rnd() - .5) * .9, a2 = ang + bend, x2 = x + Math.cos(a2) * len, y2 = y + Math.sin(a2) * len, cx = x + Math.cos(ang) * len * .55, cy = y + Math.sin(ang) * len * .55;
+  const seg = { x, y, cx, cy, x2, y2, d: depth, col, ph: rnd() * 6.28 }; out.push(seg); const kids = depth > 6 ? 2 : rnd() < .62 ? 2 : 1;
+  for (let i = 0; i < kids; i++) grow(x2, y2, a2 + (kids === 2 ? (i ? 1 : -1) * (.25 + rnd() * .5) : (rnd() - .5) * .5), len * (.7 + rnd() * .16), depth - 1, out, col, path); }
+function fit(c) { const d = Math.min(2, devicePixelRatio || 1), w = c.clientWidth, h = c.clientHeight; if (c.width !== Math.round(w * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); branches = c.id === "syn" ? null : branches; } const g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); return [g, w, h]; }
+function nodePos(W, H, i, n, r1, r2, off = 0) { const a = -Math.PI / 2 + off + i * 2 * Math.PI / n; return [W / 2 + Math.cos(a) * r1, H / 2 + Math.sin(a) * r2]; }
+function drawSyn(now) {
+  const [g, W, H] = fit($("syn")), s = now / 1000, cx = W / 2, cy = H / 2;
+  g.clearRect(0, 0, W, H);
+  const neu = NEU.map((_, i) => nodePos(W, H, i, NEU.length, Math.min(W * .4, 560), H * .4)), ags = SWARM.map((_, i) => nodePos(W, H, i, SWARM.length, Math.min(W * .2, 260), H * .27, Math.PI / SWARM.length));
+  if (!branches) { seed = 7; branches = []; const VC = ["240,96,90", "122,167,255", "95,240,168", "180,140,255", "226,176,87", "255,138,180"];
+    for (let r = 0; r < 26; r++) { const a = r * 2 * Math.PI / 26 + (rnd() - .5) * .2, c = VC[r % VC.length], reach = Math.min(W * .42, 600); grow(cx + Math.cos(a) * 90, cy + Math.sin(a) * 66, a, reach * (.15 + rnd() * .05) * (Math.abs(Math.cos(a)) * .5 + .5), 9, branches, c); } }
+  // the vessels: thick and bright near the head, fine and faint at the tips, gently breathing
+  g.save(); g.lineCap = "round"; g.globalCompositeOperation = "lighter";
+  for (const b of branches) { const br = .55 + .45 * Math.sin(s * 1.6 + b.ph); g.strokeStyle = `rgba(${b.col},${(.05 + b.d * .028) * (.75 + .25 * br)})`; g.lineWidth = Math.max(.5, b.d * .62); g.beginPath(); g.moveTo(b.x, b.y); g.quadraticCurveTo(b.cx, b.cy, b.x2, b.y2); g.stroke(); }
+  // blood flowing outward through the thicker vessels
+  for (let k = 0; k < branches.length; k += 3) { const b = branches[k]; if (b.d < 4) continue; const q = ((s * (.35 + b.d * .04) + b.ph) % 1), x = (1 - q) ** 2 * b.x + 2 * (1 - q) * q * b.cx + q * q * b.x2, y = (1 - q) ** 2 * b.y + 2 * (1 - q) * q * b.cy + q * q * b.y2;
+    g.fillStyle = `rgba(${b.col},.85)`; g.beginPath(); g.arc(x, y, Math.max(1.2, b.d * .32), 0, 6.283); g.fill(); }
+  g.restore();
+  // axons to the rule neurons and to the agents
+  neu.forEach(([x, y], i) => { const on = lit.has("n" + i), c = COL[NEU[i][2]]; g.strokeStyle = `rgba(${c},${on ? .85 : .16})`; g.lineWidth = on ? 2 : 1; g.beginPath(); g.moveTo(cx, cy); g.quadraticCurveTo((cx + x) / 2 + (y - cy) * .12, (cy + y) / 2 - (x - cx) * .12, x, y); g.stroke(); });
+  ags.forEach(([x, y], i) => { const on = lit.has("a" + i); g.strokeStyle = `rgba(122,167,255,${on ? .9 : .22})`; g.lineWidth = on ? 2.2 : 1.2; g.setLineDash(on ? [] : [3, 5]); g.beginPath(); g.moveTo(cx, cy); g.lineTo(x, y); g.stroke(); g.setLineDash([]); });
+  // spikes travelling along the axons
+  for (let k = spikes.length - 1; k >= 0; k--) { const sp = spikes[k], q = (now - sp.t) / 700; if (q >= 1) { spikes.splice(k, 1); continue; } const [x, y] = sp.to, mx = (cx + x) / 2 + (y - cy) * .12, my = (cy + y) / 2 - (x - cx) * .12, e = sp.out ? q : 1 - q;
+    const px = (1 - e) ** 2 * cx + 2 * (1 - e) * e * mx + e * e * x, py = (1 - e) ** 2 * cy + 2 * (1 - e) * e * my + e * e * y; g.fillStyle = `rgb(${sp.c})`; g.shadowColor = `rgb(${sp.c})`; g.shadowBlur = 14; g.beginPath(); g.arc(px, py, 4, 0, 6.283); g.fill(); g.shadowBlur = 0; }
+  // the soma: Reinpay Intelligence typing
+  const pulse = 1 + .04 * Math.sin(s * 3); const gl = g.createRadialGradient(cx, cy, 0, cx, cy, 130 * pulse); gl.addColorStop(0, "rgba(255,140,150,.20)"); gl.addColorStop(.45, "rgba(95,240,168,.10)"); gl.addColorStop(1, "rgba(95,240,168,0)"); g.fillStyle = gl; g.beginPath(); g.arc(cx, cy, 130 * pulse, 0, 6.283); g.fill();
+  g.fillStyle = "rgba(4,9,7,.92)"; g.beginPath(); g.ellipse(cx, cy, 96, 70, 0, 0, 6.283); g.fill(); g.strokeStyle = "rgba(95,240,168,.6)"; g.lineWidth = 1.4; g.stroke();
+  typist(g, cx, cy + 6, 170, s);
+  g.font = '600 9.5px "IBM Plex Mono"'; g.fillStyle = "#cfe9dc"; g.textAlign = "center"; g.fillText("REINPAY INTELLIGENCE", cx, cy + 84); g.textAlign = "left";
+  // agent nodes (one per market)
+  ags.forEach(([x, y], i) => { const a = agentsBy[SWARM[i]], on = lit.has("a" + i), r = 22; g.fillStyle = "#050b09"; g.strokeStyle = on ? "#7aa7ff" : "rgba(122,167,255,.55)"; g.lineWidth = on ? 2.4 : 1.4; g.shadowColor = "#7aa7ff"; g.shadowBlur = on ? 18 : 0; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.fill(); g.stroke(); g.shadowBlur = 0;
+    g.fillStyle = "#e3ebe5"; g.font = '700 11px "IBM Plex Mono"'; g.textAlign = "center"; g.fillText(SWARM[i], x, y + 4); if (a) { const rr = (a.eq / START - 1) * 100; g.fillStyle = rr >= 0 ? "#5ff0a8" : "#f0836e"; g.font = '600 9.5px "IBM Plex Mono"'; g.fillText((rr >= 0 ? "+" : "") + rr.toFixed(2) + "%", x, y + r + 13); } g.textAlign = "left"; });
+  // rule neurons
+  neu.forEach(([x, y], i) => { const on = lit.has("n" + i), c = COL[NEU[i][2]], w = Math.min(150, W * .13), h = 38; g.fillStyle = "#050b09"; g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, 19); g.fill(); g.fillStyle = on ? `rgba(${c},.16)` : "rgba(5,11,9,.9)"; g.strokeStyle = `rgba(${c},${on ? 1 : .5})`; g.lineWidth = on ? 1.8 : 1; g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, 19); g.fill(); g.stroke();
+    g.fillStyle = `rgb(${c})`; g.beginPath(); g.arc(x - w / 2 + 14, y, 4.5, 0, 6.283); g.fill(); g.font = '600 10px "IBM Plex Mono"'; g.fillText(NEU[i][0], x - w / 2 + 24, y - 3); g.fillStyle = "#9fb5aa"; g.font = '500 9.5px "IBM Plex Mono"'; let t = neuStat[i]; while (g.measureText(t).width > w - 32 && t.length > 4) t = t.slice(0, -2) + "…"; g.fillText(t, x - w / 2 + 24, y + 10); });
+  const n = performance.now(); for (const [k, v] of lit) if (n - v > 900) lit.delete(k);
+  requestAnimationFrame(drawSyn);
+}
+function fire(kind, idx, col, out = true) { const W = $("syn").clientWidth, H = $("syn").clientHeight, to = kind === "n" ? nodePos(W, H, idx, NEU.length, Math.min(W * .4, 560), H * .4) : nodePos(W, H, idx, SWARM.length, Math.min(W * .2, 260), H * .27, Math.PI / SWARM.length); spikes.push({ t: performance.now(), to, c: col, out }); lit.set(kind + idx, performance.now()); }
+
+// ---------- markets and agents ----------
+let M = [], agentsBy = {}, trace = [], gates = { BUDGET: 0, IMPACT: 0, "LOSS LIMIT": 0, APPROVAL: 0, SIMULATOR: 0 }, tapeS = "ETH", live = false, at = "";
+const sideCost = (m) => (m.cost / 2) / 100 + FEE_R;
+function newAgent(m) { return { m, usd: START, qty: 0, entry: 0, cost: 0, spent: {}, start: {}, paused: {}, eq: START, eqs: [], trades: 0, wins: 0, peak: START, dd: 0, candles: m.hourly.map(([t, o, h, l, c, v]) => ({ t, o, h, l, c, v })) }; }
+const eqOf = (a, px) => a.usd + a.qty * px * (1 - sideCost(a.m));
+function log(t, a, kind, cls, txt, isLive) { trace.unshift({ t, s: a.m.s, kind, cls, txt, isLive }); if (trace.length > 200) trace.pop(); }
+async function step(a, i, isLive) {
+  const c = a.candles[i], prev = a.candles[i - 1], px = c.c, day = new Date(c.t * 1000).toISOString().slice(0, 10), m = a.m, ai = SWARM.indexOf(m.s), anim = isLive;
+  let eq = eqOf(a, px); if (a.start[day] == null) a.start[day] = eq;
+  if (anim) { fire("a", ai, "122,167,255", false); fire("n", 0, COL.g); neuStat[0] = `${m.s} ${fmtP(px)}`; }
+  const dd = (eq - a.start[day]) / a.start[day];
+  if (dd <= -RULES.loss && !a.paused[day]) { a.paused[day] = true; gates["LOSS LIMIT"]++; log(c.t, a, "PAUSED", "P", `loss limit −${RULES.loss * 100}% for the day`, isLive); if (anim) { fire("n", 4, COL.x); neuStat[4] = `${m.s} paused`; } }
+  if (a.paused[day]) return finish(a, c, px);
+  if (a.qty > 0) { const ch = (px - a.entry) / a.entry;
+    if (ch >= RULES.tp || ch <= -RULES.sl) { if (isLive && !(await sim(m, "sell", a.cost))) { gates.SIMULATOR++; log(c.t, a, "BLOCKED", "X", "sell failed its mainnet simulation", isLive); return finish(a, c, px); }
+      const got = a.qty * px * (1 - sideCost(m)), pnl = got - a.cost; a.usd += got; a.qty = 0; a.trades++; if (pnl > 0) a.wins++;
+      log(c.t, a, "SELL", "S", `${ch >= RULES.tp ? "take profit" : "stop loss"} at ${fmtP(px)} · ${pnl >= 0 ? "+" : ""}${usd(pnl)}`, isLive); if (anim) { fire("n", 10, COL.b); fire("n", 8, COL.g); fire("n", 9, COL.v); neuStat[10] = `${m.s} ${pnl >= 0 ? "+" : ""}${usd(pnl)}`; } }
+    return finish(a, c, px); }
+  const mv = prev ? (px - prev.c) / prev.c : 0; if (mv < RULES.sig) return finish(a, c, px);
+  if (anim) { fire("n", 1, COL.g); neuStat[1] = `${m.s} +${(mv * 100).toFixed(2)}% 1h`; }
+  const size = Math.min(RULES.mpt, a.usd), spent = a.spent[day] || 0;
+  if (spent + size > RULES.day) { gates.BUDGET++; log(c.t, a, "BLOCKED", "X", `budget · ${usd(spent)} already spent today`, isLive); if (anim) { fire("n", 2, COL.x); neuStat[2] = `${m.s} over budget`; } return finish(a, c, px); }
+  const imp = (m.impact10k / 100) * size / 10000;
+  if (imp > RULES.imp) { gates.IMPACT++; log(c.t, a, "BLOCKED", "X", `impact ~${(imp * 100).toFixed(2)}% over the 1% cap`, isLive); if (anim) { fire("n", 3, COL.x); neuStat[3] = `${m.s} ${(imp * 100).toFixed(1)}% impact`; } return finish(a, c, px); }
+  if (size > RULES.line) { gates.APPROVAL++; log(c.t, a, "WAITING", "W", `above the approval line, asks the owner`, isLive); if (anim) fire("n", 5, COL.r); return finish(a, c, px); }
+  if (anim) { fire("n", 2, COL.r); fire("n", 3, COL.r); fire("n", 6, COL.r); neuStat[6] = `approve ${usd(size)} USDG`; }
+  if (isLive && !(await sim(m, "buy", size))) { gates.SIMULATOR++; log(c.t, a, "BLOCKED", "X", "buy failed its mainnet simulation", isLive); return finish(a, c, px); }
+  a.usd -= size; a.qty = size * (1 - sideCost(m)) / px; a.entry = px; a.cost = size; a.spent[day] = spent + size;
+  log(c.t, a, "BUY", "B", `momentum +${(mv * 100).toFixed(2)}% · ${usd(size)} at ${fmtP(px)}`, isLive); if (anim) { fire("n", 8, COL.g); fire("n", 9, COL.v); neuStat[8] = `${m.s} bought`; }
+  return finish(a, c, px);
+}
+function finish(a, c, px) { a.eq = eqOf(a, px); a.peak = Math.max(a.peak, a.eq); a.dd = Math.max(a.dd, (a.peak - a.eq) / a.peak); a.eqs.push([c.t, a.eq]); }
+async function sim(m, kind, size) {
+  neuStat[7] = "simulating…"; fire("n", 7, COL.g);
+  try { const H = { "x-client-id": CID, "content-type": "application/json" }, pad = (x) => x.slice(2).toLowerCase().padStart(64, "0"), amt = BigInt(Math.floor(size * 1e6));
+    const route = async (a, b, n) => { const q = await (await fetch(`${K}/routes?tokenIn=${a}&tokenOut=${b}&amountIn=${n}`, { headers: { "x-client-id": CID } })).json(); const bd = await (await fetch(`${K}/route/build`, { method: "POST", headers: H, body: JSON.stringify({ routeSummary: q.data.routeSummary, sender: ME, recipient: ME, slippageTolerance: 100 }) })).json(); return [q.data.routeSummary, bd.data]; };
+    const [rs, b] = await route(USDG, m.a, amt), calls = [{ from: ME, to: USDG, data: "0x095ea7b3" + pad(b.routerAddress) + amt.toString(16).padStart(64, "0") }, { from: ME, to: b.routerAddress, data: b.data, value: "0x" + BigInt(b.transactionValue || "0").toString(16) }];
+    if (kind === "sell") { const got = BigInt(rs.amountOut) * 99n / 100n, [, b2] = await route(m.a, USDG, got); if (!/^0xe+$/i.test(m.a)) calls.push({ from: ME, to: m.a, data: "0x095ea7b3" + pad(b2.routerAddress) + got.toString(16).padStart(64, "0") }); calls.push({ from: ME, to: b2.routerAddress, data: b2.data, value: "0x" + BigInt(b2.transactionValue || "0").toString(16) }); }
+    const r = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: { [ME]: { balance: "0x16345785d8a0000" }, [USDG]: { stateDiff: { [USDG_SLOT]: "0x" + (10n ** 12n).toString(16).padStart(64, "0") } } }, calls }], validation: false }, "latest"]);
+    const ok = r[0].calls.every((c) => c.status === "0x1"); neuStat[7] = ok ? `✓ block ${parseInt(r[0].number, 16).toLocaleString("en-US")}` : "✗ reverts"; return ok;
+  } catch { neuStat[7] = "RPC unreachable"; return false; }
+}
+
+// ---------- panels ----------
+function swarmEq() { return SWARM.reduce((s, k) => s + (agentsBy[k] ? agentsBy[k].eq : START), 0); }
+function drawEq() {
+  const [g, W, H] = fit($("eq")); g.clearRect(0, 0, W, H); const A = SWARM.map((k) => agentsBy[k]).filter(Boolean); if (!A.length) return; const n = Math.min(...A.map((a) => a.eqs.length)); if (n < 2) return;
+  const E = []; for (let i = 0; i < n; i++) E.push(A.reduce((s, a) => s + a.eqs[a.eqs.length - n + i][1], 0)); const base = START * A.length, lo = Math.min(...E, base), hi = Math.max(...E, base), y = (v) => 6 + (hi - v) / (hi - lo || 1) * (H - 14);
+  g.strokeStyle = "rgba(127,154,141,.35)"; g.setLineDash([3, 5]); g.beginPath(); g.moveTo(0, y(base)); g.lineTo(W, y(base)); g.stroke(); g.setLineDash([]);
+  const up = E.at(-1) >= base, gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, up ? "rgba(95,240,168,.28)" : "rgba(240,131,110,.28)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+  g.beginPath(); E.forEach((v, i) => { const x = i / (E.length - 1) * W; i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v)); }); g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fillStyle = gr; g.fill();
+  g.strokeStyle = up ? "#5ff0a8" : "#f0836e"; g.lineWidth = 2; g.beginPath(); E.forEach((v, i) => { const x = i / (E.length - 1) * W; i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v)); }); g.stroke();
+}
+function drawTape() {
+  const m = M.find((x) => x.s === tapeS), a = agentsBy[tapeS], C = (a ? a.candles : m.hourly.map(([t, o, h, l, c, v]) => ({ t, o, h, l, c, v }))).slice(-72); const [g, W, H] = fit($("tape")); g.clearRect(0, 0, W, H); if (!C.length) return;
+  const lo = Math.min(...C.map((c) => c.l)), hi = Math.max(...C.map((c) => c.h)), pd = (hi - lo) * .1 || hi * .01, y = (v) => 8 + (hi + pd - v) / (hi - lo + 2 * pd) * (H - 34), cw = (W - 64) / C.length;
+  // a VWAP line from the candles' volume
+  let pv = 0, vv = 0; const vw = C.map((c) => { pv += (c.h + c.l + c.c) / 3 * (c.v || 1); vv += c.v || 1; return pv / vv; });
+  g.strokeStyle = "rgba(180,140,255,.7)"; g.lineWidth = 1.4; g.beginPath(); vw.forEach((v, i) => { const x = i * cw + cw / 2; i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v)); }); g.stroke();
+  const vmax = Math.max(...C.map((c) => c.v), 1);
+  C.forEach((c, i) => { const x = i * cw + cw / 2, up = c.c >= c.o, col = up ? "#5ff0a8" : "#f0836e"; g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y(c.h)); g.lineTo(x, y(c.l)); g.stroke(); g.fillStyle = col; g.fillRect(x - cw * .32, Math.min(y(c.o), y(c.c)), cw * .64, Math.max(1.5, Math.abs(y(c.o) - y(c.c)))); g.fillStyle = up ? "rgba(95,240,168,.2)" : "rgba(240,131,110,.2)"; g.fillRect(x - cw * .32, H - 2 - c.v / vmax * 20, cw * .64, c.v / vmax * 20); });
+  if (a) for (const f of trace) { if (f.s !== tapeS || !["BUY", "SELL"].includes(f.kind)) continue; const i = C.findIndex((c) => c.t === Math.floor(f.t / 3600) * 3600); if (i < 0) continue; const x = i * cw + cw / 2, yy = y(C[i].c); g.fillStyle = f.kind === "BUY" ? "#5ff0a8" : "#7aa7ff"; g.beginPath(); if (f.kind === "BUY") { g.moveTo(x, yy + 7); g.lineTo(x - 5, yy + 16); g.lineTo(x + 5, yy + 16); } else { g.moveTo(x, yy - 7); g.lineTo(x - 5, yy - 16); g.lineTo(x + 5, yy - 16); } g.fill(); }
+  const last = C.at(-1); g.fillStyle = "#5ff0a8"; g.fillRect(W - 62, y(last.c) - 8, 62, 16); g.fillStyle = "#04130b"; g.font = '600 9.5px "IBM Plex Mono"'; g.fillText(fmtP(last.c), W - 58, y(last.c) + 3.5);
+  g.fillStyle = "#5d7568"; for (let k = 0; k < 4; k++) { const v = hi + pd - k * (hi - lo + 2 * pd) / 3; g.fillText(fmtP(v), W - 58, y(v) + 3); }
+  $("tapeH").textContent = `THE TAPE · ${m.s} / USDG · 1H · VWAP · ${m.poolName || ""}`; $("tapeP").textContent = `${fmtP(last.c)} · cost ${m.cost}% round trip`;
+}
+function panels() {
+  const A = SWARM.map((k) => agentsBy[k]).filter(Boolean), eq = swarmEq(), base = START * SWARM.length, r = (eq / base - 1) * 100, tr = A.reduce((s, a) => s + a.trades, 0), w = A.reduce((s, a) => s + a.wins, 0), st = Object.values(gates).reduce((s, v) => s + v, 0);
+  $("hEq").textContent = usd(eq); $("bigEq").innerHTML = usd(eq).replace(/(\.\d\d)$/, "<small>$1</small>"); $("hRet").innerHTML = `<span class="${r >= 0 ? "pos" : "neg"}">${r >= 0 ? "+" : ""}${r.toFixed(2)}%</span>`; $("eqT").textContent = `${r >= 0 ? "+" : ""}${usd(eq - base)} since start`;
+  $("hTr").textContent = tr; $("tTr").textContent = tr; $("tWr").textContent = tr ? Math.round(w / tr * 100) + "%" : "–"; $("hSt").textContent = st;
+  const best = A.slice().sort((x, y) => y.eq - x.eq)[0]; $("tBest").textContent = best ? `${best.m.s} ${((best.eq / START - 1) * 100).toFixed(2)}%` : "–"; $("tDd").textContent = (Math.max(...A.map((a) => a.dd), 0) * 100).toFixed(2) + "%";
+  $("agents").innerHTML = A.map((a) => { const rr = (a.eq / START - 1) * 100; return `<div class="ag"><b>${a.m.s} AGENT</b><div class="s">${a.qty > 0 ? `long · entry ${fmtP(a.entry)}` : "flat"} · ${a.trades} trades</div><div class="v ${rr >= 0 ? "pos" : "neg"}">${usd(a.eq)} · ${rr >= 0 ? "+" : ""}${rr.toFixed(2)}%</div></div>`; }).join("");
+  $("trN").textContent = trace.length + " decisions"; $("trace").innerHTML = trace.slice(0, 14).map((f) => `<div class="tr"><span class="t">${f.isLive ? "LIVE" : hhmm(f.t).slice(6)}</span><i class="${f.cls}">${f.kind} ${f.s}</i><span>${f.txt}</span></div>`).join("");
+  const gm = Math.max(1, ...Object.values(gates)); $("gtN").textContent = st + " stopped"; $("gates").innerHTML = Object.entries(gates).map(([k, v]) => `<div class="gate"><span>${k}</span><b>${v}</b><div class="bar2"><i style="width:${v / gm * 100}%;background:${k === "LOSS LIMIT" ? "var(--bad)" : "var(--gold)"}"></i></div></div>`).join("") + `<p class="foot" style="padding:6px 0 0">Rules: ${usd(RULES.mpt)} max per trade, ${usd(RULES.day)} a day per agent, 1% impact cap, −3% daily loss limit, ask the owner above ${usd(RULES.line)}.</p>`;
+  drawEq(); drawTape();
+}
+function grid() {
+  $("mk").innerHTML = M.map((m) => { const h = m.hourly, c = h.at(-1)[4], o = (h.at(-25) || h[0])[4], ch = (c / o - 1) * 100; return `<div data-s="${m.s}" class="${m.s === tapeS ? "on" : ""}"><b>${m.s}</b><span>${fmtP(m.px)}</span><em class="${ch >= 0 ? "pos" : "neg"}">${ch >= 0 ? "+" : ""}${ch.toFixed(2)}%</em></div>`; }).join("");
+  $("wire").innerHTML = M.map((m) => { const h = m.hourly, ch = (h.at(-1)[4] / (h.at(-25) || h[0])[4] - 1) * 100; return `<span><b>${m.s}</b> ${fmtP(m.px)} <span class="${ch >= 0 ? "u" : "d"}">${ch >= 0 ? "▲" : "▼"} ${Math.abs(ch).toFixed(2)}%</span></span>`; }).join("");
+}
+$("mk").onclick = (e) => { const d = e.target.closest("[data-s]"); if (d) { tapeS = d.dataset.s; grid(); drawTape(); } };
+setInterval(() => { $("clock").innerHTML = new Date().toISOString().slice(11, 19) + "<small>UTC</small>"; }, 1000);
+
+// ---------- run: a 7 day replay for all six agents, then live on hourly closes from KyberSwap quotes ----------
+async function quote(m) { try { const r = await (await fetch(`${K}/routes?tokenIn=${USDG}&tokenOut=${m.a}&amountIn=${1000n * 10n ** 6n}`, { headers: { "x-client-id": CID } })).json(); if (r.code === 0) return 1000 / (Number(BigInt(r.data.routeSummary.amountOut)) / 10 ** m.dec); } catch {} return null; }
+let qi = 0;
+async function tick() {
+  const k = SWARM[qi++ % SWARM.length], a = agentsBy[k], px = await quote(a.m);
+  if (px) { a.m.px = px; const now = Math.floor(Date.now() / 1000), hk = Math.floor(now / 3600) * 3600; let c = a.candles.at(-1);
+    if (c.t < hk) { const ci = a.candles.length - 1; a.candles.push({ t: hk, o: c.c, h: px, l: px, c: px, v: 0 }); await step(a, ci, true); } else { c.c = px; c.h = Math.max(c.h, px); c.l = Math.min(c.l, px); a.eq = eqOf(a, px); }
+    fire("a", SWARM.indexOf(k), "122,167,255", false); fire("n", 0, COL.g); neuStat[0] = `${k} ${fmtP(px)} live`; }
+  grid(); panels(); setTimeout(tick, 4000);
+}
+// between hourly closes, the neurons replay the last decisions so the synapse never sits still
+setInterval(() => { if (!live || !trace.length) return; const f = trace[Math.floor(Math.random() * Math.min(12, trace.length))], ai = SWARM.indexOf(f.s); if (ai >= 0) fire("a", ai, "122,167,255", false);
+  const map = { BUY: [1, 2, 3, 6, 8, 9], SELL: [10, 8, 9], BLOCKED: [2, 3], WAITING: [5], PAUSED: [4] }[f.kind] || [9]; map.forEach((n, j) => setTimeout(() => fire("n", n, COL[NEU[n][2]] || COL.g), j * 140)); }, 1400);
+(async () => {
+  requestAnimationFrame(drawSyn);
+  try { const d = await (await fetch("../assets/chain/markets.json?t=" + Date.now())).json(); M = d.markets.filter((m) => m.hourly && m.hourly.length > 48 && m.px); at = d.at; } catch (e) { $("wire").textContent = "Could not load the markets: " + e.message; return; }
+  $("hMk").textContent = M.length; grid();
+  for (const k of SWARM) { const m = M.find((x) => x.s === k); if (m) agentsBy[k] = newAgent(m); }
+  $("mode").textContent = "REPLAY · 7 DAYS";
+  const len = Math.min(...SWARM.map((k) => agentsBy[k].candles.length));
+  for (let i = 1; i < len; i++) { for (const k of SWARM) { const a = agentsBy[k]; await step(a, a.candles.length - len + i, false); } if (i % 6 === 0) { panels(); await wait(16); } }
+  live = true; $("mode").textContent = "LIVE · PAPER"; panels(); tick();
+})();
+</script>
+</body>
+</html>
