@@ -171,4 +171,42 @@ async function extras() {
     writeFileSync(`${dir}/buyback.json`, JSON.stringify({ kind: "reinpay-buyback", version: 1, chainId: 4663, feeWallet: FEEW, feeBps: 20, at: new Date().toISOString(), balance: bal.toString(), buybacks: B.buybacks }));
     console.log("buyback tracker", B.buybacks.length, "buybacks, fee wallet", Number(bal) / 1e18, "ETH");
   } catch (e) { console.log("buyback skipped:", e.message); }
+  try { await markets(); } catch (e) { console.log("markets skipped:", e.message); }
+}
+
+// Reinpay Trading Desk markets: for each market, the price in USDG from a real KyberSwap quote on Robinhood Chain (every run),
+// the cost of a 1,000 USDG round trip and the price move at 10,000 USDG (both from real quotes), and hourly candles of the
+// market's deepest Robinhood Chain pool from GeckoTerminal (on-chain swaps), refreshed once an hour. Paper trading only.
+async function markets() {
+  const K = "https://aggregator-api.kyberswap.com/robinhood/api/v1", G = "https://api.geckoterminal.com/api/v2/networks/robinhood", H = { "x-client-id": "reinpay" };
+  const USDG = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", ETHN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+  const LIST = [["ETH", "Ether", ETHN, 18, "0x0bd7d308f8e1639fab988df18a8011f41eacad73"], ["BTC", "Bitcoin (cbBTC)", "0xcec185eb182c47d1ba1efc84e6959e18cd620be4", 8], ["NVDA", "NVIDIA", "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec", 18], ["TSLA", "Tesla", "0x322f0929c4625ed5bad873c95208d54e1c003b2d", 18],
+    ["AAPL", "Apple", "0xaf3d76f1834a1d425780943c99ea8a608f8a93f9", 18], ["AMZN", "Amazon", "0x12f190a9f9d7d37a250758b26824b97ce941bf54", 18], ["GOOGL", "Alphabet", "0x2e0847e8910a9732eb3fb1bb4b70a580adad4fe3", 18], ["META", "Meta", "0xc0d6457c16cc70d6790dd43521c899c87ce02f35", 18],
+    ["MSFT", "Microsoft", "0xe93237c50d904957cf27e7b1133b510c669c2e74", 18], ["SPY", "S&P 500 ETF", "0x117cc2133c37b721f49de2a7a74833232b3b4c0c", 18], ["QQQ", "Nasdaq 100 ETF", "0xd5f3879160bc7c32ebb4dc785f8a4f505888de68", 18], ["GLD", "Gold ETF", "0xc9a981fee1f9dec688bb123ccdecc63d0debfc4e", 18],
+    ["MSTR", "Strategy", "0xec262a75e413fafd0df80480274532c79d42da09", 18], ["COIN", "Coinbase", "0x6330d8c3178a418788df01a47479c0ce7ccf450b", 18], ["REINPAY", "Reinpay", TOKEN, 18]];
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const q = async (a, b, amt) => { for (let k = 1; k <= 3; k++) { try { const j = await (await fetch(`${K}/routes?tokenIn=${a}&tokenOut=${b}&amountIn=${amt}`, { headers: H })).json(); if (j.code === 0) return j.data.routeSummary; } catch {} await sleep(800 * k); } return null; };
+  const gk = async (path) => { for (let k = 1; k <= 4; k++) { try { const r = await fetch(G + path, { headers: { accept: "application/json" } }); if (r.status === 429) { await sleep(15000 * k); continue; } const j = await r.json(); if (j.data) return j.data; } catch {} await sleep(3000); } return null; };
+  const mp = `${dir}/markets.json`, prev = existsSync(mp) ? JSON.parse(readFileSync(mp, "utf8")) : { markets: [] }, byS = new Map(prev.markets.map((m) => [m.s, m]));
+  const now = Math.floor(Date.now() / 1000), out = [];
+  for (const [s, n, a, dec, wrapped] of LIST) {
+    const m = byS.get(s) || { s, n, a, dec, ticks: [], hourly: [] }; Object.assign(m, { n, a, dec });
+    const one = 10n ** BigInt(dec);
+    const buy = await q(USDG, a, (1000n * 10n ** 6n).toString()); await sleep(250);
+    if (buy) { const got = BigInt(buy.amountOut), px = 1000 / (Number(got) / Number(one)); m.px = +px.toPrecision(8);
+      const back = await q(a, USDG, got.toString()); await sleep(250); if (back) m.cost = +((1 - Number(back.amountOut) / 1e9) * 100).toFixed(3);
+      const big = await q(USDG, a, (10000n * 10n ** 6n).toString()); await sleep(250); if (big) m.impact10k = +(((10000 / (Number(BigInt(big.amountOut)) / Number(one))) / px - 1) * 100).toFixed(3);
+      m.route = [...new Set(buy.route.flat().map((h) => h.pool))].slice(0, 3);
+      m.ticks.push([now, m.px]); m.ticks = m.ticks.filter((t) => now - t[0] <= 7 * 86400); }
+    // hourly candles of the deepest pool, refreshed when the last candle is more than an hour old
+    if (!m.hourly.length || now - m.hourly.at(-1)[0] > 3600) {
+      const ta = (wrapped || a).toLowerCase();
+      if (!m.pool) { const pools = await gk(`/tokens/${ta}/pools?page=1`); await sleep(2500); if (pools && pools.length) { const major = pools.filter((x) => /(^|\/ )(USDG|WETH)( |$)/.test(x.attributes.name)), top = (major.length ? major : pools).slice().sort((x, y) => +y.attributes.reserve_in_usd - +x.attributes.reserve_in_usd)[0]; m.pool = top.attributes.address; m.poolName = top.attributes.name; } }
+      if (m.pool) { const o = await gk(`/pools/${m.pool}/ohlcv/hour?aggregate=1&limit=168&currency=usd&token=${ta}`); await sleep(2500);
+        if (o && o.attributes && o.attributes.ohlcv_list) m.hourly = o.attributes.ohlcv_list.map((c) => [c[0], +(+c[1]).toPrecision(8), +(+c[2]).toPrecision(8), +(+c[3]).toPrecision(8), +(+c[4]).toPrecision(8), Math.round(c[5])]).sort((x, y) => x[0] - y[0]); }
+    }
+    out.push(m);
+  }
+  writeFileSync(mp, JSON.stringify({ kind: "reinpay-markets", version: 1, chainId: 4663, quote: "USDG", at: new Date().toISOString(), sources: { price: "KyberSwap aggregator quotes on Robinhood Chain", candles: "GeckoTerminal hourly OHLCV of each market's deepest Robinhood Chain pool" }, markets: out }));
+  console.log("markets", out.map((m) => `${m.s}:${m.px ?? "-"}/${m.hourly.length}h`).join(" "));
 }
