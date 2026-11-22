@@ -48,11 +48,12 @@ input,select{background:#030605;border:1px solid var(--ln);color:var(--ink);font
 .consent{display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:11px;color:var(--dim)}.consent input{width:auto;margin-top:2px}
 .back{color:var(--g);text-decoration:none;font-size:12px}
 @media(max-width:1000px){.grid,.row,.conn{grid-template-columns:1fr}.top{grid-template-columns:auto 1fr}.set{grid-template-columns:repeat(2,1fr)}}
+.nets{display:flex;gap:4px;padding:3px;border:1px solid var(--ln);border-radius:9px;background:var(--pn2)}.nets a{font-size:11px;letter-spacing:.06em;padding:5px 12px;border-radius:6px;color:var(--dim);text-decoration:none}.nets a.on{background:var(--g);color:#03251a;font-weight:600}
 </style>
 </head>
 <body>
 <div class="app">
-  <div style="display:flex;justify-content:space-between;margin-bottom:10px"><a class="back" href="../">← reinpay.app</a><span class="muted" style="font-size:11px">ROBINHOOD CHAIN MAINNET · YOUR BOT, YOUR KEY, YOUR LIMITS</span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap"><a class="back" href="../">← reinpay.app</a><div class="nets"><a class="on" href="/trading/">Robinhood Chain</a><a href="/solana/">Solana</a></div><span class="muted" style="font-size:11px">ROBINHOOD CHAIN MAINNET · YOUR BOT, YOUR KEY, YOUR LIMITS</span></div>
   <div class="top">
     <button class="pbtn" id="pause" title="Pause / resume">❚❚</button>
     <div><div class="ttl">Reinpay <b>Agent</b> <small>8 AGENTS · ROBINHOOD CHAIN</small></div><div class="run" id="run">starting…</div></div>
