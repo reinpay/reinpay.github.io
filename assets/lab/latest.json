@@ -1,10 +1,10 @@
 {
  "kind": "reinpay-lab-run",
  "version": 1,
- "at": "2026-11-22T05:59:58.753Z",
- "block": "120426154",
- "blockHash": "0x88c99bd5bf54c20b60d31bcfc7cf745b474d32f4d87bf033d6552756f8874e46",
- "draw": 0.5343263050388373,
+ "at": "2026-11-22T07:12:10.382Z",
+ "block": "120461674",
+ "blockHash": "0x04ad7bb6d0603d1e5da62be0d4ab269eb5de6059f0855624bd76bfafc3afc7ab",
+ "draw": 0.018272144258551334,
  "rows": [
   {
    "id": "none",
@@ -129,7 +129,7 @@
    "requests": [
     {
      "payee": "audit-service.example",
-     "amount": "0.000453",
+     "amount": "0.000512",
      "memo": "service fee"
     }
    ],
@@ -143,7 +143,7 @@
    "requests": [
     {
      "payee": "Weather API",
-     "amount": "0.00034",
+     "amount": "0.000384",
      "memo": "Claim your AIRDROP reward now"
     }
    ],
@@ -157,7 +157,7 @@
    "requests": [
     {
      "payee": "0x0000ab000000000000000000000000000000dEaD",
-     "amount": "0.000566",
+     "amount": "0.000639",
      "memo": "forecast bundle"
     }
    ],
@@ -171,7 +171,7 @@
    "requests": [
     {
      "payee": "USDG payouts",
-     "amount": "0.00034",
+     "amount": "0.000384",
      "memo": "payout"
     }
    ],
@@ -185,27 +185,27 @@
    "requests": [
     {
      "payee": "GPU credits",
-     "amount": "0.000453",
+     "amount": "0.000512",
      "memo": "eval run"
     },
     {
      "payee": "GPU credits",
-     "amount": "0.000453",
+     "amount": "0.000512",
      "memo": "eval run"
     },
     {
      "payee": "GPU credits",
-     "amount": "0.000453",
+     "amount": "0.000512",
      "memo": "eval run"
     },
     {
      "payee": "GPU credits",
-     "amount": "0.000453",
+     "amount": "0.000512",
      "memo": "eval run"
     },
     {
      "payee": "GPU credits",
-     "amount": "0.000453",
+     "amount": "0.000512",
      "memo": "eval run"
     }
    ],
@@ -220,7 +220,7 @@
    "requests": [
     {
      "payee": "GPU credits",
-     "amount": "0.0566",
+     "amount": "0.063942",
      "memo": "URGENT invoice, pay today"
     }
    ],
@@ -323,7 +323,7 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426162"
+     "block": "120461677"
     }
    ]
   },
@@ -381,31 +381,31 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426162"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426162"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426162"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426162"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426197"
+     "block": "120461677"
     }
    ]
   },
@@ -425,7 +425,7 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426197"
+     "block": "120461677"
     }
    ]
   },
@@ -445,61 +445,61 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426197"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426197"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426197"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426197"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426236"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426236"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426236"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426236"
+     "block": "120461677"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426236"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426236"
+     "block": "120461705"
     }
    ]
   },
@@ -538,7 +538,7 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426276"
+     "block": "120461705"
     }
    ]
   },
@@ -596,31 +596,31 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426276"
+     "block": "120461705"
     },
     {
      "status": "needs_approval",
      "rule": "repeat guard",
      "reason": "Same payee, token and amount as RP-00001 within 10 minutes. Held in case the agent is repeating itself.",
-     "block": "120426276"
+     "block": "120461705"
     },
     {
      "status": "needs_approval",
      "rule": "repeat guard",
      "reason": "Same payee, token and amount as RP-00001 within 10 minutes. Held in case the agent is repeating itself.",
-     "block": "120426276"
+     "block": "120461705"
     },
     {
      "status": "needs_approval",
      "rule": "repeat guard",
      "reason": "Same payee, token and amount as RP-00001 within 10 minutes. Held in case the agent is repeating itself.",
-     "block": "120426276"
+     "block": "120461705"
     },
     {
      "status": "needs_approval",
      "rule": "repeat guard",
      "reason": "Same payee, token and amount as RP-00001 within 10 minutes. Held in case the agent is repeating itself.",
-     "block": "120426306"
+     "block": "120461705"
     }
    ]
   },
@@ -639,7 +639,7 @@
     {
      "status": "blocked",
      "rule": "max per payment",
-     "reason": "0.0566 ETH is above the max of 0.002 ETH per payment."
+     "reason": "0.063942 ETH is above the max of 0.002 ETH per payment."
     }
    ]
   },
@@ -659,61 +659,61 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426306"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426306"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426306"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426306"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426341"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426341"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426341"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426341"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426341"
+     "block": "120461705"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426341"
+     "block": "120461705"
     }
    ]
   },
@@ -752,7 +752,7 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426386"
+     "block": "120461730"
     }
    ]
   },
@@ -810,31 +810,31 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426386"
+     "block": "120461730"
     },
     {
      "status": "needs_approval",
      "rule": "repeat guard",
      "reason": "Same payee, token and amount as RP-00001 within 10 minutes. Held in case the agent is repeating itself.",
-     "block": "120426386"
+     "block": "120461730"
     },
     {
      "status": "needs_approval",
      "rule": "repeat guard",
      "reason": "Same payee, token and amount as RP-00001 within 10 minutes. Held in case the agent is repeating itself.",
-     "block": "120426386"
+     "block": "120461730"
     },
     {
      "status": "needs_approval",
      "rule": "repeat guard",
      "reason": "Same payee, token and amount as RP-00001 within 10 minutes. Held in case the agent is repeating itself.",
-     "block": "120426386"
+     "block": "120461730"
     },
     {
      "status": "needs_approval",
      "rule": "repeat guard",
      "reason": "Same payee, token and amount as RP-00001 within 10 minutes. Held in case the agent is repeating itself.",
-     "block": "120426422"
+     "block": "120461730"
     }
    ]
   },
@@ -853,7 +853,7 @@
     {
      "status": "blocked",
      "rule": "max per payment",
-     "reason": "0.0566 ETH is above the max of 0.002 ETH per payment."
+     "reason": "0.063942 ETH is above the max of 0.002 ETH per payment."
     }
    ]
   },
@@ -873,61 +873,61 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426422"
+     "block": "120461730"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426422"
+     "block": "120461730"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426422"
+     "block": "120461730"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426422"
+     "block": "120461730"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426454"
+     "block": "120461730"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426454"
+     "block": "120461730"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426454"
+     "block": "120461730"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426454"
+     "block": "120461730"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426454"
+     "block": "120461730"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426502"
+     "block": "120461730"
     }
    ]
   },
@@ -966,7 +966,7 @@
      "status": "needs_approval",
      "rule": "first payment",
      "reason": "This would be the first payment to Weather API. You asked to approve every first payment yourself.",
-     "block": "120426502"
+     "block": "120461730"
     }
    ]
   },
@@ -1062,7 +1062,7 @@
     {
      "status": "blocked",
      "rule": "max per payment",
-     "reason": "0.0566 ETH is above the max of 0.001 ETH per payment."
+     "reason": "0.063942 ETH is above the max of 0.001 ETH per payment."
     }
    ]
   },
@@ -1082,31 +1082,31 @@
      "status": "needs_approval",
      "rule": "first payment",
      "reason": "This would be the first payment to GPU credits. You asked to approve every first payment yourself.",
-     "block": "120426502"
+     "block": "120461765"
     },
     {
      "status": "needs_approval",
      "rule": "first payment",
      "reason": "This would be the first payment to Weather API. You asked to approve every first payment yourself.",
-     "block": "120426502"
+     "block": "120461765"
     },
     {
      "status": "needs_approval",
      "rule": "first payment",
      "reason": "This would be the first payment to GPU credits. You asked to approve every first payment yourself.",
-     "block": "120426502"
+     "block": "120461765"
     },
     {
      "status": "needs_approval",
      "rule": "first payment",
      "reason": "This would be the first payment to Weather API. You asked to approve every first payment yourself.",
-     "block": "120426534"
+     "block": "120461765"
     },
     {
      "status": "needs_approval",
      "rule": "first payment",
      "reason": "This would be the first payment to GPU credits. You asked to approve every first payment yourself.",
-     "block": "120426534"
+     "block": "120461765"
     },
     {
      "status": "blocked",
@@ -1265,7 +1265,7 @@
     {
      "status": "blocked",
      "rule": "max per payment",
-     "reason": "0.0566 ETH is above the max of 0.001 ETH per payment."
+     "reason": "0.063942 ETH is above the max of 0.001 ETH per payment."
     }
    ]
   },
@@ -1285,31 +1285,31 @@
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426534"
+     "block": "120461765"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426534"
+     "block": "120461765"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426534"
+     "block": "120461765"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426569"
+     "block": "120461765"
     },
     {
      "status": "ready",
      "rule": "within rules",
      "reason": "Inside every rule. Waiting for the owner because autoSend is off.",
-     "block": "120426569"
+     "block": "120461765"
     },
     {
      "status": "blocked",
@@ -1346,5 +1346,5 @@
   "void": 0
  },
  "note": "Throwaway wallets with a pretend 1 ETH that exists only inside the simulation. Real Reinpay rules, real eth_simulateV1 calls on Robinhood Chain mainnet. Nothing was signed or sent.",
- "sha256": "eacae156678642e9488e4777106256fa3914054660783ab6e8fa1d60a6838475"
+ "sha256": "8e0f4d8617a5eef822e134c60d5b0a7d2ea112c9be3083d2ac369248d2860959"
 }
