@@ -165,7 +165,14 @@ async function decide(m, c, prev) { // runs once per market per hourly close, ex
   if (d.spent + size > r.day + 1e-9) return block(m, `budget guard · ${usd(d.spent)} + ${usd(size)} is over today's ${usd(r.day)}`);
   const impact = (m.impact10k / 100) * size / 10000; if (impact > r.imp / 100) return block(m, `impact gate · ${(impact * 100).toFixed(2)}% over your ${r.imp}% cap`);
   if (size < 1) return block(m, `not enough USDG (${usd(B.usd)})`);
-  say("risk", `${m.s} passed · budget ${usd(d.spent)} of ${usd(r.day)} · impact ${(impact * 100).toFixed(3)}%`);
+  // round trip check at the real size: quote the buy, then quote selling it straight back. Thin pools (high pool fees)
+  // can cost more than the stop loss before the price even moves, so those trades are blocked.
+  try { const amt = BigInt(Math.floor(size * 1e6)), q1 = await (await fetch(`${K}/routes?tokenIn=${USDG}&tokenOut=${m.a}&amountIn=${amt}`, { headers: { "x-client-id": CID } })).json();
+    const q2 = await (await fetch(`${K}/routes?tokenIn=${m.a}&tokenOut=${USDG}&amountIn=${q1.data.routeSummary.amountOut}`, { headers: { "x-client-id": CID } })).json();
+    const rt = 1 - Number(BigInt(q2.data.routeSummary.amountOut)) / Number(amt); m.rt = rt;
+    if (rt * 100 > RULES.sl / 2) return block(m, `round trip cost ${(rt * 100).toFixed(2)}% at ${usd(size)} is over half your ${RULES.sl}% stop loss`); }
+  catch { return block(m, "could not quote a round trip"); }
+  say("risk", `${m.s} passed · budget ${usd(d.spent)} of ${usd(r.day)} · round trip ${(m.rt * 100).toFixed(2)}%`);
   RT.stage = "size"; say("size", `${usd(size)} → ${m.s} at ${fmtP(m.live)}`);
   await buy(m, size, `${r.st === "mom" ? "momentum" : "dip"} · ${m.sigText}`);
 }
