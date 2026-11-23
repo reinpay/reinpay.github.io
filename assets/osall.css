@@ -167,3 +167,30 @@ button.sc-chip { cursor: pointer; }
 @media (min-width: 1401px) { .navlinks { gap: 10px !important; } .navlinks > a:not(.btn) { letter-spacing: .04em !important; font-size: 10.5px !important; } nav .wrap { flex-wrap: nowrap; } }
 /* Swap and Arena made the top menu two items longer: tighter still on wide screens */
 @media (min-width: 1401px) { .navlinks { gap: 8px !important; } .navlinks > a:not(.btn) { letter-spacing: .02em !important; font-size: 10px !important; } .navlinks .btn { padding-left: 12px !important; padding-right: 12px !important; } }
+
+/* ---------- nav v2: five primary links + a grouped "More" panel ---------- */
+.navlinks { gap: 26px !important; }
+.navlinks > a:not(.btn), .navlinks details.more > summary { font: 600 12.5px "IBM Plex Mono", monospace !important; letter-spacing: .12em !important; text-transform: uppercase; color: #b9c9c0; text-decoration: none; }
+.navlinks > a:not(.btn):hover, .navlinks details.more > summary:hover { color: #5ff0a8; }
+.navlinks > a.on, .navlinks details.more.on > summary { color: #5ff0a8 !important; }
+.navlinks details.more { position: relative; }
+.navlinks details.more > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.navlinks details.more > summary::-webkit-details-marker { display: none; }
+.navlinks details.more > summary::after { content: "▾"; font-size: 10px; transition: transform .15s; }
+.navlinks details.more[open] > summary::after { transform: rotate(180deg); }
+.navlinks .mpanel { position: absolute; top: calc(100% + 18px); right: -40px; display: grid; grid-template-columns: repeat(2, minmax(170px, 1fr)); gap: 6px 28px; padding: 18px 22px; background: #070d0b; border: 1px solid rgba(95,240,168,.28); box-shadow: 0 24px 60px rgba(0,0,0,.6); z-index: 60; }
+.navlinks .mgrp { display: flex; flex-direction: column; gap: 2px; }
+.navlinks .mhead { font: 600 10px "IBM Plex Mono", monospace; letter-spacing: .2em; color: #e2b057; margin-bottom: 6px; }
+.navlinks .mpanel a { font: 500 13px "IBM Plex Mono", monospace; color: #cfe0d7; text-decoration: none; padding: 6px 0; white-space: nowrap; }
+.navlinks .mpanel a:hover, .navlinks .mpanel a.on { color: #5ff0a8; }
+@media (min-width: 1401px) { .navlinks { gap: 26px !important; } .navlinks > a:not(.btn) { font-size: 12.5px !important; letter-spacing: .12em !important; } .navlinks > a[aria-label="Reinpay on X"], .navlinks > a[aria-label="Reinpay on GitHub"] { display: inline-flex !important; } }
+@media (min-width: 1101px) { .menu-toggle { display: none !important; } .navlinks { display: flex !important; flex-direction: row !important; align-items: center !important; width: auto !important; padding-top: 0 !important; } nav .wrap { flex-wrap: nowrap !important; } .nav-wallet { order: 0 !important; } }
+@media (max-width: 1100px) { .menu-toggle { display: inline-block !important; } .navlinks { display: none !important; width: 100%; flex-direction: column; align-items: flex-start !important; gap: 14px !important; padding-top: 8px; } nav .wrap { flex-wrap: wrap; } nav.open .navlinks { display: flex !important; }
+  .navlinks details.more > summary { display: none; } .navlinks details.more .mpanel { position: static; display: grid; grid-template-columns: 1fr 1fr; padding: 4px 0 0; border: 0; box-shadow: none; background: none; } .navlinks details.more:not([open]) .mpanel { display: grid; } }
+/* nav v2b: six primary links fit on one row */
+@media (min-width: 1101px) { .navlinks { gap: 22px !important; } .navlinks > a:not(.btn), .navlinks details.more > summary { font-size: 12px !important; letter-spacing: .09em !important; white-space: nowrap; }
+  .navlinks > a[aria-label="Reinpay on X"], .navlinks > a[aria-label="Reinpay on GitHub"] { display: none !important; } .navlinks .btn, .navlinks .nav-wallet { white-space: nowrap; } nav .wrap { gap: 28px; } }
+@media (min-width: 1101px) and (max-width: 1360px) { .navlinks { gap: 16px !important; } .navlinks > a:not(.btn), .navlinks details.more > summary { font-size: 11px !important; letter-spacing: .06em !important; } .navlinks .btn { padding-left: 12px !important; padding-right: 12px !important; } }
+@media (max-width: 1240px) { .menu-toggle { display: inline-block !important; } .navlinks { display: none !important; width: 100%; flex-direction: column !important; align-items: flex-start !important; gap: 14px !important; padding-top: 8px !important; } nav .wrap { flex-wrap: wrap !important; } nav.open .navlinks { display: flex !important; }
+  .navlinks > a[aria-label="Reinpay on X"], .navlinks > a[aria-label="Reinpay on GitHub"] { display: inline-flex !important; }
+  .navlinks details.more > summary { display: none; } .navlinks details.more .mpanel { position: static; display: grid; grid-template-columns: 1fr 1fr; padding: 4px 0 0; border: 0; box-shadow: none; background: none; } }

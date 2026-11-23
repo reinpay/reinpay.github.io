@@ -33,21 +33,12 @@
     <button class="menu-toggle" type="button" aria-expanded="false" aria-label="Menu">Menu</button>
     <div class="navlinks">
       <a href="/install/">Install</a>
-      <a href="/how/">How it works</a>
-      <a href="/security/">Security</a>
-      <a href="/lab/">Lab</a>
-      <a href="/chain/">On chain</a>
+      <a href="/intelligence/" class="on" aria-current="page">Intelligence</a>
+      <a href="/trading/">Trading bot</a>
       <a href="/city/">City</a>
       <a href="/galaxy/">Galaxy</a>
-      <a href="/swap/">Swap</a>
-      <a href="/arena/">Arena</a>
-      <a href="/trading/">Trading</a>
-      <a href="/scan/">Scan</a>
-      <a href="/terminal/">Terminal</a>
-      <a href="/budget/">Budget</a>
-      <a href="/intelligence/" class="on" aria-current="page">Intelligence</a>
-      <a href="/docs/">Docs</a>
-      <a href="/progress/">Progress</a>
+      <a href="/budget/">Agent budget</a>
+      <details class="more"><summary>More</summary><div class="mpanel"><div class="mgrp"><div class="mhead">Product</div><a href="/swap/">Swap</a><a href="/how/">How it works</a><a href="/security/">Security</a><a href="/docs/">Docs</a></div><div class="mgrp"><div class="mhead">Explore</div><a href="/chain/">On chain</a><a href="/scan/">Scan</a><a href="/terminal/">Terminal</a><a href="/arena/">Agent Arena</a><a href="/lab/">Lab</a><a href="/progress/">Progress</a></div></div></details>
       <a href="https://x.com/Reinpayapp" target="_blank" rel="noopener" aria-label="Reinpay on X"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
       <a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener" aria-label="Reinpay on GitHub"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
       <button class="btn small ghost nav-wallet" id="nav-wallet" type="button" data-ca="0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3" data-base="/">Connect wallet</button>
@@ -55,6 +46,7 @@
     </div>
   </div>
 </nav>
+<script>(function(){var d=document.querySelector("nav details.more");if(!d)return;var m=matchMedia("(max-width:1240px)");function f(){if(m.matches)d.open=true;else d.open=false;}f();m.addEventListener("change",f);document.addEventListener("click",function(e){if(!m.matches&&d.open&&!d.contains(e.target))d.open=false;});document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!m.matches)d.open=false;});})();</script>
 <main>
 <section class="intel" id="intel" data-src="/assets/chain/stats.json"><div class="wrap intel-grid">
   <div class="intel-copy"><div class="eyebrow">Reinpay Intelligence</div><h1>The agent with <em>a terminal for a head.</em></h1>
