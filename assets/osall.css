@@ -194,3 +194,7 @@ button.sc-chip { cursor: pointer; }
 @media (max-width: 1240px) { .menu-toggle { display: inline-block !important; } .navlinks { display: none !important; width: 100%; flex-direction: column !important; align-items: flex-start !important; gap: 14px !important; padding-top: 8px !important; } nav .wrap { flex-wrap: wrap !important; } nav.open .navlinks { display: flex !important; }
   .navlinks > a[aria-label="Reinpay on X"], .navlinks > a[aria-label="Reinpay on GitHub"] { display: inline-flex !important; }
   .navlinks details.more > summary { display: none; } .navlinks details.more .mpanel { position: static; display: grid; grid-template-columns: 1fr 1fr; padding: 4px 0 0; border: 0; box-shadow: none; background: none; } }
+/* Pay x402: new, so it stands out a little */
+.navlinks > a[href$="/pay/"], .navlinks > a[href$="pay/index.html"] { color: #5ff0a8 !important; position: relative; }
+.navlinks > a[href$="/pay/"]::after, .navlinks > a[href$="pay/index.html"]::after { content: "NEW"; position: absolute; top: -11px; right: -14px; font: 700 8px "IBM Plex Mono", monospace; letter-spacing: .08em; color: #03140c; background: #5ff0a8; padding: 1px 4px; border-radius: 3px; }
+@media (max-width: 1240px) { .navlinks > a[href$="/pay/"]::after { position: static; margin-left: 8px; vertical-align: 2px; } }
