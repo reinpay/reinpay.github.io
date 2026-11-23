@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Security · Reinpay</title>
+<meta name="description" content="Who can do what, where the key is kept, and what Reinpay never does.">
+<link rel="canonical" href="https://reinpay.app/security/">
+<meta property="og:title" content="Security · Reinpay">
+<meta property="og:description" content="Who can do what, where the key is kept, and what Reinpay never does.">
+<meta property="og:url" content="https://reinpay.app/security/">
+<meta name="theme-color" content="#0b110e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/extra.css">
+<link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/osall.css">
+</head>
+<body data-page="security">
+<div class="cabar"><b>$REINPAY</b> · ROBINHOOD CHAIN · CA <code>0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3</code> · <a href="https://robinhoodchain.blockscout.com/token/0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3" target="_blank" rel="noopener">BLOCKSCOUT ↗</a></div>
+<nav>
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="Reinpay home">
+      <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="9" fill="var(--rein)"/>
+        <path d="M12 29V11h8.5a5.5 5.5 0 0 1 0 11H12m8 0l7.5 7" fill="none" stroke="var(--rein-ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="25" y="7.5" width="7" height="7" rx="1.6" fill="none" stroke="var(--brass)" stroke-width="2.2"/>
+      </svg>
+      Reinpay
+    </a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-label="Menu">Menu</button>
+    <div class="navlinks">
+      <a href="/install/">Install</a>
+      <a href="/intelligence/">Intelligence</a>
+      <a href="/trading/">Trading bot</a>
+      <a href="/city/">City</a>
+      <a href="/galaxy/">Galaxy</a>
+      <a href="/budget/">Agent budget</a>
+      <details class="more on"><summary>More</summary><div class="mpanel"><div class="mgrp"><div class="mhead">Product</div><a href="/swap/">Swap</a><a href="/how/">How it works</a><a href="/security/" class="on" aria-current="page">Security</a><a href="/docs/">Docs</a></div><div class="mgrp"><div class="mhead">Explore</div><a href="/chain/">On chain</a><a href="/scan/">Scan</a><a href="/terminal/">Terminal</a><a href="/arena/">Agent Arena</a><a href="/lab/">Lab</a><a href="/progress/">Progress</a></div></div></details>
+      <a href="https://x.com/Reinpayapp" target="_blank" rel="noopener" aria-label="Reinpay on X"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      <a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener" aria-label="Reinpay on GitHub"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <button class="btn small ghost nav-wallet" id="nav-wallet" type="button" data-ca="0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3" data-base="/">Connect wallet</button>
+      <a class="btn launch" href="/app/">Launch app</a>
+    </div>
+  </div>
+</nav>
+<script>(function(){var d=document.querySelector("nav details.more");if(!d)return;var m=matchMedia("(max-width:1240px)");function f(){if(m.matches)d.open=true;else d.open=false;}f();m.addEventListener("change",f);document.addEventListener("click",function(e){if(!m.matches&&d.open&&!d.contains(e.target))d.open=false;});document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!m.matches)d.open=false;});})();</script>
+<main>
+<header class="ph-os"><canvas class="ph-net" data-nodes="OWNER KEY,AGENT,MCP,SEALED RULES,FREEZE,SIMULATION,RECEIPTS" data-lines="> only you can approve|> key stays local" aria-hidden="true"></canvas><div class="wrap">
+  <div class="kick">RP·OS <i></i> <b>SECURITY</b></div>
+  <h1>The agent can ask. Only you can <em>say yes.</em></h1>
+  <p>Reinpay splits the wallet in two: what your agent can do over MCP, and what only you can do in your own terminal.</p>
+</div></header>
+<section class="band" id="who">
+  <div class="wrap">
+    <div class="side">
+      <div class="eyebrow">Who can do what</div>
+      <h2>The agent can ask. Only you can say yes.</h2>
+      <p>The commands that approve payments, change rules or add payees refuse to run without a real terminal, so an agent driving a shell cannot reach them either.</p>
+    </div>
+    <div class="split">
+      <div class="col">
+        <h3>Your agent, over MCP</h3>
+        <ul>
+          <li>Read the wallet's balances and today's budget left</li>
+          <li>Read the rules and the payee list</li>
+          <li>Ask for a payment, with a memo</li>
+          <li>Read its receipts</li>
+        </ul>
+      </div>
+      <div class="col owner">
+        <h3>You, in your terminal</h3>
+        <ul>
+          <li>Approve or reject what is waiting</li>
+          <li>Set budgets, max per payment and the approval line</li>
+          <li>Add, remove or switch off payees</li>
+          <li>Turn on sending without asking, for payments inside every rule</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="plain"><div class="wrap">
+  <div class="section-head"><div class="eyebrow">Where things are kept</div><h2>The key stays on your computer.</h2><p>Everything lives in <span class="mono">~/.reinpay</span>, readable by you only.</p></div>
+  <div class="bullets">
+    <div class="bullet"><b>keystore.json</b><span>The key, encrypted with scrypt and AES-256-GCM under your passphrase.</span></div>
+    <div class="bullet"><b>passphrase</b><span>Present only while unlocked, and removed on its own when the unlock runs out (12 hours unless you choose). <span class="mono">reinpay lock</span> removes it now.</span></div>
+    <div class="bullet"><b>config.json</b><span>Your rules and payees, sealed with your wallet key. If it is changed any other way, nothing is signed until you check it and run <span class="mono">reinpay seal</span>.</span></div>
+    <div class="bullet"><b>receipts.json</b><span>Every request and what happened to it, written atomically.</span></div>
+  </div>
+</div></section>
+<section class="plain"><div class="wrap">
+  <div class="section-head"><div class="eyebrow">What Reinpay never does</div><h2>Short list, on purpose.</h2></div>
+  <div class="bullets">
+    <div class="bullet no"><b>Sends your key anywhere</b><span>The only network traffic is to the Robinhood Chain RPC.</span></div>
+    <div class="bullet no"><b>Lets the agent approve</b><span>Approve, rules and payees refuse to run without an interactive terminal.</span></div>
+    <div class="bullet no"><b>Pays someone off the list</b><span>No fuzzy matching on names. Off the list means blocked.</span></div>
+    <div class="bullet no"><b>Pays a token contract</b><span>An address that answers like a token is refused as a payee, because tokens sent there are usually stuck for good.</span></div>
+    <div class="bullet no"><b>Signs a payment it did not simulate</b><span>Approve rebuilds the payment from your payee list, simulates it, and signs exactly that transaction. The simulation must show one transfer out, to the payee.</span></div>
+    <div class="bullet no"><b>Keeps paying when something looks wrong</b><span>Five blocked requests in ten minutes and the wallet freezes itself, then tells you. <span class="mono">reinpay freeze</span> stops everything by hand, and your agent can pull the brake too.</span></div>
+    <div class="bullet no"><b>Adds a lookalike payee quietly</b><span>A new address that starts and ends like a payee you already have, or like your own wallet, is refused until you type it again in full. That is how address poisoning scams work.</span></div>
+    <div class="bullet no"><b>Signs with rules you did not seal</b><span>Before anything is signed, the seal on your rules and payees is checked against your wallet key.</span></div>
+    <div class="bullet yes"><b>Writes a receipt every time</b><span>Blocked, waiting or sent, each request has an id and a reason. <span class="mono">reinpay verify</span> checks a sent one against the chain.</span></div>
+    <div class="bullet yes"><b>Signed statements</b><span><span class="mono">reinpay statement</span> signs what your agent spent with your wallet key. Anyone can check it against the chain with <span class="mono">reinpay statement check</span>.</span></div>
+    <div class="bullet yes"><b>Signed webhooks</b><span>Every webhook notification carries an HMAC signature and a timestamp, so your server can refuse forged or replayed ones.</span></div>
+    <div class="bullet yes"><b>Open source</b><span>MIT licence. Read every line on GitHub.</span></div>
+  </div>
+</div></section>
+<section class="plain"><div class="wrap">
+  <div class="section-head"><div class="eyebrow">Limits of this version</div><h2>What it cannot check.</h2></div>
+  <div class="bullets">
+    <div class="bullet"><b>Delivery</b><span>The simulation checks what leaves the wallet. It cannot check that a payee delivers what you paid for.</span></div>
+    <div class="bullet"><b>Your computer itself</b><span>While the wallet is unlocked, a program running as you could read the passphrase. Unlock for short spans, like <span class="mono">reinpay unlock --for=30m</span>, and lock when you are done.</span></div>
+    <div class="bullet"><b>Tokens you add are your call</b><span>Reinpay checks that a token is real and verified on Sourcify. It cannot tell you whether it is worth anything.</span></div>
+  </div>
+</div></section>
+<section class="cta-band"><div class="wrap"><div class="cta-box">
+  <h2>Set a budget, add a payee, and let your agent ask.</h2>
+  <div class="acts"><a class="btn launch" href="/app/">Launch app</a><a class="btn ghost" href="/install/">Install Reinpay</a></div>
+</div></div></section>
+</main>
+<footer>
+  <div class="wrap">
+    <div>
+      <div style="font:700 17px var(--display);color:var(--ink)">Reinpay</div>
+      <div>Robinhood Chain mainnet · chain id 4663 · MIT licence</div>
+      <div>Nothing here is financial advice.</div>
+      <div class="foot-ca">$REINPAY <code>0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3</code><button class="copy" type="button" data-copy-text="0x17c4735E9da7F1eeB76d1cC17C2f196F38DE64b3">Copy</button></div>
+      <div style="margin-top:6px"><a href="https://x.com/Reinpayapp" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> @Reinpayapp</a></div>
+      <div style="margin-top:4px"><a href="https://github.com/reinpay/reinpay" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px;fill:currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> github.com/reinpay/reinpay</a></div>
+    </div>
+    <div>
+      <div>Pages</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+        <a href="/install/">Install</a><a href="/how/">How it works</a><a href="/security/">Security</a><a href="/docs/">Docs</a><a href="/lab/">Lab</a><a href="/chain/">On chain</a><a href="/city/">Reinpay City</a><a href="/galaxy/">Reinpay Galaxy</a><a href="/swap/">Reinpay Swap</a><a href="/arena/">Agent Arena</a><a href="/trading/">Trading Desk</a><a href="/desk/">Reinpay Desk</a><a href="/scan/">Scan</a><a href="/terminal/">Terminal</a><a href="/budget/">Agent budget</a><a href="/private/">Private payments</a><a href="/intelligence/">Intelligence</a><a href="/progress/">Progress</a><a href="/app/">Launch app</a>
+      </div>
+    </div>
+    <div>
+      <div>Contact</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <span class="mono" id="mail" style="color:var(--ink);user-select:all">hello@reinpay.app</span>
+        <button class="copy" id="copy" type="button">Copy</button>
+      </div>
+    </div>
+  </div>
+</footer>
+<script>
+document.querySelector(".menu-toggle")?.addEventListener("click", (e) => { const n = e.target.closest("nav"); n.classList.toggle("open"); e.target.setAttribute("aria-expanded", n.classList.contains("open")); });
+document.querySelectorAll("[data-count]").forEach((el) => { const t = +el.dataset.count; if (!t || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const io = new IntersectionObserver(([en]) => { if (!en.isIntersecting) return; io.disconnect(); let i = 0; const step = () => { el.textContent = Math.min(t, ++i); if (i < t) setTimeout(step, 180); }; el.textContent = "0"; step(); }); io.observe(el); });
+document.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => { const t = b.parentElement.querySelector("pre").textContent; try { await navigator.clipboard.writeText(t); b.textContent = "Copied"; } catch { const r = document.createRange(); r.selectNodeContents(b.parentElement.querySelector("pre")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Selected"; } setTimeout(() => (b.textContent = "Copy"), 1600); }));
+document.querySelectorAll("[data-copy-text]").forEach((b) => b.addEventListener("click", async () => { try { await navigator.clipboard.writeText(b.dataset.copyText); b.textContent = "Copied"; } catch { b.textContent = "Select it"; } setTimeout(() => (b.textContent = "Copy"), 1600); }));
+document.querySelectorAll("[data-os]").forEach((b) => b.addEventListener("click", () => { document.querySelectorAll("[data-os]").forEach((x) => x.setAttribute("aria-pressed", x === b)); document.querySelectorAll("[data-osbox]").forEach((x) => (x.hidden = x.dataset.osbox !== b.dataset.os)); }));
+if (document.querySelector("[data-os]")) { const ua = navigator.userAgent; const os = /Mac/.test(ua) ? "mac" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null; if (os) document.querySelector(`[data-os="${os}"]`).click(); }
+</script>
+<script src="/assets/landing.js"></script>
+<script src="/assets/oshead.js"></script>
+<script src="/assets/wallet.js"></script>
+</body>
+</html>
