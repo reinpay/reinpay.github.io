@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reinpay Pay</title>
+<meta name="description" content="Reinpay Pay: x402 payments on Robinhood Chain. Pay for an API with one signature in USDG, inside your own rules. Every payment is simulated on mainnet first and lands in the public buyback and burn wallet.">
+<link rel="canonical" href="https://reinpay.app/pay/">
+<meta name="theme-color" content="#05080a">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Familjen+Grotesk:wght@600;700&display=swap">
+<style>
+:root{--bg:#05080a;--pn:#0b1310;--pn2:#08100d;--ln:rgba(95,240,168,.2);--ink:#e3ebe5;--dim:#8aa597;--g:#5ff0a8;--gold:#e2b057;--o:#ffb36b;--bad:#f0836e;--blue:#7aa7ff;--violet:#b48cff}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "IBM Plex Mono",monospace}
+body{background-image:linear-gradient(rgba(95,240,168,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(95,240,168,.035) 1px,transparent 1px);background-size:50px 50px}
+a{color:var(--g)}.app{max-width:1240px;margin:0 auto;padding:18px 16px 60px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.back{text-decoration:none;font-size:12px}.chip{font:600 11px "IBM Plex Mono";letter-spacing:.14em;padding:5px 10px;border:1px solid var(--ln);color:var(--dim)}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center;background:var(--pn);border:1px solid var(--ln);border-radius:14px;padding:22px}
+.k{font:600 11px "IBM Plex Mono";letter-spacing:.2em;color:var(--gold)}h1{font:700 clamp(36px,4.6vw,62px)/1.02 "Familjen Grotesk";letter-spacing:-.03em;margin:10px 0 12px}h1 em{font-style:normal;color:var(--g)}
+.lead{color:#b9cdc2;font-size:14.5px}
+#core{width:100%;height:330px;display:block}
+.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px;margin-top:14px}
+.pn{background:var(--pn);border:1px solid var(--ln);border-radius:14px;padding:16px}.pn h3{margin:0 0 12px;font:600 10.5px "IBM Plex Mono";letter-spacing:.18em;color:var(--dim);display:flex;justify-content:space-between;gap:8px}
+.req{background:#030605;border:1px solid var(--ln);border-radius:10px;padding:12px 14px;font-size:12.5px;white-space:pre-wrap;color:#cfe0d7;max-height:230px;overflow:auto}
+.steps{display:flex;flex-direction:column;gap:8px}
+.st{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--ln);border-radius:10px;background:var(--pn2)}
+.st i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;border:1px solid #2c4a3d;color:var(--dim)}
+.st b{font:700 14px "Familjen Grotesk";display:block}.st span{font-size:12px;color:#a9bdb2}
+.st.ok{border-color:rgba(95,240,168,.55)}.st.ok i{background:var(--g);color:#03251a;border-color:var(--g)}.st.bad{border-color:rgba(240,131,110,.6)}.st.bad i{background:var(--bad);color:#2a0d08;border-color:var(--bad)}.st.run i{border-color:var(--gold);color:var(--gold)}
+button{font:600 12.5px "IBM Plex Mono";border:0;border-radius:8px;padding:10px 14px;cursor:pointer;background:var(--gold);color:#1b1404}button.o{background:none;border:1px solid var(--ln);color:var(--ink)}button.t{background:var(--g);color:#03251a}button:disabled{opacity:.45;cursor:default}
+input,textarea{background:#030605;border:1px solid var(--ln);color:var(--ink);font:12.5px "IBM Plex Mono";padding:8px 9px;border-radius:8px;width:100%}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rules label{font-size:10.5px;color:var(--dim)}
+.msg{margin-top:10px;min-height:18px;font-size:12.5px}.err{color:var(--bad)}.okc{color:var(--g)}.muted{color:var(--dim)}
+.data table{width:100%;border-collapse:collapse;font-size:12.5px}.data td,.data th{padding:6px 8px;border-bottom:1px solid #12201a;text-align:left}.data th{color:var(--dim);font-weight:400}
+.feed div{display:grid;grid-template-columns:120px 1fr auto;gap:10px;padding:8px 0;border-bottom:1px solid #12201a;font-size:12.5px}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}.stat div{border:1px dashed var(--ln);border-radius:9px;padding:9px 11px;background:var(--pn2)}.stat small{display:block;font-size:9.5px;letter-spacing:.14em;color:var(--dim)}.stat b{font:700 20px "Familjen Grotesk"}
+.note{margin-top:14px;font-size:12px;color:var(--dim)}
+.grid>*,.hero>*{min-width:0}.req{overflow-wrap:anywhere}.pn h3{flex-wrap:wrap}.feed div{grid-template-columns:auto 1fr auto}
+@media(max-width:960px){.feed div{grid-template-columns:1fr auto}.feed div span:first-child{display:none}.hero,.grid{grid-template-columns:1fr}#core{height:260px}.rules{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><a class="back" href="../">← reinpay.app</a><span class="chip">x402 · ROBINHOOD CHAIN MAINNET</span></div>
+
+  <div class="hero">
+    <div>
+      <div class="k">REINPAY PAY</div>
+      <h1>Pay for an API.<br><em>Inside your rules.</em></h1>
+      <div class="lead">The x402 way: the API names its price, Reinpay checks your rules, the payment is simulated on mainnet, and you sign once. The API gets exact USDG. Here the API is Reinpay's own market data, and its price goes to the public buyback and burn wallet.</div>
+    </div>
+    <canvas id="core" aria-label="Reinpay Intelligence checking a payment"></canvas>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="pn"><h3><span>1 · THE API ASKS FOR PAYMENT</span><span id="reqSrc" class="muted"></span></h3><div class="req" id="req">loading the payment requirement…</div></div>
+      <div class="pn" style="margin-top:14px"><h3><span>YOUR RULES</span><button class="o" id="saveRules" type="button">Save</button></h3>
+        <div class="rules"><label>Max USDG per payment<input id="rCap" inputmode="decimal"></label><label>Max USDG per day<input id="rDay" inputmode="decimal"></label></div>
+        <label class="muted" style="font-size:10.5px;display:block;margin-top:10px">Approved payees (one address per line)<textarea id="rPay" rows="2" spellcheck="false"></textarea></label>
+        <div class="note">Rules live in this browser. A payment that breaks one is never prepared, never simulated, never signed.</div></div>
+    </div>
+    <div class="pn"><h3><span>2 · PAY</span><span id="who" class="muted">not connected</span></h3>
+      <div class="steps" id="steps">
+        <div class="st" id="s1"><i>1</i><div><b>Connect</b><span>Your wallet on Robinhood Chain. It pays a little ETH for gas.</span></div></div>
+        <div class="st" id="s2"><i>2</i><div><b>Rules</b><span>Payee approved, amount under your cap, inside today's budget.</span></div></div>
+        <div class="st" id="s3"><i>3</i><div><b>Sign once</b><span>An EIP-3009 authorization on USDG: this payee, this amount, valid 2 minutes.</span></div></div>
+        <div class="st" id="s4"><i>4</i><div><b>Simulate</b><span>The exact settlement runs on mainnet state first. Nothing moves yet.</span></div></div>
+        <div class="st" id="s5"><i>5</i><div><b>Settle</b><span>You confirm the transaction. Reinpay checks the nonce is used and the payee got exactly the price.</span></div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button id="conn" type="button">Connect wallet</button><button class="t" id="pay" type="button" disabled>Pay 0.01 USDG</button><a class="chip" style="text-decoration:none;align-self:center" href="../swap/">Need USDG? Reinpay Swap →</a></div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="pn data"><h3><span>3 · WHAT YOU PAID FOR</span><span id="unl" class="muted">locked</span></h3><div id="data" class="muted">Pay once to unlock Reinpay's market data: price, round trip cost and hourly candles for 32 Robinhood Chain markets.</div></div>
+    <div class="pn"><h3><span>LIVE PAYMENTS · READ FROM THE CHAIN</span><span id="feedAt" class="muted"></span></h3>
+      <div class="stat"><div><small>PAYMENTS</small><b id="fN">–</b></div><div><small>USDG SETTLED</small><b id="fU">–</b></div><div><small>TO</small><b style="font-size:14px">burn wallet</b></div></div>
+      <div class="feed" id="feed"><span class="muted">reading USDG authorizations sent to the burn wallet…</span></div></div>
+  </div>
+  <div class="note">Reinpay Pay settles USDG through USDG's own transferWithAuthorization on Robinhood Chain (EIP-712 domain "Global Dollar", version 1). You submit and pay gas for your own payment, so no Reinpay server is involved. Payments are final on-chain transfers.</div>
+</div>
+<script type="module">
+const $ = (i) => document.getElementById(i);
+const RPC = "https://rpc.mainnet.chain.robinhood.com", CHAIN = "0x1237", CHAIN_ID = 4663, EXP = "https://robinhoodchain.blockscout.com";
+const USDG = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", BURN = "0xc651fc557130be361a8b45a7ed19405dd06d9317";
+const AUTH_USED = "0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5", TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const FEED_FROM = 121058000; // the block Reinpay Pay went up; every payment after it is read from the chain
+const pad = (a) => a.slice(2).toLowerCase().padStart(64, "0"), hex = (n) => "0x" + BigInt(n).toString(16), usd = (raw) => (Number(raw) / 1e6).toFixed(2), short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let rid = 0;
+async function rpc(method, params) {
+  try { const ac = new AbortController(), to = setTimeout(() => ac.abort(), 8000); const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++rid, method, params }), signal: ac.signal }); clearTimeout(to); const j = await r.json(); if (j.error) throw Object.assign(new Error(j.error.message), { rpc: true }); return j.result; }
+  catch (e) { if (e.rpc) throw e; const w = wallet(); if (w && me) return w.request({ method, params }); throw new Error("Robinhood Chain RPC unreachable"); }
+}
+const wallet = () => window.okxwallet || window.ethereum;
+const msg = (t, ok) => { $("msg").textContent = t; $("msg").className = "msg " + (ok ? "okc" : "err"); };
+const step = (n, state, text) => { const e = $("s" + n); e.className = "st " + (state || ""); if (text) e.querySelector("span").textContent = text; };
+
+// ---------- 1. the payment requirement the API publishes (x402 v2, scheme "exact") ----------
+let REQ = null;
+async function loadReq() { const j = await (await fetch("./x402/markets.json?t=" + Date.now())).json(); REQ = j; const a = j.accepts[0];
+  $("req").textContent = `HTTP 402 Payment Required\n\n${JSON.stringify(j, null, 2)}`; $("reqSrc").textContent = "/pay/x402/markets.json"; $("pay").textContent = `Pay ${usd(a.amount)} USDG`; }
+
+// ---------- rules ----------
+const RULES = store.get("reinpay-pay-rules", { cap: 0.05, day: 1, payees: [BURN] });
+function showRules() { $("rCap").value = RULES.cap; $("rDay").value = RULES.day; $("rPay").value = RULES.payees.join("\n"); }
+$("saveRules").onclick = () => { RULES.cap = +$("rCap").value; RULES.day = +$("rDay").value; RULES.payees = [...new Set($("rPay").value.split(/[\s,]+/).filter((a) => /^0x[0-9a-fA-F]{40}$/.test(a)).map((a) => a.toLowerCase()))]; store.set("reinpay-pay-rules", RULES); showRules(); msg("Rules saved.", true); };
+const today = () => new Date().toISOString().slice(0, 10), spentKey = () => "reinpay-pay-spent-" + me.toLowerCase();
+const spentToday = () => { const s = store.get(spentKey(), {}); return s.d === today() ? s.v : 0; };
+
+// ---------- connect ----------
+let me = null;
+async function ensureChain(w) { try { await w.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN }] }); } catch (e) { if (e && (e.code === 4902 || /unrecognized|not added|unknown chain/i.test(e.message || ""))) await w.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN, chainName: "Robinhood Chain", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: [RPC], blockExplorerUrls: [EXP] }] }); else throw e; } }
+$("conn").onclick = async () => { const w = wallet(); if (!w) return msg("No wallet found. Open this page in a browser with OKX Wallet or MetaMask.");
+  try { me = (await w.request({ method: "eth_requestAccounts" }))[0]; await ensureChain(w); const bal = BigInt(await rpc("eth_call", [{ to: USDG, data: "0x70a08231" + pad(me) }, "latest"]));
+    $("who").textContent = `${short(me)} · ${usd(bal)} USDG`; $("conn").textContent = "Connected"; step(1, "ok", `${short(me)} holds ${usd(bal)} USDG.`); $("pay").disabled = false; msg(bal < BigInt(REQ.accepts[0].amount) ? "Your wallet needs a little USDG first: get it on Reinpay Swap." : "Ready. Press Pay: rules, then one signature, then a mainnet simulation, then you confirm.", bal >= BigInt(REQ.accepts[0].amount)); }
+  catch (e) { msg("Wallet: " + (e.message || e)); } };
+
+// ---------- pay: rules → sign → simulate → settle → verify ----------
+const TYPES = { EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }], TransferWithAuthorization: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" }] };
+function calldata(a, sig) { const r = sig.slice(2, 66), s = sig.slice(66, 130); let v = parseInt(sig.slice(130, 132), 16); if (v < 27) v += 27;
+  return "0xe3ee160e" + pad(a.from) + pad(a.to) + BigInt(a.value).toString(16).padStart(64, "0") + BigInt(a.validAfter).toString(16).padStart(64, "0") + BigInt(a.validBefore).toString(16).padStart(64, "0") + a.nonce.slice(2) + v.toString(16).padStart(64, "0") + r + s; }
+const authState = (from, nonce) => ({ to: USDG, data: "0xe94a0102" + pad(from) + nonce.slice(2) });
+$("pay").onclick = async () => {
+  if (!me || !REQ) return; const w = wallet(), a = REQ.accepts[0], value = BigInt(a.amount), payee = a.payTo.toLowerCase();
+  for (const n of [2, 3, 4, 5]) step(n); $("pay").disabled = true;
+  try {
+    // rules first: nothing is prepared if one fails
+    step(2, "run"); const amt = Number(value) / 1e6;
+    if (!RULES.payees.includes(payee)) { step(2, "bad", `${short(payee)} is not on your approved payee list. Nothing signed.`); throw new Error("blocked by your rules"); }
+    if (amt > RULES.cap) { step(2, "bad", `${amt} USDG is over your ${RULES.cap} USDG per payment cap. Nothing signed.`); throw new Error("blocked by your rules"); }
+    if (spentToday() + amt > RULES.day) { step(2, "bad", `Today's budget of ${RULES.day} USDG would be passed. Nothing signed.`); throw new Error("blocked by your rules"); }
+    step(2, "ok", `Payee approved · ${amt} ≤ ${RULES.cap} cap · ${(spentToday() + amt).toFixed(2)} of ${RULES.day} USDG today.`);
+    // one signature: an EIP-3009 authorization for exactly this payee and amount
+    step(3, "run"); await ensureChain(w); const now = Math.floor(Date.now() / 1000), rnd = crypto.getRandomValues(new Uint8Array(32));
+    const auth = { from: me, to: a.payTo, value: value.toString(), validAfter: "0", validBefore: String(now + 120), nonce: "0x" + [...rnd].map((b) => b.toString(16).padStart(2, "0")).join("") };
+    const typed = { domain: { name: a.extra.name, version: a.extra.version, chainId: CHAIN_ID, verifyingContract: USDG }, types: TYPES, primaryType: "TransferWithAuthorization", message: auth };
+    const sig = await w.request({ method: "eth_signTypedData_v4", params: [me, JSON.stringify(typed)] });
+    step(3, "ok", `Signed: ${usd(value)} USDG to ${short(a.payTo)}, valid until ${new Date((now + 120) * 1000).toTimeString().slice(0, 8)}.`);
+    // simulate the exact settlement on mainnet state
+    step(4, "run"); const tx = { from: me, to: USDG, data: calldata(auth, sig) }, balCall = { to: USDG, data: "0x70a08231" + pad(a.payTo) };
+    const sim = await rpc("eth_simulateV1", [{ blockStateCalls: [{ calls: [{ ...authState(me, auth.nonce), from: me }, { ...balCall, from: me }, tx, { ...authState(me, auth.nonce), from: me }, { ...balCall, from: me }] }], validation: false }, "latest"]);
+    const c = sim[0].calls, got = BigInt(c[4].returnData) - BigInt(c[1].returnData);
+    if (BigInt(c[0].returnData) !== 0n) { step(4, "bad", "This authorization was already used. Nothing sent."); throw new Error("replay refused"); }
+    if (c[2].status !== "0x1" || got !== value) { step(4, "bad", `Simulation failed: ${c[2].error?.message || "the payee would not get the exact price"}. Nothing sent.`); throw new Error("simulation failed"); }
+    step(4, "ok", `✓ At block ${parseInt(sim[0].number, 16).toLocaleString("en-US")} the payee gets exactly ${usd(got)} USDG · ${parseInt(c[2].gasUsed, 16).toLocaleString("en-US")} gas.`);
+    // settle: you confirm the transaction in your wallet, then Reinpay checks the result on chain
+    step(5, "run", "Confirm the transaction in your wallet…"); const before = BigInt(await rpc("eth_call", [balCall, "latest"]));
+    const h = await w.request({ method: "eth_sendTransaction", params: [tx] }); step(5, "run", `Sent ${short(h)}, waiting for the receipt…`);
+    let rc = null; for (let i = 0; i < 60 && !rc; i++) { await new Promise((r) => setTimeout(r, 1500)); rc = await rpc("eth_getTransactionReceipt", [h]); }
+    if (!rc || rc.status !== "0x1") { step(5, "bad", `Transaction ${short(h)} did not succeed.`); throw new Error("settlement failed"); }
+    const used = BigInt(await rpc("eth_call", [authState(me, auth.nonce), hex(rc.blockNumber)])), paid = BigInt(await rpc("eth_call", [balCall, hex(rc.blockNumber)])) - before;
+    if (used !== 1n || paid < value) { step(5, "bad", "The payee did not receive the exact price. The data stays locked."); throw new Error("settlement not verified"); }
+    step(5, "ok", `Settled in block ${parseInt(rc.blockNumber, 16).toLocaleString("en-US")} · nonce used · payee +${usd(value)} USDG.`);
+    store.set(spentKey(), { d: today(), v: spentToday() + amt }); store.set("reinpay-pay-receipt-" + me.toLowerCase(), { h, block: parseInt(rc.blockNumber, 16) });
+    msg(`Paid. Receipt: ${h}`, true); unlock(h); loadFeed();
+  } catch (e) { msg(e.code === 4001 || /reject|denied/i.test(e.message || "") ? "You declined in your wallet. Nothing was sent." : (e.message || String(e))); for (const n of [3, 4, 5]) if ($("s" + n).classList.contains("run")) step(n, "bad", e.code === 4001 ? "You declined in your wallet. Nothing sent." : (e.message || "stopped")); }
+  finally { $("pay").disabled = false; }
+};
+
+// ---------- 3. the paid data ----------
+async function unlock(h) { const d = await (await fetch("../assets/chain/markets.json?t=" + Date.now())).json();
+  $("unl").innerHTML = `<a target="_blank" href="${EXP}/tx/${h}">unlocked · receipt ↗</a>`;
+  $("data").innerHTML = `<table><tr><th>Market</th><th>Price (USDG)</th><th>Round trip at 1,000 USDG</th><th>Candles</th></tr>${d.markets.map((m) => `<tr><td>${m.s}</td><td>${m.px >= 1 ? m.px.toLocaleString("en-US", { maximumFractionDigits: 2 }) : m.px.toPrecision(4)}</td><td>${m.cost}%</td><td>${m.hourly.length} h</td></tr>`).join("")}</table><div class="note">Data as of ${new Date(d.at).toISOString().slice(0, 16).replace("T", " ")} UTC, from Reinpay's public on-chain job.</div>`; }
+
+// ---------- live payments: USDG authorizations that paid the burn wallet ----------
+async function loadFeed() {
+  try { const bn = parseInt(await rpc("eth_blockNumber", []), 16), rows = [];
+    for (let from = FEED_FROM; from <= bn; from += 90000) { const to = Math.min(bn, from + 89999);
+      const logs = await rpc("eth_getLogs", [{ fromBlock: hex(from), toBlock: hex(to), address: USDG, topics: [TRANSFER, null, "0x" + pad(BURN)] }]);
+      for (const l of logs) { const rc = await rpc("eth_getTransactionReceipt", [l.transactionHash]); if (!rc.logs.some((x) => x.address.toLowerCase() === USDG.toLowerCase() && x.topics[0] === AUTH_USED)) continue;
+        rows.push({ h: l.transactionHash, from: "0x" + l.topics[1].slice(26), v: BigInt(l.data), b: parseInt(l.blockNumber, 16) }); } }
+    rows.sort((x, y) => y.b - x.b); $("fN").textContent = rows.length; $("fU").textContent = usd(rows.reduce((s, r) => s + r.v, 0n));
+    $("feed").innerHTML = rows.length ? rows.slice(0, 12).map((r) => `<div><span>${r.b.toLocaleString("en-US")}</span><span>${short(r.from)} paid ${usd(r.v)} USDG</span><a target="_blank" href="${EXP}/tx/${r.h}">tx ↗</a></div>`).join("") : '<span class="muted">No payments yet. The first one will appear here as soon as it settles.</span>';
+    $("feedAt").textContent = "block " + bn.toLocaleString("en-US"); }
+  catch (e) { $("feed").innerHTML = `<span class="err">Could not read the chain: ${e.message}</span>`; }
+}
+
+// ---------- the core: Reinpay Intelligence and the five checks ----------
+const cv = $("core"), LAB = ["CONNECT", "RULES", "SIGN", "SIMULATE", "SETTLE"];
+function beat(k) { return k < .06 ? Math.sin(k / .06 * Math.PI) * .25 : k < .1 ? -Math.sin((k - .06) / .04 * Math.PI) * .3 : k < .15 ? Math.sin((k - .1) / .05 * Math.PI) : k < .2 ? -Math.sin((k - .15) / .05 * Math.PI) * .35 : k > .35 && k < .5 ? Math.sin((k - .35) / .15 * Math.PI) * .22 : 0; }
+let seed = 5; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647; let veins = null;
+function grow(x, y, a, len, d, out, col) { if (d <= 0 || len < 4) return; const a2 = a + (rnd() - .5) * .9, x2 = x + Math.cos(a2) * len, y2 = y + Math.sin(a2) * len; out.push({ x, y, cx: x + Math.cos(a) * len * .55, cy: y + Math.sin(a) * len * .55, x2, y2, d, col }); const k = d > 6 ? 2 : rnd() < .6 ? 2 : 1; for (let i = 0; i < k; i++) grow(x2, y2, a2 + (k === 2 ? (i ? 1 : -1) * (.25 + rnd() * .5) : (rnd() - .5) * .5), len * (.7 + rnd() * .16), d - 1, out, col); }
+function draw(t) {
+  const r = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight; if (cv.width !== Math.round(W * r)) { cv.width = Math.round(W * r); cv.height = Math.round(H * r); veins = null; }
+  const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, W, H); const s = t / 1000, cx = W / 2, cy = H / 2, ph = (s / .9) % 1, hb = Math.max(0, 1 - ph * 3.2);
+  if (!veins) { seed = 5; veins = []; const VC = ["95,240,168", "122,167,255", "226,176,87", "180,140,255"]; for (let k = 0; k < 20; k++) { const a = k * 2 * Math.PI / 20; grow(cx + Math.cos(a) * 52, cy + Math.sin(a) * 44, a, Math.min(W, 600) * (.075 + rnd() * .03), 8, veins, VC[k % 4]); } }
+  g.save(); g.globalCompositeOperation = "lighter"; g.lineCap = "round"; for (const v of veins) { g.strokeStyle = `rgba(${v.col},${.04 + v.d * .022})`; g.lineWidth = Math.max(.5, v.d * .55); g.beginPath(); g.moveTo(v.x, v.y); g.quadraticCurveTo(v.cx, v.cy, v.x2, v.y2); g.stroke(); } g.restore();
+  const R = Math.min(W * .4, H * .62), done = [1, 2, 3, 4, 5].map((n) => $("s" + n).className);
+  LAB.forEach((l, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 5, x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R * .78, st = done[i];
+    const col = st.includes("ok") ? "#5ff0a8" : st.includes("bad") ? "#f0836e" : st.includes("run") ? "#e2b057" : "rgba(138,165,151,.45)";
+    g.strokeStyle = col; g.setLineDash(st.includes("ok") ? [] : [3, 6]); g.lineWidth = 1.4; g.beginPath(); g.moveTo(cx, cy); g.lineTo(x, y); g.stroke(); g.setLineDash([]);
+    if (st.includes("run")) { const q = (s * 1.2) % 1; g.fillStyle = "#e2b057"; g.beginPath(); g.arc(cx + (x - cx) * q, cy + (y - cy) * q, 4, 0, 6.3); g.fill(); }
+    g.fillStyle = "#06100c"; g.beginPath(); g.roundRect(x - 50, y - 14, 100, 28, 14); g.fill(); g.strokeStyle = col; g.stroke(); g.fillStyle = col === "rgba(138,165,151,.45)" ? "#8aa597" : col; g.font = '600 11px "IBM Plex Mono"'; g.textAlign = "center"; g.fillText((st.includes("ok") ? "✓ " : st.includes("bad") ? "✗ " : "") + l, x, y + 4); });
+  const R0 = 40 * (1 + .07 * hb), gl = g.createRadialGradient(cx, cy, 0, cx, cy, R0 * 2.4); gl.addColorStop(0, `rgba(240,96,90,${.14 + .22 * hb})`); gl.addColorStop(1, "rgba(95,240,168,0)"); g.fillStyle = gl; g.beginPath(); g.arc(cx, cy, R0 * 2.4, 0, 6.3); g.fill();
+  g.fillStyle = "#050b09"; g.strokeStyle = `rgba(95,240,168,${.55 + .4 * hb})`; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R0, 0, 6.3); g.fill(); g.stroke();
+  g.save(); g.beginPath(); g.arc(cx, cy, R0 - 5, 0, 6.3); g.clip(); g.strokeStyle = "#f0605a"; g.lineWidth = 2; g.beginPath(); for (let x = -R0; x <= R0; x += 2) { const tt = s / .9 - (R0 - x) / (R0 * 2) * 1.2, yv = beat(((tt % 1) + 1) % 1); x === -R0 ? g.moveTo(cx + x, cy + 8 - yv * 18) : g.lineTo(cx + x, cy + 8 - yv * 18); } g.stroke(); g.restore();
+  g.fillStyle = "#e3ebe5"; g.font = '700 9.5px "Familjen Grotesk"'; g.textAlign = "center"; g.fillText("REINPAY", cx, cy - 16); g.fillText("INTELLIGENCE", cx, cy - 6);
+  requestAnimationFrame(draw);
+}
+(async () => { showRules(); requestAnimationFrame(draw); try { await loadReq(); } catch { $("req").textContent = "Could not load the payment requirement."; } loadFeed(); setInterval(loadFeed, 60000); })();
+</script>
+</body>
+</html>

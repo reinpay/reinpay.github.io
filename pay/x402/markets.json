@@ -1,0 +1,20 @@
+{
+  "x402Version": 2,
+  "error": "Payment required",
+  "resource": {
+    "url": "https://reinpay.app/pay/#markets",
+    "description": "Reinpay market data: price, round trip cost and hourly candles for 32 Robinhood Chain markets",
+    "mimeType": "application/json"
+  },
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:4663",
+      "amount": "10000",
+      "asset": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+      "payTo": "0xc651fc557130be361a8b45a7ed19405dd06d9317",
+      "maxTimeoutSeconds": 120,
+      "extra": { "name": "Global Dollar", "version": "1" }
+    }
+  ]
+}
