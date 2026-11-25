@@ -1,10 +1,10 @@
 {
  "kind": "reinpay-chain-stats",
  "version": 1,
- "at": "2026-11-25T15:32:03.020Z",
+ "at": "2026-11-25T16:44:50.044Z",
  "chain": "Robinhood Chain mainnet",
  "chainId": 4663,
- "block": 123147325,
+ "block": 123189986,
  "token": "0x17c4735e9da7f1eeb76d1cc17c2f196f38de64b3",
  "decimals": 18,
  "totalSupply": "1000000000000000000000000000",
