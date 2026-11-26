@@ -1,8 +1,21 @@
 {
  "kind": "reinpay-lab-index",
  "version": 1,
- "updated": "2026-11-26T17:59:03.321Z",
+ "updated": "2026-11-26T19:01:58.634Z",
  "runs": [
+  {
+   "file": "20261126T1901Z.json",
+   "at": "2026-11-26T19:01:58.573Z",
+   "block": "123694787",
+   "totals": {
+    "paid": 8,
+    "held": 4,
+    "blocked": 23,
+    "void": 0
+   },
+   "grid": "bpbbppp|bpbbhbp|bpbbhbp|bhbbbbh|bbbbbbb",
+   "sha256": "2900069c3ac548edb524fd9aa6b52f0e4bd6897f06fa5f0c979194cf33a34501"
+  },
   {
    "file": "20261126T1758Z.json",
    "at": "2026-11-26T17:59:03.278Z",
